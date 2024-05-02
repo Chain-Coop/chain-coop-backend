@@ -4,12 +4,14 @@ import { NotFoundError } from "./not-found";
 import { BadRequestError } from "./bad-request";
 import { ForbiddenError } from "./forbidden";
 import { EntityTooLarge } from "./large-entity";
+import { ConflictError } from "./conflict";
 
 export {
-  CustomAPIError,
-  UnauthenticatedError,
-  NotFoundError,
-  BadRequestError,
-  ForbiddenError,
-  EntityTooLarge,
+	CustomAPIError,
+	UnauthenticatedError,
+	NotFoundError,
+	BadRequestError,
+	ForbiddenError,
+	EntityTooLarge,
+	ConflictError,
 };

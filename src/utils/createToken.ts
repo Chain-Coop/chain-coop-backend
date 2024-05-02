@@ -1,14 +1,20 @@
 import tokenGenerator from "otp-generator";
 
-const createToken = async (count: number) => {
-  const newToken = await tokenGenerator.generate(count, {
-    upperCaseAlphabets: false,
-    specialChars: false,
-    lowerCaseAlphabets: true,
-    digits: true,
-  });
+const createToken = async ({
+	count,
+	numeric,
+}: {
+	count: number;
+	numeric?: boolean;
+}) => {
+	const newToken = await tokenGenerator.generate(count, {
+		upperCaseAlphabets: !numeric,
+		specialChars: !numeric,
+		lowerCaseAlphabets: !numeric,
+		digits: true,
+	});
 
-  return newToken;
+	return newToken;
 };
 
 export { createToken };
