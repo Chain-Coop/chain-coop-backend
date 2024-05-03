@@ -12,6 +12,8 @@ export interface UserDocument extends Document {
 		url: string;
 		imageId: string;
 	};
+	username: String;
+	phoneNumber: String;
 	membershipType: string;
 }
 
@@ -40,6 +42,16 @@ const UserSchema = new Schema({
 		type: String,
 		enum: ["patron", "investor members"],
 		required: [true, "Membership type is required"],
+	},
+
+	username: {
+		type: String,
+		required: [true, "Username is required"],
+	},
+
+	phoneNumber: {
+		type: String,
+		required: [true, "Phone number is required"],
 	},
 
 	profilePhoto: {
