@@ -8,6 +8,7 @@ export const joinWaitingListMail = ({ name }: { name: string }) => {
 </head>
 <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px;">
   <div style="background-color: #fff; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);">
+   <img src="https://pbs.twimg.com/profile_images/1780544245264244736/P8dMiYbw_400x400.png" alt="Company Logo" style="max-width: 150px; margin-top: 20px; margin-right: auto; margin-left: auto" />
     <h1 style="color: #440080; margin-bottom: 20px;">Welcome to the Chain Co-op Waitlist!</h1>
     <p style="color: #333; margin-bottom: 20px;">Dear ${name},</p>
     <p style="color: #333; margin-bottom: 20px;">Welcome to the Chain Co-op waitlist! We're thrilled to have you onboard and appreciate your interest in our platform.</p>
@@ -18,9 +19,6 @@ export const joinWaitingListMail = ({ name }: { name: string }) => {
     <p style="color: #333; margin-bottom: 20px;">Thank you for joining us on this journey. Let's build something incredible together!</p>
     <p style="color: #333; margin-bottom: 20px;">Warm regards,</p>
     <p style="color: #333; margin-bottom: 20px;">Chain Co-op</p>
-    <hr>
-    <img src="https://example.com/company-logo.png" alt="Company Logo" style="max-width: 200px; margin-top: 20px;">
-    <p style="color: #333; margin-bottom: 0; margin-top: 20px;">[Company Address]<br>[Company Website]</p>
   </div>
 </body>
 </html>
