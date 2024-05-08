@@ -20,7 +20,7 @@ const joinWaitingList = async (req: Request, res: Response) => {
 		to: email,
 		html: joinWaitingListMail({ name }),
 	};
-	// await sendEmail(emailPayload);
+	await sendEmail(emailPayload);
 	res.status(StatusCodes.CREATED).json({
 		msg: "You have been successfully added to the waiting list and will get notified",
 	});
