@@ -18,7 +18,7 @@ cloudinary.v2.config({
 // Routers
 import { authRouter, newsLetterRouter } from "./routes";
 
-// Middlewares
+// Middleware
 const app = express();
 const corsOptions = {
 	origin: "*",
