@@ -6,7 +6,6 @@ import {
 	createWalletHistoryService,
 	findWalletHistoryService,
 	findWalletService,
-	iWallet,
 	iWalletHistory,
 	updateWalletService,
 } from "../services/walletService";
