@@ -17,6 +17,7 @@ import {
 } from "../errors";
 import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
 import { generateAndSendOtp } from "../utils/sendOtp";
+import { createWalletService, iWallet } from "../services/walletService";
 
 const register = async (req: Request, res: Response) => {
 	const { email } = req.body;
@@ -32,6 +33,17 @@ const register = async (req: Request, res: Response) => {
 		message: "Your OTP to verify your account is",
 		subject: "Email verification",
 	});
+
+	const walletPayload: iWallet = {
+		balance: 0,
+		pin: "0000",
+		totalEarned: 0,
+		totalWithdrawn: 0,
+		user: user._id,
+	};
+
+	await createWalletService(walletPayload);
+
 	res.status(StatusCodes.CREATED).json({
 		msg: "Registration successful, enter the OTP sent to your email",
 		user: { _id: user._id, email: user.email, token },
