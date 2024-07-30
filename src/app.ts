@@ -16,7 +16,12 @@ cloudinary.v2.config({
 });
 
 // Routers
-import { authRouter, newsLetterRouter, walletRouter } from "./routes";
+import {
+	authRouter,
+	newsLetterRouter,
+	walletRouter,
+	contactRouter,
+} from "./routes";
 
 // Middleware
 const app = express();
@@ -39,6 +44,7 @@ app.use(
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/news-letter", newsLetterRouter);
 app.use("/api/v1/wallet", walletRouter);
+app.use("/api/v1/contact-us", contactRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
