@@ -7,11 +7,6 @@ import { authorize, authorizePermissions } from "../middlewares/authorization";
 const router = Router();
 
 router.post("/", createContactMsg);
-router.get(
-	"/",
-	authorize,
-	// authorizePermissions("admin"),
-	getContacts
-);
+router.get("/", authorize, authorizePermissions("admin"), getContacts);
 
 export default router;
