@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
   createProposal,
-  getProposals,
+  getUserProposals,
+  getAllProposals,
   getProposal,
   updateProposal,
   deleteProposal,
@@ -12,11 +13,15 @@ const router = Router();
 
 router.route("/")
   .post(authorize, createProposal)
-  .get(authorize, authorizePermissions("admin"), getProposals);
+  .get(authorize, getUserProposals); // Get proposals for the logged-in user
+
+
+router.route("/admin")
+  .get(authorize, authorizePermissions("admin"), getAllProposals); // Get all proposals
 
 router.route("/:id")
   .get(authorize, getProposal)
   .patch(authorize, updateProposal)
-  .delete(authorize, authorizePermissions("admin"), deleteProposal);
+  .delete(authorize, authorizePermissions("admin"), deleteProposal); // Admin can delete proposals
 
 export default router;
