@@ -25,6 +25,6 @@ router
     .route("/:id")
     .get(authorize, getProposal)
     .patch(authorize, updateProposal)
-    .delete(authorize, deleteProposal); // Admin can delete proposals
+    .delete(authorize, deleteProposal); // a logged-in user can delete a proposal they created
 
 export default router;

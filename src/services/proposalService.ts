@@ -1,7 +1,16 @@
 import Proposal, { ProposalDocument } from "../models/proposalModel";
+import { UploadApiResponse, v2 as cloudinary } from "cloudinary"; 
 
-export const createProposalService = async (payload: any): Promise<ProposalDocument> => {
-    return await Proposal.create(payload);
+export const createProposalService = async (payload: any, file: any): Promise<ProposalDocument> => {
+    let documentUrl = "";
+    if (file) {
+        const result: UploadApiResponse = await cloudinary.uploader.upload(file.tempFilePath, {
+            folder: "proposals",
+        });
+        documentUrl = result.secure_url;
+    }
+
+    return await Proposal.create({ ...payload, documentUrl });
 };
 
 export const getUserProposalsService = async (userId: string): Promise<ProposalDocument[]> => {

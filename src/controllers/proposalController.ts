@@ -12,12 +12,16 @@ import {
 // create a new proposal
 export const createProposal = async (req: Request, res: Response) => {
     const { title, description } = req.body;
+    // @ts-ignore
+    const userId = req.user.userId;
+    const file = req.files?.document;
+
     const proposal = await createProposalService({
         title,
         description,
-		// @ts-ignore
-        author: req.user.userId, 
-    });
+        author: userId,
+    }, file);
+
     res.status(201).json({ msg: "Proposal created successfully", proposal });
 };
 
@@ -65,7 +69,7 @@ export const updateProposal = async (req: Request, res: Response) => {
     res.status(200).json({ msg: "Proposal updated successfully", proposal: updatedProposal });
 };
 
-// delete a proposal by id (admin only)
+// delete a proposal by id 
 export const deleteProposal = async (req: Request, res: Response) => {
     const { id } = req.params;
 					// @ts-ignore
