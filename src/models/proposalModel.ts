@@ -7,6 +7,7 @@ export interface ProposalDocument extends Document {
   author: Schema.Types.ObjectId;
   createdDate: Date;
   updatedDate: Date;
+  documentUrl: string; 
 }
 
 const ProposalSchema = new Schema(
@@ -37,6 +38,10 @@ const ProposalSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    documentUrl: {
+      type: String,
+      required: false,
+  },
   },
   { timestamps: true }
 );
