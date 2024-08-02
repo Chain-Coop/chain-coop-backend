@@ -2,8 +2,8 @@ import cloud from "cloudinary";
 
 const cloudinary = cloud.v2;
 
-const deleteImage = async (imageId: string) => {
-  await cloudinary.uploader.destroy(imageId);
+const deleteDocument = async (docId: string) => {
+	await cloudinary.uploader.destroy(docId);
 };
 
-export default deleteImage;
+export default deleteDocument;
