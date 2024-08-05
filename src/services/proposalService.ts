@@ -56,7 +56,7 @@ export const updateProposalByIdService = async (
 			const publicId = proposal.documentUrl.split("/").pop()?.split(".")[0];
 			if (publicId) {
 				// delete the old document from Cloudinary
-				await cloudinary.uploader.destroy(`proposals/${publicId}`);
+				await deleteDocument(publicId);
 			}
 		}
 
