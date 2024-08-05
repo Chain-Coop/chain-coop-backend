@@ -65,6 +65,7 @@ export const updateProposal = async (req: Request, res: Response) => {
 	if (proposal.author.toString() !== userId) {
 		throw new ForbiddenError("You are not authorized to update this proposal");
 	}
+
 	// Sean
 	// Handle file update. Check if a user uploads a new file, if yes, delete the old one from cloundary, upload the new one and update the database
 	const updatedProposal = await updateProposalByIdService(id, {
