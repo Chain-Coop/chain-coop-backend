@@ -1,5 +1,6 @@
 import Proposal, { ProposalDocument } from "../models/proposalModel";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+import deleteDocument from "../utils/deleteDocument";
 
 // create a new proposal service
 export const createProposalService = async (
@@ -77,15 +78,14 @@ export const updateProposalByIdService = async (
 
 // Delete a specific proposal by id 
 export const deleteProposalByIdService = async (id: string): Promise<void> => {
-	const proposal = await Proposal.findById(id);
-	if (proposal && proposal.documentUrl) {
-		const publicId = proposal.documentUrl.split("/").pop()?.split(".")[0];
-		if (publicId) {
-			// delete the existing document from Cloudinary
-			await cloudinary.uploader.destroy(`proposals/${publicId}`);
-		}
-	}
-
-	// delete the proposal from the database
-	await Proposal.findByIdAndDelete(id);
-};
+    const proposal = await Proposal.findById(id);
+    if (proposal?.documentUrl) {
+      // delete the existing document from Cloudinary
+      const publicId = proposal.documentUrl.split("/").pop()?.split(".")[0];
+      if (publicId) {
+        await deleteDocument(publicId);
+      }
+    }
+  
+    await Proposal.findByIdAndDelete(id);
+  };
