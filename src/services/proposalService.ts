@@ -2,6 +2,7 @@ import Proposal, { ProposalDocument } from "../models/proposalModel";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
+import uploadDocument from "../utils/uploadDocument";
 
 // create a new proposal service
 export const createProposalService = async (
@@ -10,14 +11,8 @@ export const createProposalService = async (
 ): Promise<ProposalDocument> => {
 	let documentUrl = "";
 	if (file) {
-		// upload the document to cloudinary and get the secure url
-		const result: UploadApiResponse = await cloudinary.uploader.upload(
-			file.tempFilePath,
-			{
-				folder: "proposals",
-			}
-		);
-		documentUrl = result.secure_url;
+		// upload the document to Cloudinary and get the secure URL
+		documentUrl = await uploadDocument(file, "proposals");
 	}
 
 	return await Proposal.create({ ...payload, documentUrl });
