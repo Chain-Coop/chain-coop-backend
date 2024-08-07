@@ -22,6 +22,8 @@ import {
 	walletRouter, 
 	proposalRouter,
 	contactRouter,
+	portfolioRouter,
+	projectRouter,
 } from "./routes";
 
 // Middleware
@@ -47,6 +49,8 @@ app.use("/api/v1/news-letter", newsLetterRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/contact-us", contactRouter);
 app.use("/api/v1/proposals", proposalRouter);
+app.use("/api/v1/portfolios", portfolioRouter);
+app.use("/api/v1/projects", projectRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
