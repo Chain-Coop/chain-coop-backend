@@ -4,6 +4,7 @@ import walletRouter from "./walletRoute";
 import proposalRouter from "./proposalRoute"; 
 import contactRouter from "./contactRoute";
 import portfolioRouter from "./portfolioRoutes";
+import projectRouter from "./projectRoutes";
 
 
-export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter };
+export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter, projectRouter  };
