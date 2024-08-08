@@ -106,25 +106,10 @@ chain-coop-backend/
 ├── tsconfig.json
 └── README.md
 
-# API Endpoints
+# API Endpoints Documentation
 
-## Auth
-- **POST** `/auth/register` - Register a new user
-- **POST** `/auth/login` - Login a user
+You can check all the API endpoints by visiting the following link:
 
-## Projects
-- **POST** `/projects/create` - Create a new project
-- **GET** `/projects/user` - Get projects for a specific user
+[API Endpoints Documentation](https://documenter.getpostman.com/view/27189273/2sA3JFA4bj#877715d5-f3cf-4b24-9fec-5ff9571db864)
 
-## Portfolios
-- **POST** `/portfolios/create` - Create a new portfolio
-- **GET** `/portfolios/user` - Get portfolios for a specific user
-
-## Proposals
-- **POST** `/proposals/create` - Create a new proposal
-- **GET** `/proposals/user` - Get proposals for a specific user
-- **GET** `/proposals` - Get all proposals (admin only)
-- **GET** `/proposals/:id` - Get a proposal by ID
-- **PUT** `/proposals/:id` - Update a proposal by ID
-- **DELETE** `/proposals/:id` - Delete a proposal by ID
-
+This documentation includes details on all available API endpoints, their methods, required parameters, and sample requests/responses.
