@@ -1,4 +1,3 @@
-// routes/proposalRoute.ts
 import { Router } from "express";
 import {
     createProposal,
