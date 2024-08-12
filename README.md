@@ -71,6 +71,7 @@ npm run dev
 
 ### Project Structure
 
+```bash
 chain-coop-backend/
 ├── controllers/
 │   ├── authController.ts
@@ -105,6 +106,7 @@ chain-coop-backend/
 ├── package.json
 ├── tsconfig.json
 └── README.md
+```
 
 # API Endpoints Documentation
 
