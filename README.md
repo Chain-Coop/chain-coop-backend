@@ -113,3 +113,32 @@ You can check all the API endpoints by visiting the following link:
 [API Endpoints Documentation](https://documenter.getpostman.com/view/27189273/2sA3JFA4bj#877715d5-f3cf-4b24-9fec-5ff9571db864)
 
 This documentation includes details on all available API endpoints, their methods, required parameters, and sample requests/responses.
+
+## Environment Variables
+
+The following environment variables need to be set in your `.env` file:
+
+```plaintext
+MONGO_URI=<your_mongodb_uri>
+CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>
+CLOUDINARY_API_KEY=<your_cloudinary_api_key>
+CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>
+JWT_SECRET=<your_jwt_secret>
+
+Ensure that you keep these variables secure and do not share them publicly, especially since this is a private repository.
+
+## Contributing
+
+Contributions to this project are restricted to the internal development team. If you are part of the team and would like to contribute, please follow these steps:
+
+1. **Clone the Repository:** Clone the repository to your local machine.
+2. **Create a New Branch:** Create a new branch for your feature or bug fix.
+3. **Develop Your Changes:** Implement your changes and ensure they are tested.
+4. **Submit a Pull Request:** Submit a pull request for review. Ensure that your PR includes a detailed description of the changes made and any relevant issues it addresses.
+5. **Code Review:** Wait for the code review and make any necessary adjustments based on feedback.
+
+For major changes, please discuss them with the team first by opening an issue or scheduling a meeting.
+
+## License
+
+This project is licensed under the MIT License. As this is a private repository, access to the source code is limited to authorized contributors.
