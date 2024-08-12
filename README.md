@@ -49,6 +49,8 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
     CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>
     JWT_SECRET=<your_jwt_secret>
     ```
+    Ensure that you keep these variables secure and do not share them publicly, especially since this is a private repository.
+
 
 5. Build the project:
     ```sh
@@ -115,20 +117,6 @@ You can check all the API endpoints by visiting the following link:
 [API Endpoints Documentation](https://documenter.getpostman.com/view/27189273/2sA3JFA4bj#877715d5-f3cf-4b24-9fec-5ff9571db864)
 
 This documentation includes details on all available API endpoints, their methods, required parameters, and sample requests/responses.
-
-## Environment Variables
-
-The following environment variables need to be set in your `.env` file:
-
-```sh
-MONGO_URI=<your_mongodb_uri>
-CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>
-CLOUDINARY_API_KEY=<your_cloudinary_api_key>
-CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>
-JWT_SECRET=<your_jwt_secret>
-```
-
-Ensure that you keep these variables secure and do not share them publicly, especially since this is a private repository.
 
 ## Contributing
 
