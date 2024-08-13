@@ -4,14 +4,14 @@ import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
 
-// create a new proposal service
+// Create a new proposal service
 export const createProposalService = async (
 	payload: any,
 	file: any
 ): Promise<ProposalDocument> => {
 	let documentUrl = "";
 	if (file) {
-		// upload the document to Cloudinary and get the secure URL
+		// Upload the document to Cloudinary and get the secure URL
 		documentUrl = await uploadDocument(file, "proposals");
 	}
 
@@ -40,7 +40,7 @@ export const getProposalByIdService = async (
 	return await Proposal.findById(id).populate("author", "username email");
 };
 
-// Update a spcific prposal by id 
+// Update a specific proposal by id 
 export const updateProposalByIdService = async (
 	id: string,
 	payload: any,
@@ -51,12 +51,12 @@ export const updateProposalByIdService = async (
 		if (proposal && proposal.documentUrl) {
 			const publicId = extractPublicId(proposal.documentUrl);
 			if (publicId) {
-				// delete the old document from Cloudinary
+				// Delete the old document from Cloudinary
 				await deleteDocument(publicId);
 			}
 		}
 
-		// upload the new document to Cloudinary
+		// Upload the new document to Cloudinary
 		const result: UploadApiResponse = await cloudinary.uploader.upload(
 			file.tempFilePath,
 			{
@@ -74,14 +74,14 @@ export const updateProposalByIdService = async (
 
 // Delete a specific proposal by id 
 export const deleteProposalByIdService = async (id: string): Promise<void> => {
-    const proposal = await Proposal.findById(id);
-    if (proposal?.documentUrl) {
-      // delete the existing document from Cloudinary
-      const publicId = extractPublicId(proposal.documentUrl);
-      if (publicId) {
-        await deleteDocument(publicId);
-      }
-    }
-  
-    await Proposal.findByIdAndDelete(id);
-  };
+	const proposal = await Proposal.findById(id);
+	if (proposal?.documentUrl) {
+		// Delete the existing document from Cloudinary
+		const publicId = extractPublicId(proposal.documentUrl);
+		if (publicId) {
+			await deleteDocument(publicId);
+		}
+	}
+
+	await Proposal.findByIdAndDelete(id);
+};
