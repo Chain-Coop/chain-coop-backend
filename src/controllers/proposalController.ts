@@ -8,6 +8,7 @@ import {
 	updateProposalByIdService,
 	deleteProposalByIdService,
 } from "../services/proposalService";
+import fs from 'fs';
 
 // Create a new proposal
 export const createProposal = async (req: Request, res: Response) => {
@@ -24,6 +25,15 @@ export const createProposal = async (req: Request, res: Response) => {
 		},
 		file
 	);
+
+	// Delete the temporary file
+		//@ts-ignore
+	if (file && file.tempFilePath) {
+		//@ts-ignore
+		fs.unlink(file.tempFilePath, (err) => {
+			if (err) console.error('Failed to delete temp file:', err);
+		});
+	}
 
 	res.status(201).json({ msg: "Proposal created successfully", proposal });
 };
@@ -58,7 +68,7 @@ export const updateProposal = async (req: Request, res: Response) => {
 	const { title, description, status } = req.body;
 	// @ts-ignore
 	const userId = req.user.userId;
-	const file = req.files?.document; // get the uploaded document if available
+	const file = req.files?.document;
 
 	const proposal = await getProposalByIdService(id);
 	if (!proposal) {
@@ -75,6 +85,15 @@ export const updateProposal = async (req: Request, res: Response) => {
 		{ title, description, status },
 		file
 	);
+
+	// Delete the temporary file
+	//@ts-ignore
+	if (file && file.tempFilePath) {
+		//@ts-ignore
+		fs.unlink(file.tempFilePath, (err) => {
+			if (err) console.error('Failed to delete temp file:', err);
+		});
+	}
 
 	res
 		.status(200)

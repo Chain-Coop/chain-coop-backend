@@ -7,12 +7,13 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
+
 dotenv.config();
 
 cloudinary.v2.config({
 	cloud_name: process.env.CLOUD_NAME,
-	api_key: process.env.CLOUD_API_KEY,
-	api_secret: process.env.CLOUD_API_SECRET,
+	api_key: process.env.API_KEY,
+	api_secret: process.env.API_SECRET,
 });
 
 // Routers
@@ -47,6 +48,7 @@ app.use("/api/v1/news-letter", newsLetterRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/contact-us", contactRouter);
 app.use("/api/v1/proposals", proposalRouter);
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
