@@ -27,9 +27,9 @@ export const createProject = async (req: Request, res: Response) => {
     );
 
     // Delete the temporary file
-    //@ts-ignore
+	//@ts-ignore
     if (file && file.tempFilePath) {
-        //@ts-ignore
+			//@ts-ignore
         fs.unlink(file.tempFilePath, (err) => {
             if (err) console.error('Failed to delete temp file:', err);
         });
@@ -40,7 +40,7 @@ export const createProject = async (req: Request, res: Response) => {
 
 // Get all projects for the logged-in user
 export const getUserProjects = async (req: Request, res: Response) => {
-    // @ts-ignore
+		//@ts-ignore
     const userId = req.user.userId;
     const projects = await getUserProjectsService(userId);
     res.status(200).json(projects);
@@ -66,7 +66,7 @@ export const getProject = async (req: Request, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { title, description, status } = req.body;
-    // @ts-ignore
+		//@ts-ignore
     const userId = req.user.userId;
     const file = req.files?.document;
 
@@ -87,21 +87,23 @@ export const updateProject = async (req: Request, res: Response) => {
     );
 
     // Delete the temporary file
-    //@ts-ignore
+		//@ts-ignore
     if (file && file.tempFilePath) {
-        //@ts-ignore
+			//@ts-ignore
         fs.unlink(file.tempFilePath, (err) => {
             if (err) console.error('Failed to delete temp file:', err);
         });
     }
 
-    res.status(200).json({ msg: "Project updated successfully", project: updatedProject });
+    res
+        .status(200)
+        .json({ msg: "Project updated successfully", project: updatedProject });
 };
 
 // Delete a project by id
 export const deleteProject = async (req: Request, res: Response) => {
     const { id } = req.params;
-    // @ts-ignore
+		//@ts-ignore
     const userId = req.user.userId;
     const project = await getProjectByIdService(id);
     if (!project) {

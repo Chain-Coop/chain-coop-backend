@@ -11,12 +11,8 @@ export const createProjectService = async (
 ): Promise<ProjectDocument> => {
     let documentUrl = "";
     if (file) {
-        try {
-            documentUrl = await uploadDocument(file, "projects");
-        } catch (error) {
-            console.error("Error uploading document to Cloudinary:", error);
-            throw new Error("Error uploading document");
-        }
+        // Upload the document to Cloudinary and get the secure URL
+        documentUrl = await uploadDocument(file, "projects");
     }
 
     return await Project.create({ ...payload, documentUrl });
@@ -26,7 +22,10 @@ export const createProjectService = async (
 export const getUserProjectsService = async (
     userId: string
 ): Promise<ProjectDocument[]> => {
-    return await Project.find({ author: userId }).populate("author", "username email");
+    return await Project.find({ author: userId }).populate(
+        "author",
+        "username email"
+    );
 };
 
 // Get all projects (admin only)
@@ -52,24 +51,19 @@ export const updateProjectByIdService = async (
         if (project && project.documentUrl) {
             const publicId = extractPublicId(project.documentUrl);
             if (publicId) {
-                try {
-                    await deleteDocument(publicId);
-                } catch (error) {
-                    console.error("Error deleting old document from Cloudinary:", error);
-                    throw new Error("Error deleting old document");
-                }
+                // Delete the old document from Cloudinary
+                await deleteDocument(publicId);
             }
         }
 
-        try {
-            const result: UploadApiResponse = await cloudinary.uploader.upload(file.tempFilePath, {
+        // Upload the new document to Cloudinary
+        const result: UploadApiResponse = await cloudinary.uploader.upload(
+            file.tempFilePath,
+            {
                 folder: "projects",
-            });
-            payload.documentUrl = result.secure_url;
-        } catch (error) {
-            console.error("Error uploading new document to Cloudinary:", error);
-            throw new Error("Error uploading new document");
-        }
+            }
+        );
+        payload.documentUrl = result.secure_url;
     }
 
     return await Project.findByIdAndUpdate(id, payload, {
@@ -82,14 +76,10 @@ export const updateProjectByIdService = async (
 export const deleteProjectByIdService = async (id: string): Promise<void> => {
     const project = await Project.findById(id);
     if (project?.documentUrl) {
+        // Delete the existing document from Cloudinary
         const publicId = extractPublicId(project.documentUrl);
         if (publicId) {
-            try {
-                await deleteDocument(publicId);
-            } catch (error) {
-                console.error("Error deleting document from Cloudinary:", error);
-                throw new Error("Error deleting document");
-            }
+            await deleteDocument(publicId);
         }
     }
 
