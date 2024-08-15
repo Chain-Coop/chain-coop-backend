@@ -1,8 +1,7 @@
 import { Document, Schema, model } from "mongoose";
 
-export interface ProposalDocument extends Document {
-  fullName: string;
-  title: string; // New field for the title
+export interface ProjectDocument extends Document {
+  title: string;
   description: string;
   status: "pending" | "approved" | "rejected";
   author: Schema.Types.ObjectId;
@@ -11,19 +10,15 @@ export interface ProposalDocument extends Document {
   documentUrl: string; 
 }
 
-const ProposalSchema = new Schema(
+const ProjectSchema = new Schema(
   {
-    fullName: {
-      type: String,
-      required: [true, "Full name is required"],
-    },
     title: {
       type: String,
-      required: [true, "Proposal title is required"],
+      required: [true, "Project title is required"],
     },
     description: {
       type: String,
-      required: [true, "Proposal description is required"],
+      required: [true, "Project description is required"],
     },
     status: {
       type: String,
@@ -51,4 +46,4 @@ const ProposalSchema = new Schema(
   { timestamps: true }
 );
 
-export default model<ProposalDocument>("Proposal", ProposalSchema);
+export default model<ProjectDocument>("Project", ProjectSchema);
