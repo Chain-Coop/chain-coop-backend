@@ -4,6 +4,8 @@ export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
   paymentPlan: string;
   contributionPlan: string;
+  balance: number; 
+  nextContributionDate: Date; 
   amount: number;
   status: string;
 }
@@ -29,6 +31,14 @@ const ContributionSchema = new Schema<ContributionDocument>(
       type: Number,
       required: true,
     },
+    balance: { 
+      type: Number, 
+      required: true, 
+      default: 0 
+    },
+    nextContributionDate: { 
+      type: Date 
+    }, 
     status: {
       type: String,
       enum: ["Pending", "Completed"],

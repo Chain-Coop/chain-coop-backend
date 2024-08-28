@@ -54,7 +54,7 @@ app.use("/api/v1/contact-us", contactRouter);
 app.use("/api/v1/proposals", proposalRouter);
 app.use("/api/v1/portfolios", portfolioRouter);
 app.use("/api/v1/project", projectRouter);
-app.use("/api/v1", contributionRouter);
+app.use("/api/v1/contribution", contributionRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

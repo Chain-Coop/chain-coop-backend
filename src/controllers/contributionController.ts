@@ -35,9 +35,32 @@ export const createContribution = async (req: Request, res: Response) => {
   res.status(StatusCodes.CREATED).json({ message: "Contribution created successfully", contribution });
 };
 
+export const getContributionDetails = async (req: Request, res: Response) => {
+  try {
+     //@ts-ignore
+    const userId = req.user._id;
+       //@ts-ignore
+    const contribution = await Contribution.findOne({ user: userId }).sort({ createdAt: -1 });
+
+    if (!contribution) {
+      return res.status(404).json({ error: "No contributions found for this user." });
+    }
+
+    const { balance, nextContributionDate } = contribution;
+
+    return res.status(200).json({
+      balance,
+      nextContributionDate
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "An unexpected error occurred." });
+  }
+};
+
 export const getContributionHistory = async (req: Request, res: Response) => {
   //@ts-ignore
   const userId = req.user.userId;
   const history = await findContributionHistoryService(userId);
   res.status(StatusCodes.OK).json(history);
 };
+
