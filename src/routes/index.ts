@@ -5,6 +5,7 @@ import proposalRouter from "./proposalRoute";
 import contactRouter from "./contactRoute";
 import portfolioRouter from "./portfolioRoutes";
 import projectRouter from "./projectRoutes";
+import contributionRouter from "./contributionRoute"
 
 
-export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter, projectRouter  };
+export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter, projectRouter, contributionRouter };
