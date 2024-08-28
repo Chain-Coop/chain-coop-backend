@@ -8,6 +8,7 @@ import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
 
+
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
 cloudinary.v2.config({
@@ -25,6 +26,7 @@ import {
 	contactRouter,
 	portfolioRouter,
 	projectRouter,
+	contributionRouter,
 } from "./routes";
 
 // Middleware
@@ -52,6 +54,7 @@ app.use("/api/v1/contact-us", contactRouter);
 app.use("/api/v1/proposals", proposalRouter);
 app.use("/api/v1/portfolios", portfolioRouter);
 app.use("/api/v1/project", projectRouter);
+app.use("/api/v1", contributionRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
