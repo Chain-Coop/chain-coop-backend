@@ -1,8 +1,10 @@
 import Project, { ProjectDocument } from "../models/projectModel";
+import Wallet from "../models/wallet";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
+import { ForbiddenError, NotFoundError } from "../errors"; 
 
 // Create a new project service
 export const createProjectService = async (
@@ -84,4 +86,34 @@ export const deleteProjectByIdService = async (id: string): Promise<void> => {
     }
 
     await Project.findByIdAndDelete(id);
+};
+
+export const fundProjectService = async (
+    userId: string,
+    projectId: string,
+    amount: number
+): Promise<ProjectDocument | null> => {
+    const project = await Project.findById(projectId);
+    if (!project) {
+        throw new NotFoundError("Project not found");
+    }
+
+    const wallet = await Wallet.findOne({ user: userId });
+    if (!wallet) {
+        throw new NotFoundError("Wallet not found");
+    }
+
+    if (wallet.balance < amount) {
+        throw new ForbiddenError("Insufficient balance in wallet");
+    }
+
+    // Deduct the amount from the user's wallet
+    wallet.balance -= amount;
+    await wallet.save();
+
+    // Add the amount to the project's fund balance
+    project.fundBalance += amount;
+    await project.save();
+
+    return project;
 };

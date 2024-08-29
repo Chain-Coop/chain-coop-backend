@@ -8,6 +8,7 @@ export interface ProjectDocument extends Document {
   createdDate: Date;
   updatedDate: Date;
   documentUrl: string; 
+  fundBalance: number;
 }
 
 const ProjectSchema = new Schema(
@@ -24,6 +25,10 @@ const ProjectSchema = new Schema(
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
+    },
+    fundBalance: {
+      type: Number,
+      default: 0,
     },
     author: {
       type: Schema.Types.ObjectId,
