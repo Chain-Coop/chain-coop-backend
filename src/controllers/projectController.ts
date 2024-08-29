@@ -7,6 +7,7 @@ import {
 	getProjectByIdService,
 	updateProjectByIdService,
 	deleteProjectByIdService,
+    fundProjectService,
 } from "../services/projectService";
 import fs from 'fs';
 
@@ -108,4 +109,19 @@ export const deleteProject = async (req: Request, res: Response) => {
 
     await deleteProjectByIdService(id);
     res.status(200).json({ message: "Project deleted successfully" });
+};
+
+export const fundProject = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { amount } = req.body; 
+    // @ts-ignore 
+    const userId = req.user.userId;
+
+    try {
+        const project = await fundProjectService(userId, id, amount);
+        res.status(200).json({ msg: "Project funded successfully", project });
+    } catch (error) {
+        //@ts-ignore
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
 };

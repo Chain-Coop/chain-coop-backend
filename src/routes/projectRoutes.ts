@@ -8,6 +8,7 @@ import {
     deleteProject
 } from "../controllers/projectController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
+import { fundProject } from "../controllers/projectController";
 
 const router = Router();
 
@@ -25,5 +26,7 @@ router
     .get(authorize, getProject) // Anyone logged in can view a project by ID
     .patch(authorize, authorizePermissions("admin"), updateProject) // Only admin can update projects
     .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admin can delete projects
+
+router.post("/:id/fund", authorize, fundProject);
 
 export default router;

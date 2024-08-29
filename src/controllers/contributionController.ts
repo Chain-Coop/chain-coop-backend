@@ -7,6 +7,7 @@ import {
 import { findWalletService, updateWalletService } from "../services/walletService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
+import Contribution from '../models/contribution';
 
 export const createContribution = async (req: Request, res: Response) => {
   const { paymentPlan, contributionPlan, amount } = req.body;
