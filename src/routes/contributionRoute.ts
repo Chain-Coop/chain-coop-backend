@@ -6,6 +6,6 @@ const router = Router();
 
 router.post("/contribute", authorize, createContribution);
 router.get("/history", authorize, getContributionHistory);
-router.get("/details", authorize, getContributionDetails); 
+router.get("/balance", authorize, getContributionDetails); 
 
 export default router;
