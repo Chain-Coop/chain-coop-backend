@@ -44,7 +44,11 @@ export const getContributionDetails = async (req: Request, res: Response) => {
     const contribution = await Contribution.findOne({ user: userId }).sort({ createdAt: -1 });
 
     if (!contribution) {
-      return res.status(404).json({ error: "No contributions found for this user." });
+      // Return default balance if no contributions found
+      return res.status(200).json({
+        balance: 0.00,
+        nextContributionDate: null
+      });
     }
 
     const { balance, nextContributionDate } = contribution;
