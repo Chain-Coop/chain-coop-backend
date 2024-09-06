@@ -12,6 +12,7 @@ import {
 import { findUser } from "../services/authService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
+import uploadImageFile from "../utils/imageUploader";
 
 const secret = process.env.PAYSTACK_KEY!;
 
@@ -95,4 +96,18 @@ const setWalletPin = async (req: Request, res: Response) => {
 	res.status(StatusCodes.OK).json({ msg: "Pin created successfully" });
 };
 
-export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin };
+const uploadReceipt = async (req: Request, res: Response) => {
+    try {
+        const uploadedFile = await uploadImageFile(req, 'receipt', 'image');
+        res.status(StatusCodes.CREATED).json({ msg: "Receipt uploaded successfully", file: uploadedFile });
+    } catch (error) {
+        if (error instanceof BadRequestError) {
+            res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        } else {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Internal Server Error" });
+        }
+    }
+};
+
+
+export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt };

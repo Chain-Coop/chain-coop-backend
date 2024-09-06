@@ -8,4 +8,5 @@ import projectRouter from "./projectRoutes";
 import contributionRouter from "./contributionRoute"
 
 
-export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter, projectRouter, contributionRouter };
+
+export { authRouter, newsLetterRouter, walletRouter, proposalRouter, contactRouter, portfolioRouter, projectRouter, contributionRouter};
