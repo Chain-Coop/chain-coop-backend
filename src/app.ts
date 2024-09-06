@@ -9,6 +9,8 @@ import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
 
 
+
+
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
 cloudinary.v2.config({
@@ -16,6 +18,8 @@ cloudinary.v2.config({
 	api_key: process.env.CLOUD_API_KEY,
 	api_secret: process.env.CLOUD_API_SECRET,
 });
+
+
 
 // Routers
 import {
@@ -46,6 +50,8 @@ app.use(
 	})
 );
 
+
+
 // Routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/news-letter", newsLetterRouter);
@@ -55,6 +61,8 @@ app.use("/api/v1/proposals", proposalRouter);
 app.use("/api/v1/portfolios", portfolioRouter);
 app.use("/api/v1/project", projectRouter);
 app.use("/api/v1/contribution", contributionRouter);
+
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
