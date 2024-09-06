@@ -31,6 +31,7 @@ import {
 	portfolioRouter,
 	projectRouter,
 	contributionRouter,
+	profilePictureRouter,
 } from "./routes";
 
 // Middleware
@@ -61,6 +62,7 @@ app.use("/api/v1/proposals", proposalRouter);
 app.use("/api/v1/portfolios", portfolioRouter);
 app.use("/api/v1/project", projectRouter);
 app.use("/api/v1/contribution", contributionRouter);
+app.use("/api/v1/profile", profilePictureRouter);
 
 
 

@@ -58,7 +58,10 @@ const UserSchema = new Schema({
 		url: String,
 		imageId: String,
 	},
+	
 });
+
+
 
 UserSchema.pre("save", async function (next) {
 	if (this.password === undefined) {
