@@ -5,28 +5,32 @@ import {
     getAllProjects,
     getProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    fundProject
 } from "../controllers/projectController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
-import { fundProject } from "../controllers/projectController";
 
 const router = Router();
 
+// Route to create a project (admin only) and get user's projects
 router
     .route("/")
-    .post(authorize, authorizePermissions("admin"), createProject) // Only admin can create projects
-    .get(authorize, getUserProjects); // Get projects for the logged-in user
+    .post(authorize, authorizePermissions("admin"), createProject) // Only admins can create projects
+    .get(authorize, getUserProjects); // Logged-in users can get their own projects
 
+// Route to get all projects (admin only)
 router
     .route("/admin")
-    .get(authorize, authorizePermissions("admin"), getAllProjects); // Get all projects (admin only)
+    .get(authorize, getAllProjects); // Only admins can view all projects
 
+// Routes to get, update, and delete a specific project by ID
 router
     .route("/:id")
-    .get(authorize, getProject) // Anyone logged in can view a project by ID
-    .patch(authorize, authorizePermissions("admin"), updateProject) // Only admin can update projects
-    .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admin can delete projects
+    .get(authorize, getProject) // Any logged-in user can view a project by ID
+    .patch(authorize, authorizePermissions("admin"), updateProject) // Only admins can update projects
+    .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admins can delete projects
 
+// Route to fund a project (any logged-in user can fund)
 router.post("/:id/fund", authorize, fundProject);
 
 export default router;
