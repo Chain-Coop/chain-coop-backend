@@ -21,7 +21,7 @@ router
 // Route to get all projects (admin only)
 router
     .route("/admin")
-    .get(authorize, getAllProjects); // Only admins can view all projects
+    .get(authorize, getAllProjects); // Anyone can view all projects
 
 // Routes to get, update, and delete a specific project by ID
 router
