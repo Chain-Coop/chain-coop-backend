@@ -12,16 +12,17 @@ import { authorize, authorizePermissions } from "../middlewares/authorization";
 
 const router = Router();
 
+// Route to get all projects
+router
+    .route("/all-projects")
+    .get(authorize, getAllProjects); // Anyone can view all projects
+
 // Route to create a project (admin only) and get user's projects
 router
     .route("/")
     .post(authorize, authorizePermissions("admin"), createProject) // Only admins can create projects
     .get(authorize, getAllProjects); // Logged-in users can get their own projects
 
-// Route to get all projects
-router
-    .route("/all-projects")
-    .get(authorize, getAllProjects); // Anyone can view all projects
 
 // Routes to get, update, and delete a specific project by ID
 router
