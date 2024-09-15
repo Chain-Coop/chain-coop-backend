@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
     createProject,
-    getUserProjects,
     getAllProjects,
     getProject,
     updateProject,
