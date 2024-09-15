@@ -16,11 +16,11 @@ const router = Router();
 router
     .route("/")
     .post(authorize, authorizePermissions("admin"), createProject) // Only admins can create projects
-    .get(authorize, getUserProjects); // Logged-in users can get their own projects
+    .get(authorize, getAllProjects); // Logged-in users can get their own projects
 
-// Route to get all projects (admin only)
+// Route to get all projects
 router
-    .route("/admin")
+    .route("/all-projects")
     .get(authorize, getAllProjects); // Anyone can view all projects
 
 // Routes to get, update, and delete a specific project by ID
