@@ -13,13 +13,13 @@ import { fundProject } from "../controllers/projectController";
 const router = Router();
 
 router
-    .route("/")
-    .post(authorize, authorizePermissions("admin"), createProject) // Only admin can create projects
-    .get(authorize, getAllProjects); // Get projects for the logged-in user
-
-router
     .route("/all-projects")
     .get(authorize, getAllProjects); // Get all projects (admin only)
+
+router
+    .route("/")
+    .post(authorize, authorizePermissions("admin"), createProject) // Only admin can create projects
+    //.get(authorize, getUserProjects); // Get projects for the logged-in user
 
 router
     .route("/:id")
