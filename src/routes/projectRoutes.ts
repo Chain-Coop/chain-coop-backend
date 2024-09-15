@@ -16,7 +16,7 @@ const router = Router();
 router
     .route("/")
     .post(authorize, authorizePermissions("admin"), createProject) // Only admins can create projects
-    .get(authorize, getUserProjects); // Logged-in users can get their own projects
+    .get(authorize, getAllProjects); // Logged-in users can get their own projects
 
 // Route to get all projects (admin only)
 router
