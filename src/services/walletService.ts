@@ -38,8 +38,10 @@ export interface WebHookDataProps {
     };
 }
 
-export const createWalletService = async (payload: iWallet) =>
-    await Wallet.create(payload);
+export const createWalletService = async (payload: iWallet) => {
+	console.log('Creating wallet with payload:', payload);
+	return await Wallet.create(payload);
+  };
 
 export const createPin = async (id: any, payload: iWallet) => {
     const { pin } = payload;
@@ -52,15 +54,24 @@ export const createPin = async (id: any, payload: iWallet) => {
     await wallet.save();
 };
 
-export const findWalletService = async (payload: any) =>
-    await Wallet.findOne(payload);
+export const findWalletService = async (payload: any) => {
+    console.log('Fetching wallet with:', payload);
+    const wallet = await Wallet.findOne(payload);
+    console.log('Fetched wallet:', wallet);
+    return wallet;
+};
 
-export const updateWalletService = async (id: any, payload: iWallet) =>
-    await Wallet.findOneAndUpdate({ _id: id }, payload, {
-        new: true,
-        runValidators: true,
-    });
+export const updateWalletService = async (id: any, payload: iWallet) => {
+	console.log('Updating wallet with ID:', id, 'Payload:', payload);
+	const updatedWallet = await Wallet.findOneAndUpdate({ _id: id }, payload, {
+	  new: true,
+	  runValidators: true,
+	});
+	console.log('Updated wallet:', updatedWallet);
+	return updatedWallet;
+  };
 
+  
 export const createWalletHistoryService = async (payload: iWalletHistory) =>
     await WalletHistory.create(payload);
 

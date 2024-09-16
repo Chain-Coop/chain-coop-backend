@@ -14,7 +14,6 @@ import { StatusCodes } from 'http-status-codes';
 import uploadImageFile from '../utils/imageUploader';
 import { findUser } from '../services/authService';
 import { createHmac } from 'crypto';
-import { collectBankDetails, verifyBankDetails } from '../utils/bankUtils'; 
 
 const secret = process.env.PAYSTACK_KEY!;
 
@@ -147,7 +146,34 @@ export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
     }
 };
 
-
+export const fundWallet = async (req: Request, res: Response) => {
+	try {
+	  //@ts-ignore
+	  const userId = req.user.userId;
+	  const { amount } = req.body;
+  
+	  if (amount <= 0) {
+		throw new BadRequestError("Amount must be greater than zero");
+	  }
+  
+	  const wallet = await findWalletService({ user: userId });
+	  if (!wallet) {
+		throw new BadRequestError("Wallet not found");
+	  }
+  
+	  // Add the amount to the wallet
+	  const newBalance = wallet.balance + amount;
+	  await updateWalletService(wallet._id, { balance: newBalance });
+  
+	  res.status(StatusCodes.OK).json({ message: "Wallet funded successfully", newBalance });
+	} catch (error) {
+	  if (error instanceof Error) {
+		res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+	  } else {
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
+	  }
+	}
+  };
 
 export {
     paystackWebhook,

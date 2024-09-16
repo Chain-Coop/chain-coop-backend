@@ -1,18 +1,13 @@
-// src/models/contribution.ts
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
   paymentPlan: string;
   contributionPlan: string;
-  balance: number;
-  nextContributionDate: Date;
+  balance: number; 
+  nextContributionDate?: Date; 
   amount: number;
   status: string;
-  bankDetails?: {
-    accountNumber: string;
-    bankCode: string;
-  };
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -36,27 +31,19 @@ const ContributionSchema = new Schema<ContributionDocument>(
       type: Number,
       required: true,
     },
-    balance: {
-      type: Number,
-      required: true,
-      default: 0
+    balance: { 
+      type: Number, 
+      required: true, 
+      default: 0 
     },
-    nextContributionDate: {
-      type: Date
+    nextContributionDate: { 
+      type: Date 
     },
     status: {
       type: String,
       enum: ["Pending", "Completed"],
       default: "Pending",
     },
-    bankDetails: {
-      accountNumber: {
-        type: String
-      },
-      bankCode: {
-        type: String
-      }
-    }
   },
   { timestamps: true }
 );
