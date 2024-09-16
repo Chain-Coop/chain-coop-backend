@@ -1,17 +1,8 @@
-import {
-    createPin,
-    findWalletService,
-    updateWalletService,
-    createWalletService,
-    createWalletHistoryService,
-    verifyBankDetailsService,
-    WebHookDataProps,
-    iWalletHistory,
-} from '../services/walletService';
-import Withdrawal from '../models/withdrawal';
 import { Request, Response } from 'express';
 import { BadRequestError } from '../errors';
 import { StatusCodes } from 'http-status-codes';
+import { collectBankDetails, verifyBankDetails } from '../utils/bankDetailsUtils';
+import { createPin, findWalletService, updateWalletService, createWalletHistoryService, WebHookDataProps, iWalletHistory } from '../services/walletService';
 import uploadImageFile from '../utils/imageUploader';
 import { findUser } from '../services/authService';
 import { createHmac } from 'crypto';
@@ -111,104 +102,35 @@ const uploadReceipt = async (req: Request, res: Response) => {
     }
 };
 
-const collectBankDetails = async (req: Request, res: Response) => {
+const collectBankDetailsHandler = async (req: Request, res: Response) => {
     try {
+        const { accountNumber, bankCode, fundType } = req.body;
         //@ts-ignore
         const userId = req.user.userId;
-        console.log('User ID:', userId);
 
-        const { accountNumber, bankCode } = req.body; 
-
-        let wallet = await findWalletService({ user: userId });
-        if (!wallet) {
-            console.log('Wallet not found, creating a new one.');
-
-            // Create a new wallet for the user
-            wallet = await createWalletService({
-                user: userId,
-                balance: 0, 
-                isPinCreated: false,
-                bankDetails: {
-                    accountNumber,
-                    bankCode
-                }
-            });
-            console.log('New wallet created:', wallet);
-        } else {
-            // Update existing wallet with new bank details
-            await updateWalletService(wallet._id, { bankDetails: { accountNumber, bankCode } });
-        }
-
-        res.status(StatusCodes.OK).json({ msg: 'Bank details updated successfully' });
+        const result = await collectBankDetails({ accountNumber, bankCode, fundType, userId });
+        res.status(result.status).json({ msg: result.message });
     } catch (error) {
-        // Type guard to check if error is an instance of Error
-        if (error instanceof Error) {
+        if (error instanceof BadRequestError) {
             res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
         } else {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred' });
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
         }
     }
 };
 
-const verifyBankDetails = async (req: Request, res: Response) => {
+const verifyBankDetailsHandler = async (req: Request, res: Response) => {
     try {
         const { accountNumber, bankCode } = req.body;
-        const verificationResult = await verifyBankDetailsService(accountNumber, bankCode);
-        res.status(StatusCodes.OK).json({ msg: 'Bank details verified', result: verificationResult });
+        const result = await verifyBankDetails(accountNumber, bankCode);
+        res.status(result.status).json({ msg: result.message, result: result.result });
     } catch (error) {
-        // Type guard to check if error is an instance of Error
-        if (error instanceof Error) {
+        if (error instanceof BadRequestError) {
             res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
         } else {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred' });
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
         }
     }
 };
 
-// New function for requesting a withdrawal
-const requestWithdrawal = async (req: Request, res: Response) => {
-    try {
-        //@ts-ignore
-        const userId = req.user.userId;
-        const { amount } = req.body; // Ensure amount is validated
-
-        const wallet = await findWalletService({ user: userId });
-        if (!wallet) {
-            throw new BadRequestError('Wallet not found');
-        }
-
-        if (wallet.balance < amount) {
-            throw new BadRequestError('Insufficient balance');
-        }
-
-        // Create withdrawal request
-        const withdrawal = await Withdrawal.create({
-            user: userId,
-            amount,
-            bankDetails: wallet.bankDetails,
-        });
-
-        // Update wallet balance
-        await updateWalletService(wallet._id, { balance: wallet.balance - amount });
-
-        res.status(StatusCodes.CREATED).json({ msg: 'Withdrawal request created successfully', withdrawal });
-    } catch (error) {
-			 //@ts-ignore
-        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
-    }
-};
-
-
-const getWithdrawalRequests = async (req: Request, res: Response) => {
-    try {
-        //@ts-ignore
-        const userId = req.user.userId;
-        const withdrawals = await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
-        res.status(StatusCodes.OK).json(withdrawals);
-    } catch (error) {
-		 //@ts-ignore
-        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
-    }
-};
-
-export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt, collectBankDetails, verifyBankDetails, requestWithdrawal, getWithdrawalRequests };
+export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt, collectBankDetailsHandler, verifyBankDetailsHandler };
