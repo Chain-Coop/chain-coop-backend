@@ -116,7 +116,7 @@ const collectBankDetails = async (req: Request, res: Response) => {
         const userId = req.user.userId;
         console.log('User ID:', userId);
 
-        const { accountNumber, bankCode } = req.body; // Ensure these are validated
+        const { accountNumber, bankCode } = req.body; 
 
         let wallet = await findWalletService({ user: userId });
         if (!wallet) {
@@ -125,7 +125,7 @@ const collectBankDetails = async (req: Request, res: Response) => {
             // Create a new wallet for the user
             wallet = await createWalletService({
                 user: userId,
-                balance: 0, // Default initial balance
+                balance: 0, 
                 isPinCreated: false,
                 bankDetails: {
                     accountNumber,
