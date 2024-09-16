@@ -8,6 +8,7 @@ import {
     WebHookDataProps,
     iWalletHistory,
 } from '../services/walletService';
+import Withdrawal from '../models/withdrawal';
 import { Request, Response } from 'express';
 import { BadRequestError } from '../errors';
 import { StatusCodes } from 'http-status-codes';
@@ -140,8 +141,12 @@ const collectBankDetails = async (req: Request, res: Response) => {
 
         res.status(StatusCodes.OK).json({ msg: 'Bank details updated successfully' });
     } catch (error) {
-        //@ts-ignore
-        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        // Type guard to check if error is an instance of Error
+        if (error instanceof Error) {
+            res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        } else {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred' });
+        }
     }
 };
 
@@ -151,9 +156,59 @@ const verifyBankDetails = async (req: Request, res: Response) => {
         const verificationResult = await verifyBankDetailsService(accountNumber, bankCode);
         res.status(StatusCodes.OK).json({ msg: 'Bank details verified', result: verificationResult });
     } catch (error) {
+        // Type guard to check if error is an instance of Error
+        if (error instanceof Error) {
+            res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        } else {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'An unexpected error occurred' });
+        }
+    }
+};
+
+// New function for requesting a withdrawal
+const requestWithdrawal = async (req: Request, res: Response) => {
+    try {
         //@ts-ignore
+        const userId = req.user.userId;
+        const { amount } = req.body; // Ensure amount is validated
+
+        const wallet = await findWalletService({ user: userId });
+        if (!wallet) {
+            throw new BadRequestError('Wallet not found');
+        }
+
+        if (wallet.balance < amount) {
+            throw new BadRequestError('Insufficient balance');
+        }
+
+        // Create withdrawal request
+        const withdrawal = await Withdrawal.create({
+            user: userId,
+            amount,
+            bankDetails: wallet.bankDetails,
+        });
+
+        // Update wallet balance
+        await updateWalletService(wallet._id, { balance: wallet.balance - amount });
+
+        res.status(StatusCodes.CREATED).json({ msg: 'Withdrawal request created successfully', withdrawal });
+    } catch (error) {
+			 //@ts-ignore
         res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
     }
 };
 
-export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt, collectBankDetails, verifyBankDetails };
+
+const getWithdrawalRequests = async (req: Request, res: Response) => {
+    try {
+        //@ts-ignore
+        const userId = req.user.userId;
+        const withdrawals = await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
+        res.status(StatusCodes.OK).json(withdrawals);
+    } catch (error) {
+		 //@ts-ignore
+        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+    }
+};
+
+export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt, collectBankDetails, verifyBankDetails, requestWithdrawal, getWithdrawalRequests };
