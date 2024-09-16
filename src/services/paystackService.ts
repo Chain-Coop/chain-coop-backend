@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_KEY;
-const PAYSTACK_SUBSCRIPTION_URL = 'https://api.paystack.co/subscribe';
+const PAYSTACK_SUBSCRIPTION_URL = 'https://api.paystack.co/subscription';
 
 type MembershipType = 'Explorer' | 'Pioneer' | 'Voyager';
 

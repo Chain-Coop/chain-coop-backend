@@ -13,7 +13,8 @@ import { fundProject } from "../controllers/projectController";
 const router = Router();
 
 router
-    .get("/all-projects", authorize, getAllProjects); // Get all projects (admin only)
+    .route("/all-projects")
+    .get(authorize, getAllProjects); // Get all projects (admin only)
 
 router
     .route("/")
