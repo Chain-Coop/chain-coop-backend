@@ -1,8 +1,16 @@
+import {
+    createPin,
+    findWalletService,
+    updateWalletService,
+    createWalletService,
+    createWalletHistoryService,
+    WebHookDataProps,
+    iWalletHistory,
+	verifyBankDetailsService,
+} from '../services/walletService';
 import { Request, Response } from 'express';
 import { BadRequestError } from '../errors';
 import { StatusCodes } from 'http-status-codes';
-import { collectBankDetails, verifyBankDetails } from '../utils/bankDetailsUtils';
-import { createPin, findWalletService, updateWalletService, createWalletHistoryService, WebHookDataProps, iWalletHistory } from '../services/walletService';
 import uploadImageFile from '../utils/imageUploader';
 import { findUser } from '../services/authService';
 import { createHmac } from 'crypto';
@@ -94,7 +102,7 @@ const uploadReceipt = async (req: Request, res: Response) => {
         const uploadedFile = await uploadImageFile(req, 'receipt', 'image');
         res.status(StatusCodes.CREATED).json({ msg: 'Receipt uploaded successfully', file: uploadedFile });
     } catch (error) {
-        if (error instanceof BadRequestError) {
+        if (error instanceof Error) {
             res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
         } else {
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
@@ -102,35 +110,77 @@ const uploadReceipt = async (req: Request, res: Response) => {
     }
 };
 
-const collectBankDetailsHandler = async (req: Request, res: Response) => {
+export const collectBankDetailsHandler = async (req: Request, res: Response) => {
     try {
-        const { accountNumber, bankCode, fundType } = req.body;
-        //@ts-ignore
+		//@ts-ignore
         const userId = req.user.userId;
+        const { accountNumber, bankCode } = req.body;
 
-        const result = await collectBankDetails({ accountNumber, bankCode, fundType, userId });
-        res.status(result.status).json({ msg: result.message });
-    } catch (error) {
-        if (error instanceof BadRequestError) {
-            res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        let wallet = await findWalletService({ user: userId });
+        if (!wallet) {
+            wallet = await createWalletService({
+                user: userId,
+                balance: 0,
+                isPinCreated: false,
+                bankDetails: { accountNumber, bankCode },
+            });
         } else {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
+            await updateWalletService(wallet._id, { bankDetails: { accountNumber, bankCode } });
         }
+
+        res.status(StatusCodes.OK).json({ msg: 'Bank details updated successfully' });
+    } catch (error) {
+		//@ts-ignore
+        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
     }
 };
 
-const verifyBankDetailsHandler = async (req: Request, res: Response) => {
+export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
     try {
         const { accountNumber, bankCode } = req.body;
-        const result = await verifyBankDetails(accountNumber, bankCode);
-        res.status(result.status).json({ msg: result.message, result: result.result });
+        const verificationResult = await verifyBankDetailsService(accountNumber, bankCode);
+        res.status(StatusCodes.OK).json({ msg: 'Bank details verified', result: verificationResult });
     } catch (error) {
-        if (error instanceof BadRequestError) {
-            res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
-        } else {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
-        }
+		//@ts-ignore
+        res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
     }
 };
 
-export { paystackWebhook, getWalletBalance, getWalletHistory, setWalletPin, uploadReceipt, collectBankDetailsHandler, verifyBankDetailsHandler };
+export const fundWallet = async (req: Request, res: Response) => {
+	try {
+	  //@ts-ignore
+	  const userId = req.user.userId;
+	  const { amount } = req.body;
+  
+	  if (amount <= 0) {
+		throw new BadRequestError("Amount must be greater than zero");
+	  }
+  
+	  const wallet = await findWalletService({ user: userId });
+	  if (!wallet) {
+		throw new BadRequestError("Wallet not found");
+	  }
+  
+	  // Add the amount to the wallet
+	  const newBalance = wallet.balance + amount;
+	  await updateWalletService(wallet._id, { balance: newBalance });
+  
+	  res.status(StatusCodes.OK).json({ message: "Wallet funded successfully", newBalance });
+	} catch (error) {
+	  if (error instanceof Error) {
+		res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+	  } else {
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
+	  }
+	}
+  };
+
+export {
+    paystackWebhook,
+    getWalletBalance,
+    getWalletHistory,
+    setWalletPin,
+    uploadReceipt,
+    collectBankDetailsHandler as collectBankDetails,
+    verifyBankDetailsHandler as verifyBankDetails
+};
