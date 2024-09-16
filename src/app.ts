@@ -33,6 +33,7 @@ import {
 	contributionRouter,
 	profilePictureRouter,
 	membershipRouter,
+	withdrawalRoutes,
 } from "./routes";
 
 // Middleware
@@ -65,6 +66,8 @@ app.use("/api/v1/project", projectRouter);
 app.use("/api/v1/contribution", contributionRouter);
 app.use("/api/v1/profile", profilePictureRouter);
 app.use("/api/v1/membership", membershipRouter);
+app.use("/api/v1/withdrawal", withdrawalRoutes);
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
