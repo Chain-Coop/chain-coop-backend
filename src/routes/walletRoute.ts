@@ -7,7 +7,8 @@ import {
     uploadReceipt,
     collectBankDetails,  
     verifyBankDetails,   
-    //withdrawFromWallet,  
+    requestWithdrawal,  
+	getWithdrawalRequests,
 } from "../controllers/walletController";
 import { authorize } from "../middlewares/authorization";
 
@@ -24,6 +25,7 @@ router.post("/collect-bank-details", authorize, collectBankDetails);
 router.post("/verify-bank-details", authorize, verifyBankDetails);
 
 // Route for withdrawing from wallet
-//router.post("/withdraw", authorize, withdrawFromWallet);
+router.post('/request-withdrawal', authorize, requestWithdrawal);
+router.get('/withdrawal-requests', authorize, getWithdrawalRequests);
 
 export default router;
