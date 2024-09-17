@@ -8,9 +8,9 @@ import { createPaystackSubscription, getPlanIdForMembershipType } from '../servi
 
 // membership amounts for each type(with temp amounts, will update after they are announced)
 const membershipAmounts: Record<string, number> = {
-  Explorer: 100000,
-  Pioneer: 250000,
-  Voyager: 500000,
+  Explorer: 50000,
+  Pioneer: 10000,
+  Voyager: 250000,
 };
 
 export const activateMembership = async (req: Request, res: Response) => {
@@ -51,8 +51,8 @@ export const activateMembership = async (req: Request, res: Response) => {
       if (!planId) {
         throw new BadRequestError('Invalid subscription tier.');
       }
-  
-      const email = 'user@example.com'; // Replace with actual user email
+      //@ts-ignore
+     const email = (req.user as { email: string }).email; // Replace with actual user email
       subscriptionUrl = await createPaystackSubscription(email, planId);
   
       if (!subscriptionUrl) {

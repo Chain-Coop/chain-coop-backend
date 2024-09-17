@@ -1,5 +1,4 @@
 // src/controllers/withdrawalController.ts
-
 import { Request, Response } from "express";
 import { findWalletService, updateWalletService } from "../services/walletService";
 import { findContributionService, updateContributionService } from "../services/contributionService";
