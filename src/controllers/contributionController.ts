@@ -21,15 +21,11 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Wallet not found");
     }
 
-    // Check if wallet has sufficient balance
+    // Log the wallet balance
+    console.log(`Wallet Balance: ${wallet.balance}`);
+
     if (wallet.balance < amount) {
       throw new BadRequestError("Insufficient funds in the wallet");
-    }
-
-    // Deduct the contribution amount from the wallet
-    const updatedWallet = await updateWalletService(wallet._id, { balance: wallet.balance - amount });
-    if (!updatedWallet) {
-      throw new BadRequestError("Failed to update wallet balance");
     }
 
     // Create the contribution
@@ -39,8 +35,26 @@ export const createContribution = async (req: Request, res: Response) => {
       contributionPlan,
       amount,
       _id: undefined,
-      nextContributionDate: undefined
+      nextContributionDate:  undefined // Adjust as needed
     });
+
+    // Deduct the contribution amount from the wallet
+    const updatedWallet = await updateWalletService(wallet._id, { balance: wallet.balance - amount });
+    if (!updatedWallet) {
+      throw new BadRequestError("Failed to update wallet balance");
+    }
+
+    // Log the updated wallet balance
+    console.log(`Updated Wallet Balance: ${updatedWallet.balance}`);
+
+
+    // Check if the wallet update was successful
+    if (!updatedWallet) {
+      throw new BadRequestError("Failed to update wallet balance");
+    }
+
+    // Log the updated wallet balance
+    console.log(`Updated Wallet Balance: ${updatedWallet.balance}`);
 
     // Log the contribution history
     await createContributionHistoryService(contribution._id.toString(), userId, amount, "Pending");
@@ -52,18 +66,16 @@ export const createContribution = async (req: Request, res: Response) => {
     res.status(error instanceof BadRequestError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
   }
 };
-
 export const getContributionDetails = async (req: Request, res: Response) => {
   try {
-    //@ts-ignore
-    const userId = req.user.userId;
-
-    // Fetch the user's most recent contribution
+     //@ts-ignore
+    const userId = req.user._id;
+       //@ts-ignore
     const contribution = await Contribution.findOne({ user: userId }).sort({ createdAt: -1 });
 
-    // Return default values if no contribution is found
     if (!contribution) {
-      return res.status(StatusCodes.OK).json({
+      // Return default balance if no contributions found
+      return res.status(200).json({
         balance: 0.00,
         nextContributionDate: null
       });
@@ -71,26 +83,18 @@ export const getContributionDetails = async (req: Request, res: Response) => {
 
     const { balance, nextContributionDate } = contribution;
 
-    return res.status(StatusCodes.OK).json({
+    return res.status(200).json({
       balance,
       nextContributionDate
     });
   } catch (error) {
-    console.error(error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "An unexpected error occurred." });
+    return res.status(500).json({ error: "An unexpected error occurred." });
   }
 };
 
 export const getContributionHistory = async (req: Request, res: Response) => {
-  try {
-    //@ts-ignore
-    const userId = req.user.userId;
-
-    // Fetch contribution history
-    const history = await findContributionHistoryService(userId);
-    res.status(StatusCodes.OK).json(history);
-  } catch (error) {
-    console.error(error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "An unexpected error occurred." });
-  }
+  //@ts-ignore
+  const userId = req.user.userId;
+  const history = await findContributionHistoryService(userId);
+  res.status(StatusCodes.OK).json(history);
 };
