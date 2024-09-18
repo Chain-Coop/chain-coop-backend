@@ -10,6 +10,21 @@ export const createWithdrawalRequest = async (userId: string, amount: number, ba
     return withdrawal;
 };
 
+
+// Find withdrawal by ID
+export const findWithdrawalById = async (withdrawalId: string) => {
+    return await Withdrawal.findById(withdrawalId);
+  };
+  
+  // Update withdrawal status
+  export const updateWithdrawalStatus = async (withdrawalId: string, status: string) => {
+    return await Withdrawal.findByIdAndUpdate(
+      withdrawalId,
+      { status },
+      { new: true }
+    );
+  };
+
 export const findWithdrawalRequests = async (userId: string) => {
     return await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
 };
