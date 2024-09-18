@@ -25,6 +25,11 @@ export const findWithdrawalById = async (withdrawalId: string) => {
     );
   };
 
+
+  export const getAllWithdrawals = async () => {
+    return await Withdrawal.find().sort({ createdAt: -1 });
+};
+
 export const findWithdrawalRequests = async (userId: string) => {
     return await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
 };

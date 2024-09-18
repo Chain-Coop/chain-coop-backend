@@ -10,6 +10,7 @@ export interface EmailOptions {
 	html?: string;
 }
 
+
 const transporter = nodemailer.createTransport({
 	service: "gmail",
 	secure: true,
