@@ -8,6 +8,7 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
 - [Project Structure](#project-structure)
 - [Workflow Overview](#workflow-overview)
 - [Example Workflow](#example-workflow)
+- [Code Workflow Explanation](#code-orkflow-explanation)
 - [API Endpoints](#api-endpoints)
 - [Models](#models)
 - [Services](#services)
@@ -204,6 +205,102 @@ The backend service is organized in a **Controller-Service-Model** pattern. Here
    - An authorized admin updates the status of the withdrawal request based on the transaction process (e.g., pending, completed, or failed).
 
 This workflow ensures that the user’s funds are securely processed and that only authorized admins have the ability to update the withdrawal status.
+
+
+## Code Workflow Explanation
+
+### 1. `withdrawalController.ts`
+
+This file manages HTTP requests related to withdrawals. It includes two key functions:
+
+#### `requestWithdrawal`
+
+- **Purpose**: Handles a user’s withdrawal request.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves the `userId` from `req.user` (assuming user data is attached to the request by authentication middleware).
+  2. **Extract and Validate Input**: Extracts `amount`, `accountNumber`, and `bankCode` from `req.body`. Throws an error if any of these values are missing.
+  3. **Verify Bank Details**: Uses the Paystack API to verify the bank account details:
+     - Sends a GET request to Paystack's `/bank/resolve` endpoint with the account number and bank code.
+     - Checks if the response contains valid bank account details.
+  4. **Create Withdrawal Request**: If bank details are valid, it calls `createWithdrawalRequest` from `withdrawalService` to create a new withdrawal entry in the database.
+  5. **Send Response**: Returns a success message and the created withdrawal object.
+
+#### `updateWithdrawalStatusController`
+
+- **Purpose**: Allows an admin to update the status of a withdrawal request.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `user` from `req.user` to check if the user is an admin.
+  2. **Extract and Validate Input**: Extracts `withdrawalId` from `req.params` and `status` from `req.body`. Ensures the status is one of the allowed values (`pending`, `completed`, `failed`).
+  3. **Check Authorization**: Verifies that the user is an admin. If not, throws a `ForbiddenError`.
+  4. **Find and Update Withdrawal**:
+     - Calls `findWithdrawalById` to locate the withdrawal record by ID.
+     - Calls `updateWithdrawalStatus` to update the status of the withdrawal record.
+  5. **Send Response**: Returns a success message and the updated withdrawal object.
+
+### 2. `withdrawalService.ts`
+
+This file contains business logic related to withdrawals:
+
+#### `createWithdrawalRequest`
+
+- **Purpose**: Creates a new withdrawal request entry in the database.
+- **Workflow**:
+  1. **Validate Amount**: Ensures the amount is greater than zero. Throws an error if invalid.
+  2. **Create Withdrawal Record**: Uses the Mongoose model `Withdrawal` to create and save a new record with the user ID, amount, and bank details.
+
+#### `findWithdrawalById`
+
+- **Purpose**: Finds a withdrawal record by its ID.
+- **Workflow**:
+  - Uses Mongoose's `findById` method to retrieve the withdrawal record from the database.
+
+#### `updateWithdrawalStatus`
+
+- **Purpose**: Updates the status of a withdrawal request.
+- **Workflow**:
+  - Uses Mongoose's `findByIdAndUpdate` method to find the withdrawal by ID and update its status to the new value provided.
+
+### 3. `models/withdrawal.ts`
+
+This file defines the Mongoose schema and model for withdrawals:
+
+#### `withdrawalSchema`
+
+- **Purpose**: Defines the structure of a withdrawal document in the MongoDB collection.
+- **Fields**:
+  - `user`: Reference to the user making the withdrawal.
+  - `amount`: The amount requested for withdrawal.
+  - `bankDetails`: Contains `accountNumber` and `bankCode`.
+  - `status`: The status of the withdrawal (`pending`, `completed`, `failed`).
+  - `createdAt`: Timestamp when the withdrawal was created.
+
+#### `Withdrawal`
+
+- **Purpose**: The Mongoose model based on the schema, used for interacting with the `withdrawals` collection in the database.
+
+### 4. `routes/withdrawalRoutes.ts`
+
+This file sets up the routes for handling withdrawal-related HTTP requests:
+
+- **Route Definitions**:
+  - **`/all-banks`**: GET request to fetch all available banks (handled by `getAllBanks` from `bankController`).
+  - **`/request-withdrawal`**: POST request to handle new withdrawal requests (handled by `requestWithdrawal`).
+  - **`/collect-bank-details`**: POST request to collect bank details (handled by `collectBankDetails`).
+  - **`/verify-bank-account`**: POST request to verify bank account details (handled by `verifyBankAccount`).
+  - **`/update-status/:withdrawalId`**: PATCH request to update the status of a withdrawal request (handled by `updateWithdrawalStatusController`, accessible only by admins).
+
+### 5. `routes/index.ts`
+
+This file consolidates all route modules into a single export for easy inclusion in the main application file.
+
+### Summary
+
+- **Controllers**: Handle HTTP requests, validate input, and interact with services.
+- **Services**: Implement business logic, interact with models, and perform database operations.
+- **Models**: Define the schema and provide an interface to interact with the database.
+- **Routes**: Define endpoints and map them to controller functions.
+
+Each component is designed to work together to handle withdrawal requests, from user initiation and verification to admin updates and database management.
 
 
 # API Endpoints Documentation
