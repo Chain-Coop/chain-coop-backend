@@ -6,6 +6,8 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
+- [Workflow Overview](#workflow-overview)
+- [Example Workflow](#example-workflow)
 - [API Endpoints](#api-endpoints)
 - [Models](#models)
 - [Services](#services)
@@ -109,6 +111,100 @@ chain-coop-backend/
 ├── tsconfig.json
 └── README.md
 ```
+
+## Workflow Overview
+
+The backend service is organized in a **Controller-Service-Model** pattern. Here's how the different components work together:
+
+- **Controllers**: These handle HTTP requests, validate input, and send appropriate responses to the client. They use the logic from services and handle the interaction between the client and the server.
+
+- **Services**: These handle the business logic of the application. Services interact with models to read/write data from the database and ensure that the data flow follows the business rules.
+
+- **Models**: These define the structure of the MongoDB documents and act as a bridge between the service logic and the actual database.
+
+- **Routes**: Routes define the URLs the client can access. Each route is mapped to a controller function to handle the request.
+
+- **Utilities**: Helper functions for repetitive tasks like uploading files to Cloudinary or interacting with external APIs like Paystack.
+
+
+## Example Workflow: Withdrawal Request Flow
+
+### User Initiates Withdrawal
+
+1. **User Request**: The user makes a POST request to `/request-withdrawal`, providing the amount, bank account number, and bank code.
+
+2. **Controller Handling**: The `withdrawalController.ts` handles this request by verifying the bank account details using the Paystack API.
+
+    ```ts
+    export const requestWithdrawal = async (req: Request, res: Response) => {
+      try {
+        //@ts-ignore
+        const userId = req.user.userId;
+        const { amount, accountNumber, bankCode } = req.body;
+
+        if (!amount || !accountNumber || !bankCode) {
+          throw new BadRequestError("Amount, account number, and bank code are required");
+        }
+
+        // Verify the bank account details using Paystack
+        const verifyResponse = await axios.get("https://api.paystack.co/bank/resolve", {
+          params: { account_number: accountNumber, bank_code: bankCode },
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+        });
+
+        const accountDetails = verifyResponse.data.data;
+
+        if (!accountDetails) {
+          throw new BadRequestError("Invalid bank account details");
+        }
+
+        // If bank details are verified, proceed with the withdrawal process
+        const withdrawal = await createWithdrawalRequest(userId, amount, { accountNumber, bankCode });
+
+        res.status(StatusCodes.CREATED).json({
+          message: "Withdrawal request created successfully",
+          withdrawal,
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        } else {
+          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Internal Server Error" });
+        }
+      }
+    };
+    ```
+
+3. **Service Function**: If verification is successful, the withdrawal request is created and saved in the database using the `createWithdrawalRequest` service function.
+
+    ```ts
+    export const createWithdrawalRequest = async (userId: string, amount: number, bankDetails: { accountNumber: string, bankCode: string }) => {
+      if (amount <= 0) {
+        throw new BadRequestError('Amount must be greater than zero');
+      }
+
+      const withdrawal = await Withdrawal.create({ user: userId, amount, bankDetails });
+      return withdrawal;
+    };
+    ```
+## Example Workflow
+
+### Bank Verification and Withdrawal Process
+
+1. **User Initiates Withdrawal**:
+   - The user submits a request to withdraw funds by providing the amount, bank account number, and bank code.
+
+2. **System Verifies Bank Details**:
+   - The system uses the Paystack API to verify the provided bank account details to ensure they are valid.
+
+3. **Create Withdrawal Request**:
+   - If the bank details are verified successfully, the system creates a withdrawal request and saves it in the database.
+
+4. **Admin Updates Withdrawal Status**:
+   - An authorized admin updates the status of the withdrawal request based on the transaction process (e.g., pending, completed, or failed).
+
+This workflow ensures that the user’s funds are securely processed and that only authorized admins have the ability to update the withdrawal status.
+
 
 # API Endpoints Documentation
 
