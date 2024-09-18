@@ -1,10 +1,18 @@
 import { Request, Response } from "express";
-import { createWithdrawalRequest, updateWithdrawalStatus, findWithdrawalById } from "../services/withdrawalService"; // Make sure these are imported
+import { createWithdrawalRequest, updateWithdrawalStatus, findWithdrawalById } from "../services/withdrawalService";
 import { BadRequestError, ForbiddenError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 import axios from "axios";
+import { sendEmail, EmailOptions } from "../utils/sendEmail";
+import { getAllWithdrawals } from "../services/withdrawalService";
 
+// Ensure these environment variables are defined
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_KEY;
+const ADMIN_EMAIL = process.env.EMAIL_ADDRESS;
+
+if (!PAYSTACK_SECRET_KEY || !ADMIN_EMAIL) {
+  throw new Error("Required environment variables are not defined.");
+}
 
 export const requestWithdrawal = async (req: Request, res: Response) => {
   try {
@@ -38,6 +46,23 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
       accountNumber,
       bankCode,
     });
+
+    // Prepare email details
+    const emailOptions: EmailOptions = {
+      to: ADMIN_EMAIL,
+      subject: "New Withdrawal Request",
+      html: `
+        <h3>New Withdrawal Request</h3>
+        <p><strong>User ID:</strong> ${userId}</p>
+        <p><strong>Amount:</strong> ${amount}</p>
+        <p><strong>Account Number:</strong> ${accountNumber}</p>
+        <p><strong>Bank Code:</strong> ${bankCode}</p>
+        <p><strong>Status:</strong> Pending</p>
+      `,
+    };
+
+    // Send email notification to admin
+    await sendEmail(emailOptions);
 
     res.status(StatusCodes.CREATED).json({
       message: "Withdrawal request created successfully",
@@ -88,6 +113,22 @@ export const updateWithdrawalStatusController = async (req: Request, res: Respon
     });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: error instanceof Error ? error.message : 'An error occurred',
+    });
+  }
+};
+
+
+// GET: List all withdrawal requests
+export const listAllWithdrawals = async (req: Request, res: Response) => {
+  try {
+    const withdrawals = await getAllWithdrawals();
+    res.status(StatusCodes.OK).json({
+      message: "Withdrawals retrieved successfully",
+      withdrawals,
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: error instanceof Error ? error.message : 'An error occurred',
     });
   }

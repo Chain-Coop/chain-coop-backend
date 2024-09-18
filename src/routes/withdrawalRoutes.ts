@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requestWithdrawal, updateWithdrawalStatusController  } from "../controllers/withdrawalController";
+import { requestWithdrawal, updateWithdrawalStatusController, listAllWithdrawals } from "../controllers/withdrawalController";
 import { collectBankDetails, verifyBankDetails } from "../controllers/walletController";
 import { getAllBanks, verifyBankAccount } from "../controllers/bankController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
@@ -20,6 +20,10 @@ router.post("/verify-bank-account", authorize, verifyBankAccount);
 
 // PATCH route to update withdrawal status (admin only)
 router.patch('/update-status/:withdrawalId', authorize, authorizePermissions("admin"), updateWithdrawalStatusController);
+
+router.get('/requests', authorize,  listAllWithdrawals);
+
+
 
 
 
