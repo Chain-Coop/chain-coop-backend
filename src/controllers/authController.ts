@@ -125,6 +125,8 @@ const getUser = async (req: Request, res: Response) => {
 	res.status(StatusCodes.OK).json(user);
 };
 
+// localhost:5173/dashboard/wallet
+
 const forgetPassword = async (req: Request, res: Response) => {
 	const { email } = req.body;
 	if (!email) {
