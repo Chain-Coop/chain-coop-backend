@@ -90,7 +90,7 @@ export const verifyBankDetailsService = async (
 	bankCode: string
 ) => {
 	try {
-		const response = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
+		const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
 			params: {
 				account_number: accountNumber,
 				bank_code: bankCode,
