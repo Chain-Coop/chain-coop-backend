@@ -5,8 +5,10 @@ import { StatusCodes } from "http-status-codes";
 import axios from "axios";
 import { sendEmail, EmailOptions } from "../utils/sendEmail";
 import { getAllWithdrawals } from "../services/withdrawalService";
+import bcrypt from "bcryptjs"; 
+import { findWalletService, validateWalletPin } from "../services/walletService";
 
-// Ensure these environment variables are defined
+
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_KEY;
 const ADMIN_EMAIL = process.env.EMAIL_ADDRESS;
 
@@ -16,66 +18,82 @@ if (!PAYSTACK_SECRET_KEY || !ADMIN_EMAIL) {
 
 export const requestWithdrawal = async (req: Request, res: Response) => {
   try {
-    //@ts-ignore
-    const userId = req.user.userId;
-    const { amount, accountNumber, bankCode } = req.body;
+      //@ts-ignore
+      const userId = req.user.userId;
+      const { amount, accountNumber, bankCode, pin } = req.body;
 
-    if (!amount || !accountNumber || !bankCode) {
-      throw new BadRequestError("Amount, account number, and bank code are required");
-    }
+      if (!amount || !accountNumber || !bankCode || !pin) {
+          throw new BadRequestError("Amount, account number, bank code, and pin are required");
+      }
 
-    // Verify the bank account details using Paystack
-    const verifyResponse = await axios.get("https://api.paystack.co/bank/resolve", {
-      params: {
-        account_number: accountNumber,
-        bank_code: bankCode,
-      },
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-      },
-    });
+      // Validate the wallet
+      const userWallet = await findWalletService({ user: userId });
+      if (!userWallet) {
+          throw new BadRequestError("Wallet not found.");
+      }
 
-    const accountDetails = verifyResponse.data.data;
+      if (!userWallet.isPinCreated) {
+          throw new BadRequestError("Pin not set for the wallet.");
+      }
 
-    if (!accountDetails) {
-      throw new BadRequestError("Invalid bank account details");
-    }
+      // Validate wallet pin
+      const isPinValid = await validateWalletPin(userId, pin);
+      if (!isPinValid) {
+          throw new BadRequestError("Invalid wallet pin");
+      }
 
-    // If bank details are verified, proceed with the withdrawal process
-    const withdrawal = await createWithdrawalRequest(userId, amount, {
-      accountNumber,
-      bankCode,
-    });
+      // Verify the bank account details using Paystack
+      const verifyResponse = await axios.get(
+          "https://api.paystack.co/bank/resolve",
+          {
+              params: {
+                  account_number: accountNumber,
+                  bank_code: bankCode,
+              },
+              headers: {
+                  Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+              },
+          }
+      );
 
-    // Prepare email details
-    const emailOptions: EmailOptions = {
-      to: ADMIN_EMAIL,
-      subject: "New Withdrawal Request",
-      html: `
-        <h3>New Withdrawal Request</h3>
-        <p><strong>User ID:</strong> ${userId}</p>
-        <p><strong>Amount:</strong> ${amount}</p>
-        <p><strong>Account Number:</strong> ${accountNumber}</p>
-        <p><strong>Bank Code:</strong> ${bankCode}</p>
-        <p><strong>Status:</strong> Pending</p>
-      `,
-    };
+      const accountDetails = verifyResponse.data.data;
+      if (!accountDetails) {
+          throw new BadRequestError("Invalid bank account details");
+      }
 
-    // Send email notification to admin
-    await sendEmail(emailOptions);
+      // Create withdrawal request
+      const withdrawal = await createWithdrawalRequest(userId, amount, { accountNumber, bankCode });
 
-    res.status(StatusCodes.CREATED).json({
-      message: "Withdrawal request created successfully",
-      withdrawal,
-    });
+      // Prepare email details
+      const emailOptions: EmailOptions = {
+          to: ADMIN_EMAIL,
+          subject: "New Withdrawal Request",
+          html: `
+              <h3>New Withdrawal Request</h3>
+              <p><strong>User ID:</strong> ${userId}</p>
+              <p><strong>Amount:</strong> ${amount}</p>
+              <p><strong>Account Number:</strong> ${accountNumber}</p>
+              <p><strong>Bank Code:</strong> ${bankCode}</p>
+              <p><strong>Status:</strong> Pending</p>
+          `,
+      };
+
+      // Send email notification to admin
+      await sendEmail(emailOptions);
+
+      res.status(StatusCodes.CREATED).json({
+          message: "Withdrawal request created successfully",
+          withdrawal,
+      });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
-    } else {
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Internal Server Error" });
-    }
+      if (error instanceof Error) {
+          res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+      } else {
+          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Internal Server Error" });
+      }
   }
 };
+
 
 // PATCH: Update withdrawal status (Admin only)
 export const updateWithdrawalStatusController = async (req: Request, res: Response) => {
