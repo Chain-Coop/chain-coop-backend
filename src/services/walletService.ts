@@ -2,6 +2,7 @@ import axios from 'axios';
 import { BadRequestError } from '../errors';
 import Wallet from '../models/wallet';
 import WalletHistory from '../models/walletHistory';
+import bcrypt from "bcryptjs"; 
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BANK_VERIFICATION_URL = 'https://api.paystack.co/bank/resolve';
@@ -43,14 +44,19 @@ export const createWalletService = async (payload: iWallet) => {
 	return await Wallet.create(payload);
   };
 
-export const createPin = async (id: any, payload: iWallet) => {
+  export const createPin = async (id: any, payload: iWallet) => {
     const { pin } = payload;
     const wallet = await Wallet.findOne({ _id: id });
     if (!wallet) {
         throw new BadRequestError('Wallet not found');
     }
-    wallet.pin = pin!;
-    wallet.isPinCreated = true;
+    
+
+    const salt = await bcrypt.genSalt(10);
+    const pinHash = await bcrypt.hash(pin!, salt);
+    
+    wallet.pin = pinHash; 
+    wallet.isPinCreated = true; 
     await wallet.save();
 };
 
@@ -99,5 +105,33 @@ export const verifyBankDetailsService = async (accountNumber: string, bankCode: 
             console.error('Error verifying bank details:', error);
         }
         throw new BadRequestError('Bank verification failed');
+    }
+};
+
+// Function to validate wallet pin
+export const validateWalletPin = async (userId: string, pin: string) => {
+    try {
+        const wallet = await Wallet.findOne({ user: userId });
+
+        if (!wallet) {
+            console.error(`No wallet found for user ID: ${userId}`);
+            throw new BadRequestError("Wallet not found.");
+        }
+
+        if (!wallet.pin) {
+            console.error(`Wallet pin not set for user ID: ${userId}`);
+            throw new BadRequestError("Pin not set for the wallet.");
+        }
+
+        console.log(`Comparing pin: ${pin} with hashed pin: ${wallet.pin}`);
+
+        // Compare the provided pin with the stored hashed pin
+        const isMatch = await bcrypt.compare(pin, wallet.pin);
+        console.log(`Pin match result: ${isMatch}`);
+        
+        return isMatch;
+    } catch (error) {
+        console.error(`Error validating pin for user ID: ${userId}`, error);
+        throw new BadRequestError("Error validating wallet pin.");
     }
 };

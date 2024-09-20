@@ -14,6 +14,9 @@ import { StatusCodes } from 'http-status-codes';
 import uploadImageFile from '../utils/imageUploader';
 import { findUser } from '../services/authService';
 import { createHmac } from 'crypto';
+import bcrypt from "bcryptjs"; 
+
+
 
 const secret = process.env.PAYSTACK_KEY!;
 
@@ -87,15 +90,24 @@ const getWalletHistory = async (req: Request, res: Response) => {
 const setWalletPin = async (req: Request, res: Response) => {
     //@ts-ignore
     const userWallet = await findWalletService({ user: req.user.userId });
+    
     if (!userWallet) {
         throw new BadRequestError('Wallet does not exist');
     }
+    
     if (userWallet.isPinCreated) {
         throw new BadRequestError('You have created a pin already');
     }
-    await createPin(userWallet._id, req.body.pin);
+
+    // Hash the pin before saving it
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await (req.body.pin);
+
+    await createPin(userWallet._id, { pin: hashedPin }); // Save hashed pin
     res.status(StatusCodes.OK).json({ msg: 'Pin created successfully' });
 };
+
+  
 
 const uploadReceipt = async (req: Request, res: Response) => {
     try {
@@ -175,6 +187,8 @@ export const fundWallet = async (req: Request, res: Response) => {
 	}
   };
 
+  
+
 export {
     paystackWebhook,
     getWalletBalance,
@@ -184,3 +198,4 @@ export {
     collectBankDetailsHandler as collectBankDetails,
     verifyBankDetailsHandler as verifyBankDetails
 };
+
