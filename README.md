@@ -595,6 +595,190 @@ This file consolidates all route modules into a single export for easy inclusion
 
 Each component is designed to work together to manage membership activation, from user initiation and validation to successful activation and database management.
 
+# Contribution Feature Workflow
+
+## Example Workflow: Contribution Management Flow
+
+### User Initiates Contribution
+
+1. **User Request**: The user makes a POST request to `/contribute`, providing the payment plan, contribution plan, and amount.
+
+2. **Controller Handling**: The `contributionController.ts` manages this request by validating user input and wallet balance.
+
+    ```ts
+    export const createContribution = async (req: Request, res: Response) => {
+      try {
+        const { paymentPlan, contributionPlan, amount } = req.body;
+        //@ts-ignore
+        const userId = req.user.userId;
+
+        // Fetch the user's wallet
+        const wallet = await findWalletService({ user: userId });
+        if (!wallet) {
+          throw new BadRequestError("Wallet not found");
+        }
+
+        // Check wallet balance
+        if (wallet.balance < amount) {
+          throw new BadRequestError("Insufficient funds in the wallet");
+        }
+
+        // Create the contribution
+        const contribution = await createContributionService({
+          user: userId,
+          paymentPlan,
+          contributionPlan,
+          amount,
+          _id: undefined,
+          nextContributionDate: undefined // Adjust as needed
+        });
+
+        // Deduct the contribution amount from the wallet
+        const updatedWallet = await updateWalletService(wallet._id, { balance: wallet.balance - amount });
+        if (!updatedWallet) {
+          throw new BadRequestError("Failed to update wallet balance");
+        }
+
+        // Log the contribution history
+        await createContributionHistoryService(contribution._id.toString(), userId, amount, "Pending");
+
+        // Respond to the client
+        res.status(StatusCodes.CREATED).json({ message: "Contribution created successfully", contribution });
+      } catch (error) {
+        console.error(error);
+        res.status(error instanceof BadRequestError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
+      }
+    };
+    ```
+
+3. **Service Function**: If validation is successful, the contribution is created, and the wallet is updated using the `createContributionService` and `updateWalletService`.
+
+    ```ts
+    export const createContributionService = async (payload: iContribution) => {
+      return await Contribution.create(payload);
+    };
+    ```
+
+## Example Workflow
+
+### Contribution Creation and Management Process
+
+1. **User Initiates Contribution**:
+   - The user submits a request to contribute by providing the necessary details.
+
+2. **System Validates Wallet and Contribution Details**:
+   - The system checks the user's wallet for sufficient balance and validates the contribution details.
+
+3. **Create Contribution**:
+   - If the wallet has sufficient funds, the system creates a new contribution and saves it in the database.
+
+4. **Log Contribution History**:
+   - The system logs the contribution in the contribution history for future reference.
+
+5. **Admin and User Access**:
+   - Users can check their contribution history and details of their contributions.
+
+This workflow ensures that contributions are managed securely and efficiently.
+
+## Code Workflow Explanation
+
+### 1. `contributionController.ts`
+
+This file manages HTTP requests related to contributions. It includes three key functions:
+
+#### `createContribution`
+
+- **Purpose**: Handles a user’s request to create a new contribution.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves the `userId` from `req.user`.
+  2. **Fetch Wallet**: Looks for the user's wallet and checks its balance.
+  3. **Create Contribution**: If the balance is sufficient, creates a new contribution and updates the wallet balance.
+  4. **Log Contribution History**: Logs the contribution in the history.
+  5. **Send Response**: Returns a success message and the created contribution object.
+
+#### `getContributionDetails`
+
+- **Purpose**: Retrieves the latest contribution details for the user.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `userId` from `req.user`.
+  2. **Fetch Contribution**: Looks for the most recent contribution record.
+  3. **Send Response**: Returns the balance and next contribution date.
+
+#### `getContributionHistory`
+
+- **Purpose**: Retrieves the contribution history for the user.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `userId` from `req.user`.
+  2. **Fetch History**: Calls `findContributionHistoryService` to get the user's contribution history.
+  3. **Send Response**: Returns the contribution history.
+
+### 2. `models/contribution.ts`
+
+This file defines the Mongoose schema and model for contributions:
+
+#### `ContributionSchema`
+
+- **Purpose**: Defines the structure of a contribution document in the MongoDB collection.
+- **Fields**:
+  - `user`: Reference to the user making the contribution.
+  - `paymentPlan`: The payment plan type (e.g., Instalment, PayOnce).
+  - `contributionPlan`: The frequency of contributions (e.g., Daily, Weekly, Monthly, Yearly).
+  - `amount`: The amount contributed.
+  - `balance`: The remaining balance after contributions.
+  - `nextContributionDate`: The date of the next scheduled contribution.
+  - `status`: The status of the contribution (e.g., Pending, Completed).
+
+### 3. `models/contributionHistory.ts`
+
+This file defines the Mongoose schema and model for contribution history:
+
+#### `ContributionHistorySchema`
+
+- **Purpose**: Defines the structure of a contribution history document in the MongoDB collection.
+- **Fields**:
+  - `contribution`: Reference to the associated contribution.
+  - `user`: Reference to the user making the contribution.
+  - `amount`: The amount contributed.
+  - `status`: The current status of the contribution (e.g., Pending, Completed).
+  - `date`: The date the contribution was made.
+
+### 4. `services/contributionService.ts`
+
+This file contains business logic related to contributions:
+
+#### `createContributionService`
+
+- **Purpose**: Creates a new contribution entry in the database.
+- **Workflow**:
+  - Uses the Mongoose model `Contribution` to create and save a new record.
+
+#### `findContributionHistoryService`
+
+- **Purpose**: Finds the contribution history for a user.
+- **Workflow**:
+  - Uses Mongoose's `find` method to retrieve the contribution history records.
+
+### 5. `routes/contributionRoutes.ts`
+
+This file sets up the routes for handling contribution-related HTTP requests:
+
+- **Route Definitions**:
+  - **`/contribute`**: POST request to handle new contributions (handled by `createContribution`).
+  - **`/history`**: GET request to fetch contribution history (handled by `getContributionHistory`).
+  - **`/balance`**: GET request to fetch contribution details (handled by `getContributionDetails`).
+
+### 6. `routes/index.ts`
+
+This file consolidates all route modules into a single export for easy inclusion in the main application file.
+
+### Summary
+
+- **Controllers**: Handle HTTP requests, validate input, and interact with services.
+- **Services**: Implement business logic, interact with models, and perform database operations.
+- **Models**: Define the schema and provide an interface to interact with the database.
+- **Routes**: Define endpoints and map them to controller functions.
+
+Each component is designed to work together to manage contributions, from user initiation and validation to logging and historical records.
 
 
 # API Endpoints Documentation
