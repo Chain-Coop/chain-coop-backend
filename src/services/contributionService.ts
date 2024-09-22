@@ -14,7 +14,7 @@ export interface iContribution {
   };
   balance?: number; 
   nextContributionDate?: Date;
-  lastContributionDate?: Date; // New field
+  lastContributionDate?: Date;
 }
 
 export const createContributionService = async (payload: iContribution) => {
@@ -89,10 +89,9 @@ export const processRecurringContributions = async () => {
         contributionPlan: contribution.contributionPlan,
         amount,
         nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
-        lastContributionDate: new Date(), // Update to the current date
+        lastContributionDate: new Date(),
       });
 
-      // Update the existing contribution's lastContributionDate and nextContributionDate
       await updateContributionService(contribution._id as ObjectId, {
         lastContributionDate: new Date(),
         nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
