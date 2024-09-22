@@ -17,11 +17,6 @@ const ContributionSchema = new Schema<ContributionDocument>(
       ref: "User",
       required: true,
     },
-    paymentPlan: {
-      type: String,
-      enum: ["Instalment", "PayOnce"],
-      required: true,
-    },
     contributionPlan: {
       type: String,
       enum: ["Daily", "Weekly", "Monthly", "Yearly"],

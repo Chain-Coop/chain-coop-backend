@@ -302,6 +302,484 @@ This file consolidates all route modules into a single export for easy inclusion
 
 Each component is designed to work together to handle withdrawal requests, from user initiation and verification to admin updates and database management.
 
+## Example Workflow: Project Management Flow
+
+### User Initiates Project Creation
+
+1. **User Request**: The user makes a POST request to `/create-project`, providing the project details such as title, description, and due date.
+
+2. **Controller Handling**: The `projectController.ts` handles this request by validating the project details.
+
+    ```ts
+    export const createProject = async (req: Request, res: Response) => {
+      try {
+        //@ts-ignore
+        const userId = req.user.userId;
+        const { title, description, dueDate } = req.body;
+
+        if (!title || !description || !dueDate) {
+          throw new BadRequestError("Title, description, and due date are required");
+        }
+
+        // Create a new project
+        const project = await createNewProject(userId, { title, description, dueDate });
+
+        res.status(StatusCodes.CREATED).json({
+          message: "Project created successfully",
+          project,
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+        } else {
+          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Internal Server Error" });
+        }
+      }
+    };
+    ```
+
+3. **Service Function**: If validation is successful, the project is created and saved in the database using the `createNewProject` service function.
+
+    ```ts
+    export const createNewProject = async (userId: string, projectData: { title: string, description: string, dueDate: Date }) => {
+      const project = await Project.create({ user: userId, ...projectData });
+      return project;
+    };
+    ```
+
+## Example Workflow
+
+### Project Creation and Management Process
+
+1. **User Initiates Project Creation**:
+   - The user submits a request to create a new project by providing the necessary details.
+
+2. **System Validates Project Details**:
+   - The system checks the provided details to ensure they are valid and complete.
+
+3. **Create Project**:
+   - If the details are valid, the system creates a new project and saves it in the database.
+
+4. **Admin Updates Project Status**:
+   - An authorized admin can update the status of the project based on its progress (e.g., active, completed, archived).
+
+This workflow ensures that projects are efficiently managed and that all necessary information is captured for successful execution.
+
+## Code Workflow Explanation
+
+### 1. `projectController.ts`
+
+This file manages HTTP requests related to project management. It includes two key functions:
+
+#### `createProject`
+
+- **Purpose**: Handles a user’s request to create a new project.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves the `userId` from `req.user` (assuming user data is attached to the request by authentication middleware).
+  2. **Extract and Validate Input**: Extracts `title`, `description`, and `dueDate` from `req.body`. Throws an error if any of these values are missing.
+  3. **Create Project**: If the input is valid, it calls `createNewProject` from `projectService` to create a new project entry in the database.
+  4. **Send Response**: Returns a success message and the created project object.
+
+#### `updateProjectStatusController`
+
+- **Purpose**: Allows an admin to update the status of a project.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `user` from `req.user` to check if the user is an admin.
+  2. **Extract and Validate Input**: Extracts `projectId` from `req.params` and `status` from `req.body`. Ensures the status is one of the allowed values (`active`, `completed`, `archived`).
+  3. **Check Authorization**: Verifies that the user is an admin. If not, throws a `ForbiddenError`.
+  4. **Find and Update Project**:
+     - Calls `findProjectById` to locate the project record by ID.
+     - Calls `updateProjectStatus` to update the status of the project record.
+  5. **Send Response**: Returns a success message and the updated project object.
+
+### 2. `projectService.ts`
+
+This file contains business logic related to projects:
+
+#### `createNewProject`
+
+- **Purpose**: Creates a new project entry in the database.
+- **Workflow**:
+  1. **Create Project Record**: Uses the Mongoose model `Project` to create and save a new record with the user ID and project data.
+
+#### `findProjectById`
+
+- **Purpose**: Finds a project record by its ID.
+- **Workflow**:
+  - Uses Mongoose's `findById` method to retrieve the project record from the database.
+
+#### `updateProjectStatus`
+
+- **Purpose**: Updates the status of a project.
+- **Workflow**:
+  - Uses Mongoose's `findByIdAndUpdate` method to find the project by ID and update its status to the new value provided.
+
+### 3. `models/project.ts`
+
+This file defines the Mongoose schema and model for projects:
+
+#### `projectSchema`
+
+- **Purpose**: Defines the structure of a project document in the MongoDB collection.
+- **Fields**:
+  - `user`: Reference to the user who created the project.
+  - `title`: The title of the project.
+  - `description`: A brief description of the project.
+  - `dueDate`: The due date for project completion.
+  - `status`: The status of the project (`active`, `completed`, `archived`).
+  - `createdAt`: Timestamp when the project was created.
+
+#### `Project`
+
+- **Purpose**: The Mongoose model based on the schema, used for interacting with the `projects` collection in the database.
+
+### 4. `routes/projectRoutes.ts`
+
+This file sets up the routes for handling project-related HTTP requests:
+
+- **Route Definitions**:
+  - **`/create-project`**: POST request to handle new project creation (handled by `createProject`).
+  - **`/update-status/:projectId`**: PATCH request to update the status of a project (handled by `updateProjectStatusController`, accessible only by admins).
+
+### 5. `routes/index.ts`
+
+This file consolidates all route modules into a single export for easy inclusion in the main application file.
+
+### Summary
+
+- **Controllers**: Handle HTTP requests, validate input, and interact with services.
+- **Services**: Implement business logic, interact with models, and perform database operations.
+- **Models**: Define the schema and provide an interface to interact with the database.
+- **Routes**: Define endpoints and map them to controller functions.
+
+Each component is designed to work together to manage projects, from user initiation and validation to admin updates and database management.
+
+
+# Membership Activation Feature Workflow
+
+## Example Workflow: Membership Activation Flow
+
+### User Initiates Membership Activation
+
+1. **User Request**: The user makes a POST request to `/activate-membership`, providing their membership details and payment information.
+
+2. **Controller Handling**: The `membershipController.ts` handles this request by validating the membership details.
+
+    ```ts
+    import { Request, Response } from "express";
+    import { activateMembershipService } from "../services/membershipService";
+    import { BadRequestError } from "../errors";
+    import { StatusCodes } from "http-status-codes";
+
+    export const activateMembership = async (req: Request, res: Response) => {
+      try {
+        const { membershipType, paymentDetails } = req.body;
+        //@ts-ignore
+        const userId = req.user.userId;
+
+        // Validate membership details
+        if (!membershipType || !paymentDetails) {
+          throw new BadRequestError("Membership type and payment details are required");
+        }
+
+        // Activate the membership
+        const membership = await activateMembershipService(userId, membershipType, paymentDetails);
+
+        // Respond to the client
+        res.status(StatusCodes.CREATED).json({
+          message: "Membership activated successfully",
+          membership,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(error instanceof BadRequestError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
+      }
+    };
+    ```
+
+3. **Service Function**: If validation is successful, the membership is activated and saved in the database using the `activateMembershipService` function.
+
+    ```ts
+    import Membership from "../models/membership";
+
+    export const activateMembershipService = async (userId: string, membershipType: string, paymentDetails: any) => {
+      // Logic to process payment and activate membership
+      const membership = await Membership.create({
+        user: userId,
+        membershipType,
+        paymentDetails,
+        status: "Active",
+      });
+      return membership;
+    };
+    ```
+
+## Example Workflow
+
+### Membership Activation Process
+
+1. **User Initiates Membership Activation**:
+   - The user submits a request to activate their membership by providing the necessary details.
+
+2. **System Validates Membership Details**:
+   - The system checks the provided membership details to ensure they are valid and complete.
+
+3. **Activate Membership**:
+   - If the details are valid, the system activates the membership and saves it in the database.
+
+4. **Respond to User**:
+   - The system responds with a confirmation of the activated membership.
+
+This workflow ensures that memberships are efficiently managed and that all necessary information is captured for successful activation.
+
+## Code Workflow Explanation
+
+### 1. `membershipController.ts`
+
+This file manages HTTP requests related to membership activation. It includes the key function:
+
+#### `activateMembership`
+
+- **Purpose**: Handles a user’s request to activate their membership.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves the `userId` from `req.user` (assuming user data is attached to the request by authentication middleware).
+  2. **Extract and Validate Input**: Extracts `membershipType` and `paymentDetails` from `req.body`. Throws an error if any of these values are missing.
+  3. **Activate Membership**: If the input is valid, it calls `activateMembershipService` from `membershipService` to activate the membership.
+  4. **Send Response**: Returns a success message and the activated membership object.
+
+### 2. `membershipService.ts`
+
+This file contains business logic related to memberships:
+
+#### `activateMembershipService`
+
+- **Purpose**: Activates a membership for a user.
+- **Workflow**:
+  1. **Create Membership Record**: Uses the Mongoose model `Membership` to create and save a new record with the user ID, membership type, payment details, and status.
+
+### 3. `models/membership.ts`
+
+This file defines the Mongoose schema and model for memberships:
+
+#### `membershipSchema`
+
+- **Purpose**: Defines the structure of a membership document in the MongoDB collection.
+- **Fields**:
+  - `user`: Reference to the user who activated the membership.
+  - `membershipType`: The type of membership (e.g., Basic, Premium).
+  - `paymentDetails`: Details related to the payment for the membership.
+  - `status`: The status of the membership (`Active`, `Inactive`).
+  - `createdAt`: Timestamp when the membership was created.
+
+#### `Membership`
+
+- **Purpose**: The Mongoose model based on the schema, used for interacting with the `memberships` collection in the database.
+
+### 4. `routes/membershipRoutes.ts`
+
+This file sets up the routes for handling membership-related HTTP requests:
+
+- **Route Definitions**:
+  - **`/activate-membership`**: POST request to handle membership activation (handled by `activateMembership`).
+
+### 5. `routes/index.ts`
+
+This file consolidates all route modules into a single export for easy inclusion in the main application file.
+
+### Summary
+
+- **Controllers**: Handle HTTP requests, validate input, and interact with services.
+- **Services**: Implement business logic, interact with models, and perform database operations.
+- **Models**: Define the schema and provide an interface to interact with the database.
+- **Routes**: Define endpoints and map them to controller functions.
+
+Each component is designed to work together to manage membership activation, from user initiation and validation to successful activation and database management.
+
+# Contribution Feature Workflow
+
+## Example Workflow: Contribution Management Flow
+
+### User Initiates Contribution
+
+1. **User Request**: The user makes a POST request to `/contribute`, providing the payment plan, contribution plan, and amount.
+
+2. **Controller Handling**: The `contributionController.ts` manages this request by validating user input and wallet balance.
+
+    ```ts
+    export const createContribution = async (req: Request, res: Response) => {
+      try {
+        const { paymentPlan, contributionPlan, amount } = req.body;
+        //@ts-ignore
+        const userId = req.user.userId;
+
+        // Fetch the user's wallet
+        const wallet = await findWalletService({ user: userId });
+        if (!wallet) {
+          throw new BadRequestError("Wallet not found");
+        }
+
+        // Check wallet balance
+        if (wallet.balance < amount) {
+          throw new BadRequestError("Insufficient funds in the wallet");
+        }
+
+        // Create the contribution
+        const contribution = await createContributionService({
+          user: userId,
+          paymentPlan,
+          contributionPlan,
+          amount,
+          _id: undefined,
+          nextContributionDate: undefined // Adjust as needed
+        });
+
+        // Deduct the contribution amount from the wallet
+        const updatedWallet = await updateWalletService(wallet._id, { balance: wallet.balance - amount });
+        if (!updatedWallet) {
+          throw new BadRequestError("Failed to update wallet balance");
+        }
+
+        // Log the contribution history
+        await createContributionHistoryService(contribution._id.toString(), userId, amount, "Pending");
+
+        // Respond to the client
+        res.status(StatusCodes.CREATED).json({ message: "Contribution created successfully", contribution });
+      } catch (error) {
+        console.error(error);
+        res.status(error instanceof BadRequestError ? StatusCodes.BAD_REQUEST : StatusCodes.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
+      }
+    };
+    ```
+
+3. **Service Function**: If validation is successful, the contribution is created, and the wallet is updated using the `createContributionService` and `updateWalletService`.
+
+    ```ts
+    export const createContributionService = async (payload: iContribution) => {
+      return await Contribution.create(payload);
+    };
+    ```
+
+## Example Workflow
+
+### Contribution Creation and Management Process
+
+1. **User Initiates Contribution**:
+   - The user submits a request to contribute by providing the necessary details.
+
+2. **System Validates Wallet and Contribution Details**:
+   - The system checks the user's wallet for sufficient balance and validates the contribution details.
+
+3. **Create Contribution**:
+   - If the wallet has sufficient funds, the system creates a new contribution and saves it in the database.
+
+4. **Log Contribution History**:
+   - The system logs the contribution in the contribution history for future reference.
+
+5. **Admin and User Access**:
+   - Users can check their contribution history and details of their contributions.
+
+This workflow ensures that contributions are managed securely and efficiently.
+
+## Code Workflow Explanation
+
+### 1. `contributionController.ts`
+
+This file manages HTTP requests related to contributions. It includes three key functions:
+
+#### `createContribution`
+
+- **Purpose**: Handles a user’s request to create a new contribution.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves the `userId` from `req.user`.
+  2. **Fetch Wallet**: Looks for the user's wallet and checks its balance.
+  3. **Create Contribution**: If the balance is sufficient, creates a new contribution and updates the wallet balance.
+  4. **Log Contribution History**: Logs the contribution in the history.
+  5. **Send Response**: Returns a success message and the created contribution object.
+
+#### `getContributionDetails`
+
+- **Purpose**: Retrieves the latest contribution details for the user.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `userId` from `req.user`.
+  2. **Fetch Contribution**: Looks for the most recent contribution record.
+  3. **Send Response**: Returns the balance and next contribution date.
+
+#### `getContributionHistory`
+
+- **Purpose**: Retrieves the contribution history for the user.
+- **Workflow**:
+  1. **Extract User Data**: Retrieves `userId` from `req.user`.
+  2. **Fetch History**: Calls `findContributionHistoryService` to get the user's contribution history.
+  3. **Send Response**: Returns the contribution history.
+
+### 2. `models/contribution.ts`
+
+This file defines the Mongoose schema and model for contributions:
+
+#### `ContributionSchema`
+
+- **Purpose**: Defines the structure of a contribution document in the MongoDB collection.
+- **Fields**:
+  - `user`: Reference to the user making the contribution.
+  - `paymentPlan`: The payment plan type (e.g., Instalment, PayOnce).
+  - `contributionPlan`: The frequency of contributions (e.g., Daily, Weekly, Monthly, Yearly).
+  - `amount`: The amount contributed.
+  - `balance`: The remaining balance after contributions.
+  - `nextContributionDate`: The date of the next scheduled contribution.
+  - `status`: The status of the contribution (e.g., Pending, Completed).
+
+### 3. `models/contributionHistory.ts`
+
+This file defines the Mongoose schema and model for contribution history:
+
+#### `ContributionHistorySchema`
+
+- **Purpose**: Defines the structure of a contribution history document in the MongoDB collection.
+- **Fields**:
+  - `contribution`: Reference to the associated contribution.
+  - `user`: Reference to the user making the contribution.
+  - `amount`: The amount contributed.
+  - `status`: The current status of the contribution (e.g., Pending, Completed).
+  - `date`: The date the contribution was made.
+
+### 4. `services/contributionService.ts`
+
+This file contains business logic related to contributions:
+
+#### `createContributionService`
+
+- **Purpose**: Creates a new contribution entry in the database.
+- **Workflow**:
+  - Uses the Mongoose model `Contribution` to create and save a new record.
+
+#### `findContributionHistoryService`
+
+- **Purpose**: Finds the contribution history for a user.
+- **Workflow**:
+  - Uses Mongoose's `find` method to retrieve the contribution history records.
+
+### 5. `routes/contributionRoutes.ts`
+
+This file sets up the routes for handling contribution-related HTTP requests:
+
+- **Route Definitions**:
+  - **`/contribute`**: POST request to handle new contributions (handled by `createContribution`).
+  - **`/history`**: GET request to fetch contribution history (handled by `getContributionHistory`).
+  - **`/balance`**: GET request to fetch contribution details (handled by `getContributionDetails`).
+
+### 6. `routes/index.ts`
+
+This file consolidates all route modules into a single export for easy inclusion in the main application file.
+
+### Summary
+
+- **Controllers**: Handle HTTP requests, validate input, and interact with services.
+- **Services**: Implement business logic, interact with models, and perform database operations.
+- **Models**: Define the schema and provide an interface to interact with the database.
+- **Routes**: Define endpoints and map them to controller functions.
+
+Each component is designed to work together to manage contributions, from user initiation and validation to logging and historical records.
+
 
 # API Endpoints Documentation
 

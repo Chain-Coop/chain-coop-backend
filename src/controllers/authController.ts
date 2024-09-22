@@ -39,7 +39,7 @@ const register = async (req: Request, res: Response) => {
 		pin: "0000",
 		totalEarned: 0,
 		totalWithdrawn: 0,
-		user: user._id,
+		user: user._id as string,
 	};
 
 	await createWalletService(walletPayload);
@@ -124,6 +124,8 @@ const getUser = async (req: Request, res: Response) => {
 	const user = await getUserDetails(id);
 	res.status(StatusCodes.OK).json(user);
 };
+
+// localhost:5173/dashboard/wallet
 
 const forgetPassword = async (req: Request, res: Response) => {
 	const { email } = req.body;
