@@ -14,7 +14,9 @@ import Contribution from "../models/contribution";
 
 export const createContribution = async (req: Request, res: Response) => {
 	try {
-		const { paymentPlan, contributionPlan, amount } = req.body;
+
+		const { contributionPlan, amount } = req.body;
+
 		//@ts-ignore
 		const userId = req.user.userId;
 
@@ -31,10 +33,11 @@ export const createContribution = async (req: Request, res: Response) => {
 			throw new BadRequestError("Insufficient funds in the wallet");
 		}
 
-		// Create the contribution
+
+		// Create the contribution without paymentPlan
 		const contribution = await createContributionService({
 			user: userId,
-			paymentPlan,
+
 			contributionPlan,
 			amount,
 			_id: undefined,
@@ -60,6 +63,7 @@ export const createContribution = async (req: Request, res: Response) => {
 		// Log the updated wallet balance
 		console.log(`Updated Wallet Balance: ${updatedWallet.balance}`);
 
+
 		// Log the contribution history
 		await createContributionHistoryService(
 			//@ts-ignore
@@ -84,6 +88,7 @@ export const createContribution = async (req: Request, res: Response) => {
 			.json({ error: (error as Error).message });
 	}
 };
+
 export const getContributionDetails = async (req: Request, res: Response) => {
 	try {
 		//@ts-ignore

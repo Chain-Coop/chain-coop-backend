@@ -1,4 +1,3 @@
-// src/services/contributionService.ts
 import { ObjectId } from "mongoose";
 import Contribution, { ContributionDocument } from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
@@ -6,7 +5,6 @@ import ContributionHistory from "../models/contributionHistory";
 export interface iContribution {
   _id?: ObjectId;
   user: ObjectId;
-  paymentPlan: string;
   contributionPlan: string;
   amount: number;
   status?: string;
