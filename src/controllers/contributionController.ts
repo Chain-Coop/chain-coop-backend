@@ -73,7 +73,7 @@ export const createContribution = async (req: Request, res: Response) => {
     res.status(StatusCodes.CREATED).json({
       message: "Contribution created successfully",
       contribution,
-      nextContributionDate, // Return the next contribution date in the response
+      nextContributionDate,
     });
   } catch (error) {
     console.error(error);

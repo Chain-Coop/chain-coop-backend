@@ -81,7 +81,6 @@ export const processRecurringContributions = async () => {
   for (const contribution of contributions) {
     const { nextContributionDate, lastContributionDate, amount, user } = contribution;
 
-    // Ensure nextContributionDate is defined
     if (nextContributionDate && nextContributionDate <= new Date()) {
       // Create a new contribution for this user
       await createContributionService({
