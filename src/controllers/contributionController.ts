@@ -14,7 +14,7 @@ import Contribution from "../models/contribution";
 
 export const createContribution = async (req: Request, res: Response) => {
 	try {
-		const { paymentPlan, contributionPlan, amount } = req.body;
+		const { contributionPlan, amount } = req.body;
 		//@ts-ignore
 		const userId = req.user.userId;
 
@@ -31,10 +31,9 @@ export const createContribution = async (req: Request, res: Response) => {
 			throw new BadRequestError("Insufficient funds in the wallet");
 		}
 
-		// Create the contribution
+		// Create the contribution without paymentPlan
 		const contribution = await createContributionService({
 			user: userId,
-			paymentPlan,
 			contributionPlan,
 			amount,
 			_id: undefined,
@@ -45,14 +44,6 @@ export const createContribution = async (req: Request, res: Response) => {
 		const updatedWallet = await updateWalletService(wallet._id, {
 			balance: wallet.balance - amount,
 		});
-		if (!updatedWallet) {
-			throw new BadRequestError("Failed to update wallet balance");
-		}
-
-		// Log the updated wallet balance
-		console.log(`Updated Wallet Balance: ${updatedWallet.balance}`);
-
-		// Check if the wallet update was successful
 		if (!updatedWallet) {
 			throw new BadRequestError("Failed to update wallet balance");
 		}
@@ -84,6 +75,8 @@ export const createContribution = async (req: Request, res: Response) => {
 			.json({ error: (error as Error).message });
 	}
 };
+
+
 export const getContributionDetails = async (req: Request, res: Response) => {
 	try {
 		//@ts-ignore
