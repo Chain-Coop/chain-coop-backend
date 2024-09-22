@@ -2,11 +2,11 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  paymentPlan: string;
   contributionPlan: string;
+  amount: number;
   balance: number; 
   nextContributionDate?: Date; 
-  amount: number;
+  lastContributionDate?: Date; 
   status: string;
 }
 
@@ -32,6 +32,9 @@ const ContributionSchema = new Schema<ContributionDocument>(
       default: 0 
     },
     nextContributionDate: { 
+      type: Date 
+    },
+    lastContributionDate: {
       type: Date 
     },
     status: {

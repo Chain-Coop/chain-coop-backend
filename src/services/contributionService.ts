@@ -14,6 +14,7 @@ export interface iContribution {
   };
   balance?: number; 
   nextContributionDate?: Date;
+  lastContributionDate?: Date; // New field
 }
 
 export const createContributionService = async (payload: iContribution) => {
@@ -50,4 +51,52 @@ export const updateContributionBankDetails = async (contributionId: ObjectId, ba
     { bankDetails },
     { new: true }
   );
+};
+
+export const calculateNextContributionDate = (plan: string): Date => {
+  const date = new Date();
+  switch (plan) {
+    case "Daily":
+      date.setDate(date.getDate() + 1);
+      break;
+    case "Weekly":
+      date.setDate(date.getDate() + 7);
+      break;
+    case "Monthly":
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case "Yearly":
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    default:
+      throw new Error(`Invalid contribution plan: ${plan}`);
+  }
+  return date;
+};
+
+// new function to process recurring contributions
+export const processRecurringContributions = async () => {
+  const contributions = await Contribution.find({ status: "Pending" });
+
+  for (const contribution of contributions) {
+    const { nextContributionDate, lastContributionDate, amount, user } = contribution;
+
+    // Ensure nextContributionDate is defined
+    if (nextContributionDate && nextContributionDate <= new Date()) {
+      // Create a new contribution for this user
+      await createContributionService({
+        user,
+        contributionPlan: contribution.contributionPlan,
+        amount,
+        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
+        lastContributionDate: new Date(), // Update to the current date
+      });
+
+      // Update the existing contribution's lastContributionDate and nextContributionDate
+      await updateContributionService(contribution._id as ObjectId, {
+        lastContributionDate: new Date(),
+        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
+      });
+    }
+  }
 };

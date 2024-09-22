@@ -3,6 +3,7 @@ import {
 	createContributionService,
 	createContributionHistoryService,
 	findContributionHistoryService,
+  calculateNextContributionDate,
 } from "../services/contributionService";
 import {
 	findWalletService,
@@ -12,27 +13,7 @@ import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 import Contribution from "../models/contribution";
 
-// Helper function to calculate the next contribution date
-const calculateNextContributionDate = (plan: string): Date => {
-  const date = new Date();
-  switch (plan) {
-    case "Daily":
-      date.setDate(date.getDate() + 1);
-      break;
-    case "Weekly":
-      date.setDate(date.getDate() + 7);
-      break;
-    case "Monthly":
-      date.setMonth(date.getMonth() + 1);
-      break;
-    case "Yearly":
-      date.setFullYear(date.getFullYear() + 1);
-      break;
-    default:
-      throw new Error(`Invalid contribution plan: ${plan}`);
-  }
-  return date;
-};
+
 
 export const createContribution = async (req: Request, res: Response) => {
   try {
@@ -63,8 +44,10 @@ export const createContribution = async (req: Request, res: Response) => {
       user: userId,
       contributionPlan,
       amount,
-      nextContributionDate, // Set the calculated next contribution date
+      nextContributionDate,
+      lastContributionDate: new Date(),
     });
+
 
     // Deduct the contribution amount from the wallet
     const updatedWallet = await updateWalletService(wallet._id, {
