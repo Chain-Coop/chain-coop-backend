@@ -125,23 +125,29 @@ export const updateProjectDetailsService = async (
     updates: any,
     file: any
 ): Promise<ProjectDocument | null> => {
+    // Fetch the project by its ID
     const project = await getProjectByIdService(id);
+
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
+    // Log the userId and project author for debugging
+    console.log(`Logged-in User ID: ${userId}`);
+    console.log(`Project Author ID: ${project.author.toString()}`);
+
     // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId) {
+    if (project.author.toString() !== userId.toString()) {
         throw new ForbiddenError("You are not authorized to update this project");
     }
 
     // Handle file upload if provided
     if (file) {
         const uploadedImage = await uploadImageFile(file, 'document', 'image');
-        updates.documentUrl = uploadedImage.secure_url; // Use the uploaded URL
+        updates.documentUrl = uploadedImage.secure_url; // Update the document URL with the uploaded image
     }
 
-    // Update the project with the provided details
+    // Update the project details
     return await Project.findByIdAndUpdate(id, updates, {
         new: true,
         runValidators: true,
