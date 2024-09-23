@@ -128,18 +128,12 @@ export const updateProjectDetailsService = async (
     // Fetch the project by its ID
     const project = await getProjectByIdService(id);
 
+    // Check if the project is null and throw an appropriate error
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
-    // Log the userId and project author for debugging
-    console.log(`Logged-in User ID: ${userId}`);
-    console.log(`Project Author ID: ${project.author.toString()}`);
-
-    // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId.toString()) {
-        throw new ForbiddenError("You are not authorized to update this project");
-    }
+ 
 
     // Handle file upload if provided
     if (file) {
