@@ -32,7 +32,7 @@ const ProjectSchema = new Schema(
     },
     author: {
       type: Schema.Types.ObjectId,
-      ref: "Admin",
+      ref: "User",
       required: [true, "Author is required"],
     },
     createdDate: {
