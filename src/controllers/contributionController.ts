@@ -1,25 +1,21 @@
 import { Request, Response } from "express";
 import {
-	createContributionService,
-	createContributionHistoryService,
-	findContributionHistoryService,
+  createContributionService,
+  createContributionHistoryService,
+  findContributionHistoryService,
   calculateNextContributionDate,
+  findContributionService,
 } from "../services/contributionService";
 import {
-	findWalletService,
-	updateWalletService,
+  findWalletService,
+  updateWalletService,
 } from "../services/walletService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
-import Contribution from "../models/contribution";
-
-
 
 export const createContribution = async (req: Request, res: Response) => {
   try {
-
     const { contributionPlan, amount } = req.body;
-
     //@ts-ignore
     const userId = req.user.userId;
 
@@ -29,9 +25,6 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Wallet not found");
     }
 
-    // Log the wallet balance
-    console.log(`Wallet Balance: ${wallet.balance}`);
-
     if (wallet.balance < amount) {
       throw new BadRequestError("Insufficient funds in the wallet");
     }
@@ -39,15 +32,22 @@ export const createContribution = async (req: Request, res: Response) => {
     // Calculate the next contribution date
     const nextContributionDate = calculateNextContributionDate(contributionPlan);
 
-    // Create the contribution
+    // Fetch the latest contribution for the user, ignoring status
+    const lastContribution = await findContributionService({ user: userId });
+
+    // Calculate the new balance by adding the contribution amount
+    const newBalance = (lastContribution?.balance || 0) + amount;
+
+    // Create the contribution with the updated balance
     const contribution = await createContributionService({
       user: userId,
       contributionPlan,
       amount,
+      balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
+      status: "Completed", 
     });
-
 
     // Deduct the contribution amount from the wallet
     const updatedWallet = await updateWalletService(wallet._id, {
@@ -57,10 +57,7 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Failed to update wallet balance");
     }
 
-    // Log the updated wallet balance
-    console.log(`Updated Wallet Balance: ${updatedWallet.balance}`);
-
-    // Log the contribution history
+    // Create a contribution history record
     await createContributionHistoryService(
       //@ts-ignore
       contribution._id.toString(),
@@ -69,7 +66,7 @@ export const createContribution = async (req: Request, res: Response) => {
       "Pending"
     );
 
-    // Respond to the client including the next contribution date
+    // Respond with the contribution details
     res.status(StatusCodes.CREATED).json({
       message: "Contribution created successfully",
       contribution,
@@ -88,36 +85,41 @@ export const createContribution = async (req: Request, res: Response) => {
 };
 
 export const getContributionDetails = async (req: Request, res: Response) => {
-	try {
-		//@ts-ignore
-		const userId = req.user._id;
-		//@ts-ignore
-		const contribution = await Contribution.findOne({ user: userId }).sort({
-			createdAt: -1,
-		});
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
 
-		if (!contribution) {
-			// Return default balance if no contributions found
-			return res.status(200).json({
-				balance: 0.0,
-				nextContributionDate: null,
-			});
-		}
+    // Fetch the latest contribution to get the current balance and next contribution date
+    const contribution = await findContributionService({ user: userId });
 
-		const { balance, nextContributionDate } = contribution;
+    // Check if contribution exists and return the balance and next contribution date
+    if (!contribution) {
+      // No contributions found, return default values
+      return res.status(StatusCodes.OK).json({
+        balance: 0,
+        nextContributionDate: null,
+      });
+    }
 
-		return res.status(200).json({
-			balance,
-			nextContributionDate,
-		});
-	} catch (error) {
-		return res.status(500).json({ error: "An unexpected error occurred." });
-	}
+    // Extract balance and next contribution date
+    const { balance, nextContributionDate } = contribution;
+
+    // Return the contribution details
+    return res.status(StatusCodes.OK).json({
+      balance,
+      nextContributionDate,
+    });
+  } catch (error) {
+    console.error("Error fetching contribution details:", error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An unexpected error occurred while fetching contribution details.",
+    });
+  }
 };
 
 export const getContributionHistory = async (req: Request, res: Response) => {
-	//@ts-ignore
-	const userId = req.user.userId;
-	const history = await findContributionHistoryService(userId);
-	res.status(StatusCodes.OK).json(history);
+  //@ts-ignore
+  const userId = req.user.userId;
+  const history = await findContributionHistoryService(userId);
+  res.status(StatusCodes.OK).json(history);
 };
