@@ -46,7 +46,7 @@ export const createContribution = async (req: Request, res: Response) => {
       balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
-      status: "Completed", 
+      status: "Completed", // Set status as "Completed" or adjust according to business logic
     });
 
     // Deduct the contribution amount from the wallet
@@ -66,8 +66,9 @@ export const createContribution = async (req: Request, res: Response) => {
       "Pending"
     );
 
-    // Respond with the contribution details
+    // Respond with the contribution details, including the status code
     res.status(StatusCodes.CREATED).json({
+      statusCode: StatusCodes.CREATED,
       message: "Contribution created successfully",
       contribution,
       nextContributionDate,
@@ -80,7 +81,12 @@ export const createContribution = async (req: Request, res: Response) => {
           ? StatusCodes.BAD_REQUEST
           : StatusCodes.INTERNAL_SERVER_ERROR
       )
-      .json({ error: (error as Error).message });
+      .json({ 
+        statusCode: error instanceof BadRequestError 
+          ? StatusCodes.BAD_REQUEST 
+          : StatusCodes.INTERNAL_SERVER_ERROR,
+        error: (error as Error).message 
+      });
   }
 };
 
