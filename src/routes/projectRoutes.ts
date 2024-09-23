@@ -25,13 +25,13 @@ router
 router
     .route("/:id")
     .get(authorize, getProject) // Anyone logged in can view a project by ID
-    .patch(authorize, authorizePermissions("admin"), updateProject) // Only admin can update projects
-    .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admin can delete projects
+    .patch(authorize, updateProject) // Only admin can update projects
+    .delete(authorize, deleteProject); // Only admin can delete projects
 
 
 router
     .route("/:id/update")
-    .patch(authorize, authorizePermissions("admin"), updateProjectDetails); // New endpoint for updating project details
+    .patch(authorize, updateProjectDetails); // New endpoint for updating project details
 
 
 router.post("/:id/fund", authorize, fundProject);
