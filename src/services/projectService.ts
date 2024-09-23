@@ -5,6 +5,7 @@ import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
 import { ForbiddenError, NotFoundError } from "../errors"; 
+import uploadImageFile from "../utils/imageUploader"; 
 
 // Create a new project service
 export const createProjectService = async (
@@ -116,4 +117,33 @@ export const fundProjectService = async (
     await project.save();
 
     return project;
+};
+
+export const updateProjectDetailsService = async (
+    id: string,
+    userId: string,
+    updates: any,
+    file: any
+): Promise<ProjectDocument | null> => {
+    const project = await getProjectByIdService(id);
+    if (!project) {
+        throw new NotFoundError("Project not found");
+    }
+
+    // Check if the logged-in user is the author of the project
+    if (project.author.toString() !== userId) {
+        throw new ForbiddenError("You are not authorized to update this project");
+    }
+
+    // Handle file upload if provided
+    if (file) {
+        const uploadedImage = await uploadImageFile(file, 'document', 'image');
+        updates.documentUrl = uploadedImage.secure_url; // Use the uploaded URL
+    }
+
+    // Update the project with the provided details
+    return await Project.findByIdAndUpdate(id, updates, {
+        new: true,
+        runValidators: true,
+    });
 };
