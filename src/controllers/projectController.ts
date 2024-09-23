@@ -8,8 +8,11 @@ import {
 	updateProjectByIdService,
 	deleteProjectByIdService,
     fundProjectService,
+    updateProjectDetailsService,
 } from "../services/projectService";
 import fs from 'fs';
+import { StatusCodes } from "http-status-codes";
+import { BadRequestError } from "../errors"; // Import your custom error
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
@@ -18,16 +21,34 @@ export const createProject = async (req: Request, res: Response) => {
     const userId = req.user.userId;
     const file = req.files?.document;
 
-	const project = await createProjectService(
-		{
-			title,
-			description,
-			author: userId,
-		},
-		file
-	);
+    try {
+        const project = await createProjectService(
+            {
+                title,
+                description,
+                author: userId,
+            },
+            file
+        );
 
-	res.status(201).json({ msg: "Project created successfully", project });
+        return res.status(StatusCodes.CREATED).json({
+            statusCode: StatusCodes.CREATED,
+            message: "Project created successfully",
+            project,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(
+            error instanceof BadRequestError
+                ? StatusCodes.BAD_REQUEST
+                : StatusCodes.INTERNAL_SERVER_ERROR
+        ).json({
+            statusCode: error instanceof BadRequestError
+                ? StatusCodes.BAD_REQUEST
+                : StatusCodes.INTERNAL_SERVER_ERROR,
+            error: (error as Error).message,
+        });
+    }
 };
 
 // Get all projects for the logged-in user
@@ -120,6 +141,28 @@ export const fundProject = async (req: Request, res: Response) => {
     try {
         const project = await fundProjectService(userId, id, amount);
         res.status(200).json({ msg: "Project funded successfully", project });
+    } catch (error) {
+        //@ts-ignore
+        res.status(error.statusCode || 500).json({ error: error.message });
+    }
+};
+
+export const updateProjectDetails = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { title, description, status } = req.body;
+    // @ts-ignore
+    const userId = req.user.userId;
+
+    // Prepare updates
+    const updates: any = {};
+    if (title) updates.title = title;
+    if (description) updates.description = description;
+    if (status) updates.status = status;
+
+    // Call the service to update project details
+    try {
+        const updatedProject = await updateProjectDetailsService(id, userId, updates, req.files?.document);
+        res.status(200).json({ msg: "Project details updated successfully", project: updatedProject });
     } catch (error) {
         //@ts-ignore
         res.status(error.statusCode || 500).json({ error: error.message });

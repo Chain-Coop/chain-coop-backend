@@ -3,7 +3,7 @@ import { Document, Schema, model } from "mongoose";
 export interface ProjectDocument extends Document {
   title: string;
   description: string;
-  status: "pending" | "approved" | "rejected";
+  status: "Coming soon" | "Invest";
   author: Schema.Types.ObjectId;
   createdDate: Date;
   updatedDate: Date;
@@ -23,8 +23,8 @@ const ProjectSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      enum: ["Coming soon", "Invest"],
+      default: "Coming soon",
     },
     fundBalance: {
       type: Number,
@@ -32,7 +32,7 @@ const ProjectSchema = new Schema(
     },
     author: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: [true, "Author is required"],
     },
     createdDate: {
