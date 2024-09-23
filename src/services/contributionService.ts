@@ -18,7 +18,14 @@ export interface iContribution {
 }
 
 export const createContributionService = async (payload: iContribution) => {
-  return await Contribution.create(payload);
+  // Fetch the most recent contribution to get the current balance
+  const lastContribution = await findContributionService({ user: payload.user });
+
+  // Calculate the new balance
+  const newBalance = (lastContribution?.balance || 0) + payload.amount;
+
+  // Create the contribution with the updated balance
+  return await Contribution.create({ ...payload, balance: newBalance });
 };
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
@@ -28,8 +35,15 @@ export const updateContributionService = async (id: ObjectId, payload: Partial<i
   });
 };
 
-export const findContributionService = async ({ _id, user }: { _id?: ObjectId; user?: ObjectId }) => {
-  return Contribution.findOne({ _id, user });
+export const findContributionService = async ({
+  _id,
+  user,
+}: {
+  _id?: ObjectId;
+  user?: ObjectId;
+}) => {
+  // Fetch the most recent contribution for the user without filtering by status
+  return await Contribution.findOne({ user }).sort({ createdAt: -1 });
 };
 
 export const createContributionHistoryService = async (contributionId: ObjectId, userId: ObjectId, amount: number, status: string) => {
