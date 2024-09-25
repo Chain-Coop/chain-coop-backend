@@ -95,7 +95,8 @@ const initiatePayment = async (req: Request, res: Response) => {
 			{
 				email,
 				amount,
-				callback_url: "http://localhost:5173/dashboard/wallet/verify",
+				callback_url:
+					"http://localhost:5173/dashboard/wallet/fund_wallet/verify_transaction",
 			},
 			{
 				headers: {
