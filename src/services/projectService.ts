@@ -5,6 +5,7 @@ import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
 import { ForbiddenError, NotFoundError } from "../errors"; 
+import uploadImageFile from "../utils/imageUploader"; 
 
 // Create a new project service
 export const createProjectService = async (
@@ -116,4 +117,33 @@ export const fundProjectService = async (
     await project.save();
 
     return project;
+};
+
+export const updateProjectDetailsService = async (
+    id: string,
+    userId: string,
+    updates: any,
+    file: any
+): Promise<ProjectDocument | null> => {
+    // Fetch the project by its ID
+    const project = await getProjectByIdService(id);
+
+    // Check if the project is null and throw an appropriate error
+    if (!project) {
+        throw new NotFoundError("Project not found");
+    }
+
+ 
+
+    // Handle file upload if provided
+    if (file) {
+        const uploadedImage = await uploadImageFile(file, 'document', 'image');
+        updates.documentUrl = uploadedImage.secure_url; // Update the document URL with the uploaded image
+    }
+
+    // Update the project details
+    return await Project.findByIdAndUpdate(id, updates, {
+        new: true,
+        runValidators: true,
+    });
 };

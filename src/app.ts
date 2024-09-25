@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import cron from "node-cron";
 import "express-async-errors";
 import dotenv from "dotenv";
 import { ConnectDB } from "./db/connect";
@@ -7,9 +8,7 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
-
-
-
+import { processRecurringContributions } from "./services/contributionService";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -19,7 +18,13 @@ cloudinary.v2.config({
 	api_secret: process.env.CLOUD_API_SECRET,
 });
 
-
+// Schedule the recurring contributions check every hour
+cron.schedule("0 * * * *", () => {
+	console.log("Running recurring contributions check...");
+	processRecurringContributions()
+	  .then(() => console.log("Processed recurring contributions."))
+	  .catch((err) => console.error("Error processing contributions:", err));
+  });
 
 // Routers
 import {

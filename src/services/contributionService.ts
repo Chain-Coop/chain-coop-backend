@@ -1,4 +1,3 @@
-// src/services/contributionService.ts
 import { ObjectId } from "mongoose";
 import Contribution, { ContributionDocument } from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
@@ -6,7 +5,6 @@ import ContributionHistory from "../models/contributionHistory";
 export interface iContribution {
   _id?: ObjectId;
   user: ObjectId;
-  paymentPlan: string;
   contributionPlan: string;
   amount: number;
   status?: string;
@@ -16,10 +14,18 @@ export interface iContribution {
   };
   balance?: number; 
   nextContributionDate?: Date;
+  lastContributionDate?: Date;
 }
 
 export const createContributionService = async (payload: iContribution) => {
-  return await Contribution.create(payload);
+  // Fetch the most recent contribution to get the current balance
+  const lastContribution = await findContributionService({ user: payload.user });
+
+  // Calculate the new balance
+  const newBalance = (lastContribution?.balance || 0) + payload.amount;
+
+  // Create the contribution with the updated balance
+  return await Contribution.create({ ...payload, balance: newBalance });
 };
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
@@ -29,8 +35,15 @@ export const updateContributionService = async (id: ObjectId, payload: Partial<i
   });
 };
 
-export const findContributionService = async ({ _id, user }: { _id?: ObjectId; user?: ObjectId }) => {
-  return Contribution.findOne({ _id, user });
+export const findContributionService = async ({
+  _id,
+  user,
+}: {
+  _id?: ObjectId;
+  user?: ObjectId;
+}) => {
+  // Fetch the most recent contribution for the user without filtering by status
+  return await Contribution.findOne({ user }).sort({ createdAt: -1 });
 };
 
 export const createContributionHistoryService = async (contributionId: ObjectId, userId: ObjectId, amount: number, status: string) => {
@@ -52,4 +65,50 @@ export const updateContributionBankDetails = async (contributionId: ObjectId, ba
     { bankDetails },
     { new: true }
   );
+};
+
+export const calculateNextContributionDate = (plan: string): Date => {
+  const date = new Date();
+  switch (plan) {
+    case "Daily":
+      date.setDate(date.getDate() + 1);
+      break;
+    case "Weekly":
+      date.setDate(date.getDate() + 7);
+      break;
+    case "Monthly":
+      date.setMonth(date.getMonth() + 1);
+      break;
+    case "Yearly":
+      date.setFullYear(date.getFullYear() + 1);
+      break;
+    default:
+      throw new Error(`Invalid contribution plan: ${plan}`);
+  }
+  return date;
+};
+
+// new function to process recurring contributions
+export const processRecurringContributions = async () => {
+  const contributions = await Contribution.find({ status: "Pending" });
+
+  for (const contribution of contributions) {
+    const { nextContributionDate, lastContributionDate, amount, user } = contribution;
+
+    if (nextContributionDate && nextContributionDate <= new Date()) {
+      // Create a new contribution for this user
+      await createContributionService({
+        user,
+        contributionPlan: contribution.contributionPlan,
+        amount,
+        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
+        lastContributionDate: new Date(),
+      });
+
+      await updateContributionService(contribution._id as ObjectId, {
+        lastContributionDate: new Date(),
+        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
+      });
+    }
+  }
 };
