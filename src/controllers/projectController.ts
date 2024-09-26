@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { ForbiddenError, NotFoundError } from "../errors";
 import {
-	createProjectService,
-	getUserProjectsService,
-	getAllProjectsService,
-	getProjectByIdService,
-	updateProjectByIdService,
-	deleteProjectByIdService,
+    createProjectService,
+    getUserProjectsService,
+    getAllProjectsService,
+    getProjectByIdService,
+    updateProjectByIdService,
+    deleteProjectByIdService,
     fundProjectService,
     updateProjectDetailsService,
 } from "../services/projectService";
@@ -20,6 +20,12 @@ export const createProject = async (req: Request, res: Response) => {
     // @ts-ignore - extract the userId from the authenticated user
     const userId = req.user.userId;
     const file = req.files?.document;
+
+    // Only allow admins to create projects
+     //@ts-ignore
+    if (!req.user.isAdmin) {
+        throw new ForbiddenError("Only admins can create projects");
+    }
 
     try {
         const project = await createProjectService(
@@ -53,10 +59,10 @@ export const createProject = async (req: Request, res: Response) => {
 
 // Get all projects for the logged-in user
 export const getUserProjects = async (req: Request, res: Response) => {
-	// @ts-ignore
-	const userId = req.user.userId;
-	const projects = await getUserProjectsService(userId);
-	res.status(200).json(projects);
+    // @ts-ignore
+    const userId = req.user.userId;
+    const projects = await getUserProjectsService(userId);
+    res.status(200).json(projects);
 };
 
 // Get all projects
@@ -67,30 +73,31 @@ export const getAllProjects = async (req: Request, res: Response) => {
 
 // Get a project by id
 export const getProject = async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const project = await getProjectByIdService(id);
-	if (!project) {
-		throw new NotFoundError("Project not found");
-	}
-	res.status(200).json(project);
+    const { id } = req.params;
+    const project = await getProjectByIdService(id);
+    if (!project) {
+        throw new NotFoundError("Project not found");
+    }
+    res.status(200).json(project);
 };
 
 // Update a project by id
 export const updateProject = async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const { title, description, status } = req.body;
-	// @ts-ignore
-	const userId = req.user.userId;
-	const file = req.files?.document; // Get the uploaded document if available
+    const { id } = req.params;
+    const { title, description, status } = req.body;
+    // @ts-ignore
+    const userId = req.user.userId;
+    const file = req.files?.document; // Get the uploaded document if available
 
     const project = await getProjectByIdService(id);
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
-    // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId) {
-        throw new ForbiddenError("You are not authorized to update this project");
+    // Only allow admins to update projects
+     //@ts-ignore
+    if (!req.user.isAdmin) {
+        throw new ForbiddenError("Only admins can update projects");
     }
 
     const updatedProject = await updateProjectByIdService(
@@ -100,9 +107,9 @@ export const updateProject = async (req: Request, res: Response) => {
     );
 
     // Delete the temporary file
-		//@ts-ignore
+    //@ts-ignore
     if (file && file.tempFilePath) {
-			//@ts-ignore
+        //@ts-ignore
         fs.unlink(file.tempFilePath, (err) => {
             if (err) console.error('Failed to delete temp file:', err);
         });
@@ -116,16 +123,17 @@ export const updateProject = async (req: Request, res: Response) => {
 // Delete a project by id
 export const deleteProject = async (req: Request, res: Response) => {
     const { id } = req.params;
-		//@ts-ignore
+    // @ts-ignore
     const userId = req.user.userId;
     const project = await getProjectByIdService(id);
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
-    // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId) {
-        throw new ForbiddenError("You are not authorized to delete this project");
+    // Only allow admins to delete projects
+     //@ts-ignore
+    if (!req.user.isAdmin) {
+        throw new ForbiddenError("Only admins can delete projects");
     }
 
     await deleteProjectByIdService(id);
@@ -158,6 +166,12 @@ export const updateProjectDetails = async (req: Request, res: Response) => {
     if (title) updates.title = title;
     if (description) updates.description = description;
     if (status) updates.status = status;
+
+    // Only allow admins to update project details
+    //@ts-ignore
+    if (!req.user.isAdmin) {
+        throw new ForbiddenError("Only admins can update project details");
+    }
 
     // Call the service to update project details
     try {

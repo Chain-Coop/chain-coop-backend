@@ -21,64 +21,64 @@ import axios from "axios";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
 
-// const paystackWebhook = async (req: Request, res: Response) => {
-// 	const hash = createHmac("sha512", secret)
-// 		.update(JSON.stringify(req.body))
-// 		.digest("hex");
+const paystackWebhook = async (req: Request, res: Response) => {
+	const hash = createHmac("sha512", secret)
+		.update(JSON.stringify(req.body))
+		.digest("hex");
 
-// 	if (hash === req.headers["x-paystack-signature"]) {
-// 		const { event, data } = req.body;
-// 		if (event === "charge.success") {
-// 			console.log("Transaction successful");
-// 			await creditWallet(data);
-// 		}
-// 		if (event === "transfer.success") {
-// 			console.log("Transfer successful", data);
-// 		}
-// 		if (event === "transfer.failed") {
-// 			console.log("Transfer failed", data);
-// 		}
-// 		if (event === "transfer.reversed") {
-// 			console.log("Transfer reversed", data);
-// 		}
-// 		// ... other event handlers remain the same
-// 	}
-// 	res.status(StatusCodes.OK).send();
-// };
+	if (hash === req.headers["x-paystack-signature"]) {
+		const { event, data } = req.body;
+		if (event === "charge.success") {
+			console.log("Transaction successful");
+			await creditWallet(data);
+		}
+		if (event === "transfer.success") {
+			console.log("Transfer successful", data);
+		}
+		if (event === "transfer.failed") {
+			console.log("Transfer failed", data);
+		}
+		if (event === "transfer.reversed") {
+			console.log("Transfer reversed", data);
+		}
+		// ... other event handlers remain the same
+	}
+	res.status(StatusCodes.OK).send();
+};
 
-// const creditWallet = async (data: WebHookDataProps) => {
-// 	const user = await findUser("email", data.customer.email);
-// 	if (!user) {
-// 		console.log("User does not exist");
-// 		return;
-// 	}
-// 	const userWallet = await findWalletService({ user: user._id });
-// 	if (!userWallet) {
-// 		console.log("Wallet does not exist");
-// 		return;
-// 	}
+const creditWallet = async (data: WebHookDataProps) => {
+	const user = await findUser("email", data.customer.email);
+	if (!user) {
+		console.log("User does not exist");
+		return;
+	}
+	const userWallet = await findWalletService({ user: user._id });
+	if (!userWallet) {
+		console.log("Wallet does not exist");
+		return;
+	}
 
-// 	// Calculate new balance
-// 	const newBalance = userWallet.balance + data.amount / 100; // Assuming amount is in kobo
+	// Calculate new balance
+	const newBalance = userWallet.balance + data.amount / 100; // Assuming amount is in kobo
 
-// 	// Update wallet balance
-// 	await updateWalletService(userWallet._id, {
-// 		balance: newBalance,
-// 	});
+	// Update wallet balance
+	await updateWalletService(userWallet._id, {
+		balance: newBalance,
+	});
 
-// 	// Create wallet history entry
-// 	const historyPayload: iWalletHistory = {
-// 		amount: data.amount / 100, // Convert to Naira if necessary
-// 		label: "Wallet top up via Paystack",
-// 		ref: data.reference,
-// 		type: "credit",
-// 		user: user._id as string,
-// 	};
+	// Create wallet history entry
+	const historyPayload: iWalletHistory = {
+		amount: data.amount / 100, // Convert to Naira if necessary
+		label: "Wallet top up via Paystack",
+		ref: data.reference,
+		type: "credit",
+		user: user._id as string,
+	};
 
-// 	await createWalletHistoryService(historyPayload);
+	await createWalletHistoryService(historyPayload);
 
-// 	console.log(`Wallet credited. New balance: ${newBalance}`);
-// };
+	console.log(`Wallet credited. New balance: ${newBalance}`);
+};
 
 const initiatePayment = async (req: Request, res: Response) => {
 	const { amount } = req.body;
@@ -95,7 +95,8 @@ const initiatePayment = async (req: Request, res: Response) => {
 			{
 				email,
 				amount,
-				callback_url: "http://localhost:5173/dashboard/wallet/verify",
+				callback_url:
+					"http://localhost:5173/dashboard/wallet/fund_wallet/verify_transaction",
 			},
 			{
 				headers: {

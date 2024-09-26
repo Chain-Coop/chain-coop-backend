@@ -5,6 +5,9 @@ import { BadRequestError } from "./bad-request";
 import { ForbiddenError } from "./forbidden";
 import { EntityTooLarge } from "./large-entity";
 import { ConflictError } from "./conflict";
+import { InternalServerError } from "./internal-server";
+
+
 
 export {
 	CustomAPIError,
@@ -14,4 +17,5 @@ export {
 	ForbiddenError,
 	EntityTooLarge,
 	ConflictError,
+	InternalServerError,
 };
