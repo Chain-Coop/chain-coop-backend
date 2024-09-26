@@ -6,7 +6,6 @@ import {
     getProject,
     updateProject,
     deleteProject,
-    updateProjectDetails
 } from "../controllers/projectController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 import { fundProject } from "../controllers/projectController";
@@ -25,11 +24,15 @@ router
 router
     .route("/:id")
     .get(authorize, getProject) // Anyone logged in can view a project by ID
-    .delete(authorize, deleteProject); // Only admin can delete project
+    
 
 router
-    .route("/:id/update")
-    .patch(authorize, authorizePermissions("admin"), updateProjectDetails); // Only admin can update projects
+    .route("/:id/update_project")
+    .patch(authorize, authorizePermissions("admin"), updateProject) // Only admin can update projects
+
+router
+    .route("/:id/delete_project")
+    .delete(authorize, authorizePermissions("admin"),  deleteProject); // Only admin can delete projects
 
 
 router.post("/:id/fund", authorize, fundProject);

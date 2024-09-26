@@ -1,18 +1,17 @@
 import { Request, Response } from "express";
 import { ForbiddenError, NotFoundError } from "../errors";
 import {
-    createProjectService,
-    getUserProjectsService,
-    getAllProjectsService,
-    getProjectByIdService,
-    updateProjectByIdService,
-    deleteProjectByIdService,
+	createProjectService,
+	getUserProjectsService,
+	getAllProjectsService,
+	getProjectByIdService,
+	updateProjectByIdService,
+	deleteProjectByIdService,
     fundProjectService,
-    updateProjectDetailsService,
 } from "../services/projectService";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
-import { BadRequestError } from "../errors"; // Import your custom error
+import { BadRequestError } from "../errors"; 
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
@@ -20,12 +19,6 @@ export const createProject = async (req: Request, res: Response) => {
     // @ts-ignore - extract the userId from the authenticated user
     const userId = req.user.userId;
     const file = req.files?.document;
-
-    // Only allow admins to create projects
-     //@ts-ignore
-    if (!req.user.isAdmin) {
-        throw new ForbiddenError("Only admins can create projects");
-    }
 
     try {
         const project = await createProjectService(
@@ -59,10 +52,10 @@ export const createProject = async (req: Request, res: Response) => {
 
 // Get all projects for the logged-in user
 export const getUserProjects = async (req: Request, res: Response) => {
-    // @ts-ignore
-    const userId = req.user.userId;
-    const projects = await getUserProjectsService(userId);
-    res.status(200).json(projects);
+	// @ts-ignore
+	const userId = req.user.userId;
+	const projects = await getUserProjectsService(userId);
+	res.status(200).json(projects);
 };
 
 // Get all projects
@@ -73,32 +66,28 @@ export const getAllProjects = async (req: Request, res: Response) => {
 
 // Get a project by id
 export const getProject = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const project = await getProjectByIdService(id);
-    if (!project) {
-        throw new NotFoundError("Project not found");
-    }
-    res.status(200).json(project);
+	const { id } = req.params;
+	const project = await getProjectByIdService(id);
+	if (!project) {
+		throw new NotFoundError("Project not found");
+	}
+	res.status(200).json(project);
 };
 
 // Update a project by id
 export const updateProject = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { title, description, status } = req.body;
-    // @ts-ignore
-    const userId = req.user.userId;
-    const file = req.files?.document; // Get the uploaded document if available
+	const { id } = req.params;
+	const { title, description, status } = req.body;
+	// @ts-ignore
+	const userId = req.user.userId;
+	const file = req.files?.document; 
 
     const project = await getProjectByIdService(id);
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
-    // Only allow admins to update projects
-     //@ts-ignore
-    if (!req.user.isAdmin) {
-        throw new ForbiddenError("Only admins can update projects");
-    }
+
 
     const updatedProject = await updateProjectByIdService(
         id,
@@ -107,9 +96,9 @@ export const updateProject = async (req: Request, res: Response) => {
     );
 
     // Delete the temporary file
-    //@ts-ignore
+		//@ts-ignore
     if (file && file.tempFilePath) {
-        //@ts-ignore
+			//@ts-ignore
         fs.unlink(file.tempFilePath, (err) => {
             if (err) console.error('Failed to delete temp file:', err);
         });
@@ -123,17 +112,11 @@ export const updateProject = async (req: Request, res: Response) => {
 // Delete a project by id
 export const deleteProject = async (req: Request, res: Response) => {
     const { id } = req.params;
-    // @ts-ignore
+		//@ts-ignore
     const userId = req.user.userId;
     const project = await getProjectByIdService(id);
     if (!project) {
         throw new NotFoundError("Project not found");
-    }
-
-    // Only allow admins to delete projects
-     //@ts-ignore
-    if (!req.user.isAdmin) {
-        throw new ForbiddenError("Only admins can delete projects");
     }
 
     await deleteProjectByIdService(id);
@@ -155,30 +138,3 @@ export const fundProject = async (req: Request, res: Response) => {
     }
 };
 
-export const updateProjectDetails = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { title, description, status } = req.body;
-    // @ts-ignore
-    const userId = req.user.userId;
-
-    // Prepare updates
-    const updates: any = {};
-    if (title) updates.title = title;
-    if (description) updates.description = description;
-    if (status) updates.status = status;
-
-    // Only allow admins to update project details
-    //@ts-ignore
-    if (!req.user.isAdmin) {
-        throw new ForbiddenError("Only admins can update project details");
-    }
-
-    // Call the service to update project details
-    try {
-        const updatedProject = await updateProjectDetailsService(id, userId, updates, req.files?.document);
-        res.status(200).json({ msg: "Project details updated successfully", project: updatedProject });
-    } catch (error) {
-        //@ts-ignore
-        res.status(error.statusCode || 500).json({ error: error.message });
-    }
-};
