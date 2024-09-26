@@ -25,7 +25,7 @@ router
 router
     .route("/:id")
     .get(authorize, getProject) // Anyone logged in can view a project by ID
-    .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admin can delete project
+    .delete(authorize, deleteProject); // Only admin can delete project
 
 router
     .route("/:id/update")
