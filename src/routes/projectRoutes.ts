@@ -23,7 +23,7 @@ router
 
 router
     .route("/:id")
-    .get(authorize, getProject) // Anyone logged in can view a project by ID
+    .get(authorize, getProject) // anyone logged in can view a project by ID
     
 
 router
