@@ -46,7 +46,7 @@ export const createContribution = async (req: Request, res: Response) => {
       balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
-      status: "Completed", // Set status as "Completed" or adjust according to business logic
+      status: "Completed", 
     });
 
     // Deduct the contribution amount from the wallet

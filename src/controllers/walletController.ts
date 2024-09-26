@@ -59,7 +59,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 	}
 
 	// Calculate new balance
-	const newBalance = userWallet.balance + data.amount / 100; // Assuming amount is in kobo
+	const newBalance = userWallet.balance + data.amount / 100; 
 
 	// Update wallet balance
 	await updateWalletService(userWallet._id, {
@@ -68,7 +68,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 
 	// Create wallet history entry
 	const historyPayload: iWalletHistory = {
-		amount: data.amount / 100, // Convert to Naira if necessary
+		amount: data.amount / 100, 
 		label: "Wallet top up via Paystack",
 		ref: data.reference,
 		type: "credit",
