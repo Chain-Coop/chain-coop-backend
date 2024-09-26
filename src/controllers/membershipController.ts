@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { createMembershipService, findMembershipService } from "../services/membershipService";
 import { findWalletService, updateWalletService } from "../services/walletService";
-import { BadRequestError } from "../errors";
+import { BadRequestError, ConflictError, NotFoundError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 import uploadImageFile from "../utils/imageUploader";
 import { createPaystackSubscription, getPlanIdForMembershipType } from '../services/paystackService';
@@ -14,67 +14,63 @@ const membershipAmounts: Record<string, number> = {
 };
 
 export const activateMembership = async (req: Request, res: Response) => {
-    const { membershipType, paymentMethod } = req.body;
+  const { membershipType, paymentMethod } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  // Validate membership type
+  if (!membershipType || !membershipAmounts[membershipType]) {
+    throw new BadRequestError('Invalid membership type.');
+  }
+
+  const amount = membershipAmounts[membershipType];
+
+  // Check if the user already has an active membership
+  const existingMembership = await findMembershipService(userId);
+  if (existingMembership && existingMembership.status === 'Active') {
+    throw new ConflictError('You already have an active membership.');
+  }
+
+  let bankReceiptUrl = null;
+  let subscriptionUrl = null;
+
+  if (paymentMethod === 'BankTransfer') {
+    if (!req.files || !req.files.bankReceipt) {
+      throw new BadRequestError('Please upload a bank receipt for verification.');
+    }
+
+    const uploadedReceipt = await uploadImageFile(req, 'bankReceipt', 'image');
+    bankReceiptUrl = uploadedReceipt.secure_url;
+
+  } else if (paymentMethod === 'PaystackSubscription') {
+    const planId = getPlanIdForMembershipType(membershipType);
+    if (!planId) {
+      throw new BadRequestError('Invalid subscription tier.');
+    }
+
     //@ts-ignore
-    const userId = req.user.userId;
-  
-    // Check if the selected membership type is valid
-    if (!membershipType || !membershipAmounts[membershipType]) {
-      throw new BadRequestError('Invalid membership type.');
+    const email = (req.user as { email: string }).email;
+    subscriptionUrl = await createPaystackSubscription(email, planId);
+
+    if (!subscriptionUrl) {
+      throw new BadRequestError('Failed to create Paystack subscription.');
     }
-  
-    // Get the amount based on the selected membership type
-    const amount = membershipAmounts[membershipType];
-  
-    // Check if the user already has an active membership
-    const existingMembership = await findMembershipService(userId);
-    if (existingMembership && existingMembership.status === 'Active') {
-      throw new BadRequestError('You already have an active membership.');
-    }
-  
-    let bankReceiptUrl = null;
-    let subscriptionUrl = null;
-  
-    if (paymentMethod === 'BankTransfer') {
-      // Image upload: User must upload the bank transfer receipt image
-      if (!req.files || !req.files.bankReceipt) {
-        throw new BadRequestError('Please upload a bank receipt for verification');
-      }
-  
-      // Upload the receipt to Cloudinary
-      const uploadedReceipt = await uploadImageFile(req, 'bankReceipt', 'image');
-      bankReceiptUrl = uploadedReceipt.secure_url;
-  
-      // For bank transfer, we don't need to deduct from wallet or do any other action
-    } else if (paymentMethod === 'PaystackSubscription') {
-      const planId = getPlanIdForMembershipType(membershipType);
-      if (!planId) {
-        throw new BadRequestError('Invalid subscription tier.');
-      }
-      //@ts-ignore
-     const email = (req.user as { email: string }).email; // Replace with actual user email
-      subscriptionUrl = await createPaystackSubscription(email, planId);
-  
-      if (!subscriptionUrl) {
-        throw new BadRequestError('Failed to create Paystack subscription');
-      }
-    } else {
-      throw new BadRequestError('Invalid payment method.');
-    }
-  
-    // Create membership record with "Pending" status
-    const membership = await createMembershipService({
-      user: userId,
-      membershipType,
-      paymentMethod,
-      amount,
-      status: 'Pending',
-      bankReceiptUrl,
-      subscriptionUrl,
-    });
-  
-    res.status(StatusCodes.CREATED).json({ message: 'Membership activated successfully', membership });
-  };
+  } else {
+    throw new BadRequestError('Invalid payment method.');
+  }
+
+  const membership = await createMembershipService({
+    user: userId,
+    membershipType,
+    paymentMethod,
+    amount,
+    status: 'Pending',
+    bankReceiptUrl,
+    subscriptionUrl,
+  });
+
+  res.status(StatusCodes.CREATED).json({ message: 'Membership activated successfully', membership });
+};
 
 export const getMembershipDetails = async (req: Request, res: Response) => {
   try {
@@ -84,9 +80,7 @@ export const getMembershipDetails = async (req: Request, res: Response) => {
     const membership = await findMembershipService(userId);
 
     if (!membership) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        message: "No membership found for this user",
-      });
+      throw new NotFoundError("No membership found for this user.");
     }
 
     return res.status(StatusCodes.OK).json({

@@ -20,13 +20,12 @@ router
 router
     .route("/")
     .post(authorize, authorizePermissions("admin"), createProject) // Only admin can create projects
-    //.get(authorize, getUserProjects); // Get projects for the logged-in user
+    .get(authorize, getUserProjects); // Get projects for the logged-in user
 
 router
     .route("/:id")
     .get(authorize, getProject) // Anyone logged in can view a project by ID
     .delete(authorize, authorizePermissions("admin"), deleteProject); // Only admin can delete projects
-
 
 router
     .route("/:id/update")
