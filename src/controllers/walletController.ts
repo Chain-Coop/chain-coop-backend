@@ -41,7 +41,6 @@ const paystackWebhook = async (req: Request, res: Response) => {
 		if (event === "transfer.reversed") {
 			console.log("Transfer reversed", data);
 		}
-		// ... other event handlers remain the same
 	}
 	res.status(StatusCodes.OK).send();
 };
