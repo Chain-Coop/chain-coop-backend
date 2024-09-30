@@ -14,7 +14,7 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
 - [Routes](#routes)
 - [Services](#services)
 - [Errors](#errors)
-- [Middleware](#middleware)
+- [Middleware](#middlewares)
 - [Utilities](#utils)
 - [Controllers](#controllers)
 - [Utilities](#utilities)
