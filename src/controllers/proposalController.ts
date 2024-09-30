@@ -12,7 +12,7 @@ import fs from 'fs';
 
 // Create a new proposal
 export const createProposal = async (req: Request, res: Response) => {
-	const { fullName, title, description } = req.body; // Include both fullName and title
+	const { fullName, title, description } = req.body;
 	// @ts-ignore - extract the userId from the authenticated user
 	const userId = req.user.userId;
 	const file = req.files?.document;
@@ -20,7 +20,7 @@ export const createProposal = async (req: Request, res: Response) => {
 	const proposal = await createProposalService(
 	  {
 		fullName,
-		title, // Add title here
+		title, 
 		description,
 		author: userId,
 	  },
@@ -66,7 +66,7 @@ export const getProposal = async (req: Request, res: Response) => {
 // Update a proposal by id
 export const updateProposal = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { fullName, description, status } = req.body; // Changed title to fullName
+  const { fullName, description, status } = req.body; 
   // @ts-ignore
   const userId = req.user.userId;
   const file = req.files?.document;
@@ -83,7 +83,7 @@ export const updateProposal = async (req: Request, res: Response) => {
 
   const updatedProposal = await updateProposalByIdService(
     id,
-    { fullName, description, status }, // Changed title to fullName
+    { fullName, description, status }, 
     file
   );
 

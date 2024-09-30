@@ -68,7 +68,7 @@ export const verifyBankAccount = async (req: Request, res: Response) => {
 			}
 		);
 
-		const accountDetails = response.data.data; // Now typed as BankAccountDetails
+		const accountDetails = response.data.data; 
 
 		if (!accountDetails) {
 			return res.status(StatusCodes.NOT_FOUND).json({
