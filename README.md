@@ -203,7 +203,7 @@ Contains the database models that represent entities in the system.
 - `withdrawal.ts`: Handles withdrawal transactions from user wallets.
 
 ### `routes/`: 
-Defines the API routes that map to specific controller actions.
+Defines the API routes that map to specific controller actions. 
 
 - `authRoute.ts`: Routes related to authentication (login, register, etc.).
 - `contactRoute.ts`: Routes related to contact information.
