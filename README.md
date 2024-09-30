@@ -80,33 +80,84 @@ npm run dev
 chain-coop-backend/
 ├── controllers/
 │   ├── authController.ts
-│   ├── projectController.ts
+│   ├── bankController.ts
+│   ├── contactController.ts
+│   ├── contributionController.ts
+│   ├── membershipController.ts
+│   ├── newsLetterController.ts
 │   ├── portfolioController.ts
+│   ├── profilePictureController.ts
+│   ├── projectController.ts
 │   ├── proposalController.ts
-│   └── userController.ts
+│   ├── walletController.ts
+│   └── withdrawalController.ts
 ├── models/
-│   ├── projectModel.ts
+│   ├── authModel.ts
+│   ├── contactModel.ts
+│   ├── contribution.ts
+│   ├── contributionHistory.ts
+│   ├── membership.ts
+│   ├── newsLetterModel.ts
+│   ├── otpModel.ts
 │   ├── portfolioModel.ts
+│   ├── projectModel.ts
 │   ├── proposalModel.ts
-│   ├── userModel.ts
-│   └── contributionModel.ts
+│   ├── wallet.ts
+│   ├── walletHistory.ts
+│   └── withdrawal.ts
 ├── routes/
-│   ├── authRoutes.ts
-│   ├── projectRoutes.ts
+│   ├── authRoute.ts
+│   ├── contactRoute.ts
+│   ├── contributionRoute.ts
+│   ├── index.ts
+│   ├── membershipRoutes.ts
+│   ├── newsLetterRouter.ts
 │   ├── portfolioRoutes.ts
-│   ├── proposalRoutes.ts
-│   ├── userRoutes.ts
-│   └── contributionRoutes.ts
+│   ├── profilePictureRoutes.ts
+│   ├── projectRoutes.ts
+│   ├── proposalRoute.ts
+│   ├── walletRoute.ts
+│   └── withdrawalRoutes.ts
 ├── services/
-│   ├── projectService.ts
+│   ├── authService.ts
+│   ├── contactService.ts
+│   ├── contributionService.ts
+│   ├── membershipService.ts
+│   ├── newsLetterService.ts
+│   ├── otpService.ts
+│   ├── paystackService.ts
 │   ├── portfolioService.ts
+│   ├── profilePictureService.ts
+│   ├── projectService.ts
 │   ├── proposalService.ts
-│   ├── userService.ts
-│   └── contributionService.ts
+│   ├── walletService.ts
+│   └── withdrawalService.ts
+├── errors/
+│   ├── bad-request.ts
+│   ├── conflict.ts
+│   ├── custom-api.ts
+│   ├── forbidden.ts
+│   ├── index.ts
+│   ├── internal-server.ts
+│   ├── large-entity.ts
+│   ├── not-found.ts
+│   ├── unauthenticated.ts
+├── middlewares/
+│   ├── authorization.ts
+│   ├── errorHandler.ts
+│   └── notFoundMiddleWare.ts
 ├── utils/
+│   ├── bankUtils.ts
+│   ├── createToken.ts
+│   ├── deleteDoc.ts
 │   ├── deleteDocument.ts
 │   ├── extractPublicId.ts
+│   ├── imageUploader.ts
+│   ├── sendEmail.ts
+│   ├── sendOtp.ts
 │   └── uploadDocument.ts
+├── templates/
+├── db/
 ├── .env
 ├── package.json
 ├── tsconfig.json
