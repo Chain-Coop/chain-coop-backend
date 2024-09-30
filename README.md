@@ -796,7 +796,7 @@ Contributions to this project are restricted to the internal development team. I
 1. **Clone the Repository:** Clone the repository to your local machine.
 2. **Create a New Branch:** Create a new branch for your feature or bug fix.
 3. **Develop Your Changes:** Implement your changes and ensure they are tested.
-4. **Submit a Pull Request:** Submit a pull request for review. Ensure that your PR includes a detailed description of the changes made and any relevant issues it addresses.
+4. **Submit a Pull Request:** Submit a pull request to the `Dev` branch for review. Ensure that your PR includes a detailed description of the changes made and any relevant issues it addresses.
 5. **Code Review:** Wait for the code review and make any necessary adjustments based on feedback.
 
 For major changes, please discuss them with the team first by opening an issue or scheduling a meeting.
