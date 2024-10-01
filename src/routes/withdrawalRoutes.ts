@@ -16,15 +16,12 @@ router.post("/request-withdrawal", authorize, requestWithdrawal);
 router.post("/collect-bank-details", authorize, collectBankDetails);
 
 // POST route to verify bank account details
-router.post("/verify-bank-account", authorize, verifyBankAccount);
+router.post("/verify-bank-account", authorize, verifyBankDetails);
 
 // PATCH route to update withdrawal status (admin only)
 router.patch('/update-status/:withdrawalId', authorize, authorizePermissions("admin"), updateWithdrawalStatusController);
 
 router.get('/requests', authorize,  listAllWithdrawals);
-
-
-
 
 
 export default router;
