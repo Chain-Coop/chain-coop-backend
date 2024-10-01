@@ -11,7 +11,11 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
 - [Code Workflow Explanation](#code-orkflow-explanation)
 - [API Endpoints](#api-endpoints)
 - [Models](#models)
+- [Routes](#routes)
 - [Services](#services)
+- [Errors](#errors)
+- [Middleware](#middlewares)
+- [Utilities](#utils)
 - [Controllers](#controllers)
 - [Utilities](#utilities)
 - [Environment Variables](#environment-variables)
@@ -80,38 +84,196 @@ npm run dev
 chain-coop-backend/
 ├── controllers/
 │   ├── authController.ts
-│   ├── projectController.ts
+│   ├── bankController.ts
+│   ├── contactController.ts
+│   ├── contributionController.ts
+│   ├── membershipController.ts
+│   ├── newsLetterController.ts
 │   ├── portfolioController.ts
+│   ├── profilePictureController.ts
+│   ├── projectController.ts
 │   ├── proposalController.ts
-│   └── userController.ts
+│   ├── walletController.ts
+│   └── withdrawalController.ts
 ├── models/
-│   ├── projectModel.ts
+│   ├── authModel.ts
+│   ├── contactModel.ts
+│   ├── contribution.ts
+│   ├── contributionHistory.ts
+│   ├── membership.ts
+│   ├── newsLetterModel.ts
+│   ├── otpModel.ts
 │   ├── portfolioModel.ts
+│   ├── projectModel.ts
 │   ├── proposalModel.ts
-│   ├── userModel.ts
-│   └── contributionModel.ts
+│   ├── wallet.ts
+│   ├── walletHistory.ts
+│   └── withdrawal.ts
 ├── routes/
-│   ├── authRoutes.ts
-│   ├── projectRoutes.ts
+│   ├── authRoute.ts
+│   ├── contactRoute.ts
+│   ├── contributionRoute.ts
+│   ├── index.ts
+│   ├── membershipRoutes.ts
+│   ├── newsLetterRouter.ts
 │   ├── portfolioRoutes.ts
-│   ├── proposalRoutes.ts
-│   ├── userRoutes.ts
-│   └── contributionRoutes.ts
+│   ├── profilePictureRoutes.ts
+│   ├── projectRoutes.ts
+│   ├── proposalRoute.ts
+│   ├── walletRoute.ts
+│   └── withdrawalRoutes.ts
 ├── services/
-│   ├── projectService.ts
+│   ├── authService.ts
+│   ├── contactService.ts
+│   ├── contributionService.ts
+│   ├── membershipService.ts
+│   ├── newsLetterService.ts
+│   ├── otpService.ts
+│   ├── paystackService.ts
 │   ├── portfolioService.ts
+│   ├── profilePictureService.ts
+│   ├── projectService.ts
 │   ├── proposalService.ts
-│   ├── userService.ts
-│   └── contributionService.ts
+│   ├── walletService.ts
+│   └── withdrawalService.ts
+├── errors/
+│   ├── bad-request.ts
+│   ├── conflict.ts
+│   ├── custom-api.ts
+│   ├── forbidden.ts
+│   ├── index.ts
+│   ├── internal-server.ts
+│   ├── large-entity.ts
+│   ├── not-found.ts
+│   ├── unauthenticated.ts
+├── middlewares/
+│   ├── authorization.ts
+│   ├── errorHandler.ts
+│   └── notFoundMiddleWare.ts
 ├── utils/
+│   ├── bankUtils.ts
+│   ├── createToken.ts
+│   ├── deleteDoc.ts
 │   ├── deleteDocument.ts
 │   ├── extractPublicId.ts
+│   ├── imageUploader.ts
+│   ├── sendEmail.ts
+│   ├── sendOtp.ts
 │   └── uploadDocument.ts
+├── templates/
+├── db/
 ├── .env
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
+## Folders and Files
+
+### `controllers/`: 
+Contains all the controller files, which handle incoming requests and direct the application to the appropriate service or model.
+
+- `authController.ts`: Handles user authentication-related operations.
+- `bankController.ts`: Manages bank-related operations.
+- `contactController.ts`: Handles contact information requests.
+- `contributionController.ts`: Manages contributions and their transactions.
+- `membershipController.ts`: Handles membership management.
+- `newsLetterController.ts`: Manages newsletter subscriptions and communication.
+- `portfolioController.ts`: Deals with portfolio-related actions.
+- `profilePictureController.ts`: Manages user profile picture uploads and retrieval.
+- `projectController.ts`: Handles project-related actions.
+- `proposalController.ts`: Manages project proposal submissions and reviews.
+- `walletController.ts`: Deals with wallet-related operations.
+- `withdrawalController.ts`: Manages withdrawal transactions.
+
+### `models/`: 
+Contains the database models that represent entities in the system.
+
+- `authModel.ts`: Defines the schema for user authentication data.
+- `contactModel.ts`: Defines the schema for storing contact information.
+- `contribution.ts`: Represents user contributions in the cooperative.
+- `contributionHistory.ts`: Tracks the history of user contributions.
+- `membership.ts`: Defines the schema for membership data.
+- `newsLetterModel.ts`: Manages newsletter subscription data.
+- `otpModel.ts`: Handles the schema for OTP (One-Time Password) operations.
+- `portfolioModel.ts`: Represents user portfolios.
+- `projectModel.ts`: Represents cooperative projects.
+- `proposalModel.ts`: Defines the schema for project proposals.
+- `wallet.ts`: Manages user wallet details.
+- `walletHistory.ts`: Tracks the history of wallet transactions.
+- `withdrawal.ts`: Handles withdrawal transactions from user wallets.
+
+### `routes/`: 
+Defines the API routes that map to specific controller actions. 
+
+- `authRoute.ts`: Routes related to authentication (login, register, etc.).
+- `contactRoute.ts`: Routes related to contact information.
+- `contributionRoute.ts`: Routes for managing contributions.
+- `index.ts`: Main entry point for route handling.
+- `membershipRoutes.ts`: Routes for handling membership features.
+- `newsLetterRouter.ts`: Routes for managing newsletter subscriptions.
+- `portfolioRoutes.ts`: Routes for portfolio-related actions.
+- `profilePictureRoutes.ts`: Routes for managing profile picture uploads.
+- `projectRoutes.ts`: Routes for project management.
+- `proposalRoute.ts`: Routes for handling project proposals.
+- `walletRoute.ts`: Routes for wallet-related actions.
+- `withdrawalRoutes.ts`: Routes for handling withdrawals.
+
+### `services/`: 
+Contains business logic and handles operations that controllers rely on.
+
+- `authService.ts`: Contains logic for handling user authentication.
+- `contactService.ts`: Manages contact information-related business logic.
+- `contributionService.ts`: Manages operations related to contributions.
+- `membershipService.ts`: Handles membership-related business logic.
+- `newsLetterService.ts`: Manages newsletter subscription services.
+- `otpService.ts`: Handles OTP generation and verification.
+- `paystackService.ts`: Contains business logic related to the Paystack payment gateway.
+- `portfolioService.ts`: Deals with business logic for user portfolios.
+- `profilePictureService.ts`: Handles logic related to user profile pictures.
+- `projectService.ts`: Contains logic for handling project-related operations.
+- `proposalService.ts`: Manages operations for project proposals.
+- `walletService.ts`: Deals with wallet-related logic.
+- `withdrawalService.ts`: Handles withdrawal-related operations.
+
+### `errors/`: 
+Contains error classes and handlers to manage various HTTP error responses.
+
+- `bad-request.ts`: Handles HTTP 400 Bad Request errors.
+- `conflict.ts`: Handles HTTP 409 Conflict errors.
+- `custom-api.ts`: Base class for custom API errors.
+- `forbidden.ts`: Handles HTTP 403 Forbidden errors.
+- `index.ts`: Exports error handling utilities.
+- `internal-server.ts`: Handles HTTP 500 Internal Server errors.
+- `large-entity.ts`: Handles errors related to large entities (e.g., file size).
+- `not-found.ts`: Handles HTTP 404 Not Found errors.
+- `unauthenticated.ts`: Handles HTTP 401 Unauthenticated errors.
+
+### `middlewares/`: 
+Contains middleware logic for request processing (authentication, validation, etc.).
+
+- `authorization.ts`: Middleware to handle user authorization.
+- `errorHandler.ts`: Centralized error handling middleware.
+- `notFoundMiddleWare.ts`: Middleware to handle 404 errors for routes that are not found.
+
+### `utils/`: 
+Contains utility functions used across the application.
+
+- `bankUtils.ts`: Utility functions related to bank operations.
+- `createToken.ts`: Utility to create authentication tokens (JWT).
+- `deleteDoc.ts`: Utility to handle document deletion.
+- `deleteDocument.ts`: Utility to handle more extensive document deletion logic.
+- `extractPublicId.ts`: Extracts public ID from document URLs (used for Cloudinary or similar services).
+- `imageUploader.ts`: Utility to upload images.
+- `sendEmail.ts`: Handles sending emails via a configured service.
+- `sendOtp.ts`: Sends OTP (One-Time Password) to users for authentication.
+- `uploadDocument.ts`: Handles the process of uploading documents.
+
+### `db/`: 
+Contains database connection and migration scripts (if any).
+
+### `templates/`: 
+Contains email templates or other HTML/templated documents used in the application.
+
 
 ## Workflow Overview
 
@@ -796,7 +958,7 @@ Contributions to this project are restricted to the internal development team. I
 1. **Clone the Repository:** Clone the repository to your local machine.
 2. **Create a New Branch:** Create a new branch for your feature or bug fix.
 3. **Develop Your Changes:** Implement your changes and ensure they are tested.
-4. **Submit a Pull Request:** Submit a pull request for review. Ensure that your PR includes a detailed description of the changes made and any relevant issues it addresses.
+4. **Submit a Pull Request:** Submit a pull request to the `Dev` branch for review. Ensure that your PR includes a detailed description of the changes made and any relevant issues it addresses.
 5. **Code Review:** Wait for the code review and make any necessary adjustments based on feedback.
 
 For major changes, please discuss them with the team first by opening an issue or scheduling a meeting.

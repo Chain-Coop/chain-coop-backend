@@ -51,10 +51,7 @@ export const createPin = async (id: any, payload: iWallet) => {
 		throw new BadRequestError("Wallet not found");
 	}
 
-	const salt = await bcrypt.genSalt(10);
-	const pinHash = await bcrypt.hash(pin!, salt);
-
-	wallet.pin = pinHash;
+	wallet.pin = pin!;
 	wallet.isPinCreated = true;
 	await wallet.save();
 };

@@ -9,6 +9,7 @@ export interface ProjectDocument extends Document {
   updatedDate: Date;
   documentUrl: string; 
   fundBalance: number;
+  projectPrice: number;
 }
 
 const ProjectSchema = new Schema(
@@ -29,6 +30,10 @@ const ProjectSchema = new Schema(
     fundBalance: {
       type: Number,
       default: 0,
+    },
+    projectPrice: {
+      type: Number,
+      required: [true, "Project price is required"],
     },
     author: {
       type: Schema.Types.ObjectId,

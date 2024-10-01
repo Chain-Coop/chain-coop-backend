@@ -8,15 +8,14 @@ import {
 	updateProjectByIdService,
 	deleteProjectByIdService,
     fundProjectService,
-    updateProjectDetailsService,
 } from "../services/projectService";
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
-import { BadRequestError } from "../errors"; // Import your custom error
+import { BadRequestError } from "../errors"; 
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
-    const { title, description } = req.body;
+    const { title, description, projectPrice, } = req.body;
     // @ts-ignore - extract the userId from the authenticated user
     const userId = req.user.userId;
     const file = req.files?.document;
@@ -26,6 +25,7 @@ export const createProject = async (req: Request, res: Response) => {
             {
                 title,
                 description,
+                projectPrice,
                 author: userId,
             },
             file
@@ -78,24 +78,19 @@ export const getProject = async (req: Request, res: Response) => {
 // Update a project by id
 export const updateProject = async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const { title, description, status } = req.body;
+	const { title, description, status, projectPrice } = req.body;
 	// @ts-ignore
 	const userId = req.user.userId;
-	const file = req.files?.document; // Get the uploaded document if available
+	const file = req.files?.document; 
 
     const project = await getProjectByIdService(id);
     if (!project) {
         throw new NotFoundError("Project not found");
     }
 
-    // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId) {
-        throw new ForbiddenError("You are not authorized to update this project");
-    }
-
     const updatedProject = await updateProjectByIdService(
         id,
-        { title, description, status },
+        { title, description, status, projectPrice },
         file
     );
 
@@ -123,11 +118,6 @@ export const deleteProject = async (req: Request, res: Response) => {
         throw new NotFoundError("Project not found");
     }
 
-    // Check if the logged-in user is the author of the project
-    if (project.author.toString() !== userId) {
-        throw new ForbiddenError("You are not authorized to delete this project");
-    }
-
     await deleteProjectByIdService(id);
     res.status(200).json({ message: "Project deleted successfully" });
 };
@@ -147,24 +137,3 @@ export const fundProject = async (req: Request, res: Response) => {
     }
 };
 
-export const updateProjectDetails = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { title, description, status } = req.body;
-    // @ts-ignore
-    const userId = req.user.userId;
-
-    // Prepare updates
-    const updates: any = {};
-    if (title) updates.title = title;
-    if (description) updates.description = description;
-    if (status) updates.status = status;
-
-    // Call the service to update project details
-    try {
-        const updatedProject = await updateProjectDetailsService(id, userId, updates, req.files?.document);
-        res.status(200).json({ msg: "Project details updated successfully", project: updatedProject });
-    } catch (error) {
-        //@ts-ignore
-        res.status(error.statusCode || 500).json({ error: error.message });
-    }
-};
