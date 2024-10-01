@@ -121,12 +121,13 @@ const initiatePayment = async (req: Request, res: Response) => {
 const verifyPayment = async (req: Request, res: Response) => {
 	const { reference } = req.body;
 
+	if (!reference) {
+		throw new BadRequestError("Payment reference is required");
+	}
+
 	const isRefExist = await findSingleWalletHistoryService({ ref: reference });
 	if (isRefExist) {
 		throw new BadRequestError("Payment already verified");
-	}
-	if (!reference) {
-		throw new BadRequestError("Payment reference is required");
 	}
 	try {
 		const response: any = await axios.get(
@@ -140,7 +141,6 @@ const verifyPayment = async (req: Request, res: Response) => {
 		const paymentData = response.data.data;
 		if (paymentData.status === "success") {
 			const { amount, customer } = paymentData;
-
 			console.log({ amount, customer });
 			const user = await findUser("email", customer.email);
 			console.log(user);
