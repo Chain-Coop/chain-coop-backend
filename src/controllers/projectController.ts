@@ -15,7 +15,7 @@ import { BadRequestError } from "../errors";
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
-    const { title, description } = req.body;
+    const { title, description, projectPrice, } = req.body;
     // @ts-ignore - extract the userId from the authenticated user
     const userId = req.user.userId;
     const file = req.files?.document;
@@ -25,6 +25,7 @@ export const createProject = async (req: Request, res: Response) => {
             {
                 title,
                 description,
+                projectPrice,
                 author: userId,
             },
             file
@@ -77,7 +78,7 @@ export const getProject = async (req: Request, res: Response) => {
 // Update a project by id
 export const updateProject = async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const { title, description, status } = req.body;
+	const { title, description, status, projectPrice } = req.body;
 	// @ts-ignore
 	const userId = req.user.userId;
 	const file = req.files?.document; 
@@ -87,11 +88,9 @@ export const updateProject = async (req: Request, res: Response) => {
         throw new NotFoundError("Project not found");
     }
 
-
-
     const updatedProject = await updateProjectByIdService(
         id,
-        { title, description, status },
+        { title, description, status, projectPrice },
         file
     );
 
