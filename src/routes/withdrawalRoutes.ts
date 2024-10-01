@@ -24,7 +24,4 @@ router.patch('/update-status/:withdrawalId', authorize, authorizePermissions("ad
 router.get('/requests', authorize,  listAllWithdrawals);
 
 
-
-
-
 export default router;
