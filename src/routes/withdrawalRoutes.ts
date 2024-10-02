@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requestWithdrawal, updateWithdrawalStatusController, listAllWithdrawals } from "../controllers/withdrawalController";
 import { collectBankDetails, verifyBankDetails } from "../controllers/walletController";
-import { getAllBanks, verifyBankAccount } from "../controllers/bankController";
+import { getAllBanks } from "../controllers/bankController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 
 const router = Router();

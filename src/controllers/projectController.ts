@@ -124,16 +124,29 @@ export const deleteProject = async (req: Request, res: Response) => {
 
 export const fundProject = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { amount } = req.body; 
+    const { amount } = req.body;
     // @ts-ignore 
     const userId = req.user.userId;
 
     try {
         const project = await fundProjectService(userId, id, amount);
-        res.status(200).json({ msg: "Project funded successfully", project });
+        
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            message: "Project funded successfully",
+            project
+        });
     } catch (error) {
-        //@ts-ignore
-        res.status(error.statusCode || 500).json({ error: error.message });
+        console.error(error);
+    
+        // @ts-ignore
+        return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
+            // @ts-ignore
+            statusCode: error?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+            // @ts-ignore
+            error: error?.message
+        });
     }
 };
+
 
