@@ -1,7 +1,7 @@
-import { createPortfolioService, getUserPortfoliosService } from "../services/portfolioService";
-import Portfolio from "../models/portfolioModel";
+import { createPortfolioService, getUserPortfoliosService } from "../../services/portfolioService";
+import Portfolio from "../../models/portfolioModel";
 
-jest.mock("../models/portfolioModel"); // Mock the Portfolio model
+jest.mock("../../models/portfolioModel"); // Mock the Portfolio model
 
 describe("Portfolio Service", () => {
   const mockPayload = {

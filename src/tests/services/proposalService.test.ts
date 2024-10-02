@@ -5,15 +5,15 @@ import {
     getProposalByIdService,
     updateProposalByIdService,
     deleteProposalByIdService,
-  } from "../services/proposalService";
-  import Proposal from "../models/proposalModel";
-  import uploadDocument from "../utils/uploadDocument";
-  import deleteDocument from "../utils/deleteDocument";
+  } from "../../services/proposalService";
+  import Proposal from "../../models/proposalModel";
+  import uploadDocument from "../../utils/uploadDocument";
+  import deleteDocument from "../../utils/deleteDocument";
   import { UploadApiResponse } from "cloudinary";
   
-  jest.mock("../models/proposalModel"); // Mock the Proposal model
-  jest.mock("../utils/uploadDocument"); // Mock the uploadDocument function
-  jest.mock("../utils/deleteDocument"); // Mock the deleteDocument function
+  jest.mock("../../models/proposalModel"); // Mock the Proposal model
+  jest.mock("../../utils/uploadDocument"); // Mock the uploadDocument function
+  jest.mock("../../utils/deleteDocument"); // Mock the deleteDocument function
   
   describe("Proposal Service", () => {
     const userId = "user_12345";

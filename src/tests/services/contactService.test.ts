@@ -1,7 +1,7 @@
-import { addContactService, findContact, getAllContacts } from "../services/contactService";
-import Contact from "../models/contactModel";
+import { addContactService, findContact, getAllContacts } from "../../services/contactService";
+import Contact from "../../models/contactModel";
 
-jest.mock("../models/contactModel");
+jest.mock("../../models/contactModel");
 
 describe("Contact Services", () => {
     describe("addContactService", () => {

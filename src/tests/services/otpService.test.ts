@@ -1,8 +1,8 @@
-import OTP from "../models/otpModel";
-import { createOtp, findOtp, findOtpByEmail, deleteOtp } from "../services/otpService";
+import OTP from "../../models/otpModel";
+import { createOtp, findOtp, findOtpByEmail, deleteOtp } from "../../services/otpService";
 
 // Mock the OTP model
-jest.mock("../models/otpModel");
+jest.mock("../../models/otpModel");
 
 describe("OTP Service", () => {
   const mockEmail = "test@example.com";

@@ -5,11 +5,11 @@ import {
 	updateUserById,
 	getUserDetails,
 	resetUserPassword 
-} from "../services/authService";
-import User from "../models/authModel";
-import { UserDocument } from "../models/authModel";
+} from "../../services/authService";
+import User from "../../models/authModel";
+import { UserDocument } from "../../models/authModel";
 // Mock the User model
-jest.mock("../models/authModel");
+jest.mock("../../models/authModel");
 
 // Test for createUser
 describe("authServices - createUser", () => {

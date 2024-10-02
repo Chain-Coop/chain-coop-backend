@@ -1,13 +1,13 @@
 import mongoose, { Types } from "mongoose";
-import Membership from "../models/membership"; // Adjust the import according to your structure
+import Membership from "../../models/membership"; // Adjust the import according to your structure
 import {
   createMembershipService,
   updateMembershipService,
   findMembershipService,
-} from "../services/membershipService"; // Adjust the import according to your structure
+} from "../../services/membershipService"; // Adjust the import according to your structure
 
 // Mock the Membership model
-jest.mock("../models/membership");
+jest.mock("../../models/membership");
 
 describe("Membership Service", () => {
   const mockMembershipPayload = {

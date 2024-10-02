@@ -1,6 +1,6 @@
 import axios from "axios";
-import { createPaystackSubscription, getPlanIdForMembershipType } from "../services/paystackService";
-import { BadRequestError, InternalServerError } from "../errors";
+import { createPaystackSubscription, getPlanIdForMembershipType } from "../../services/paystackService";
+import { BadRequestError, InternalServerError } from "../../errors";
 
 jest.mock("axios"); // Mock axios
 

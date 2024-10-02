@@ -4,11 +4,11 @@ import {
     updateWithdrawalStatus,
     getAllWithdrawals,
     findWithdrawalRequests
-} from '../services/withdrawalService';
-import Withdrawal from '../models/withdrawal';
-import { BadRequestError } from '../errors';
+} from '../../services/withdrawalService';
+import Withdrawal from '../../models/withdrawal';
+import { BadRequestError } from '../../errors';
 
-jest.mock('../models/withdrawal'); // Mock the Withdrawal model
+jest.mock('../../models/withdrawal'); // Mock the Withdrawal model
 
 describe('Withdrawal Service', () => {
     const userId = 'user_12345';

@@ -8,15 +8,15 @@ import {
     findSingleWalletHistoryService,
     verifyBankDetailsService,
     validateWalletPin,
-  } from "../services/walletService";
-  import Wallet from "../models/wallet";
-  import WalletHistory from "../models/walletHistory";
+  } from "../../services/walletService";
+  import Wallet from "../../models/wallet";
+  import WalletHistory from "../../models/walletHistory";
   import axios from "axios";
-  import { BadRequestError } from "../errors";
+  import { BadRequestError } from "../../errors";
   import bcrypt from "bcryptjs";
   
-  jest.mock("../models/wallet"); // Mock the Wallet model
-  jest.mock("../models/walletHistory"); // Mock the WalletHistory model
+  jest.mock("../../models/wallet"); // Mock the Wallet model
+  jest.mock("../../models/walletHistory"); // Mock the WalletHistory model
   jest.mock("axios"); // Mock axios for bank verification
   jest.mock("bcryptjs"); // Mock bcrypt for pin validation
   

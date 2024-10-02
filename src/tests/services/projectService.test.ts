@@ -8,17 +8,17 @@ import {
   deleteProjectByIdService,
   fundProjectService,
   updateProjectDetailsService,
-} from "../services/projectService";
-import Project from "../models/projectModel";
-import Wallet from "../models/wallet";
-import { NotFoundError, ForbiddenError } from "../errors";
-import uploadDocument from "../utils/uploadDocument";
-import uploadImageFile from "../utils/imageUploader"; // Ensure the uploadImageFile import is included
+} from "../../services/projectService";
+import Project from "../../models/projectModel";
+import Wallet from "../../models/wallet";
+import { NotFoundError, ForbiddenError } from "../../errors";
+import uploadDocument from "../../utils/uploadDocument";
+import uploadImageFile from "../../utils/imageUploader"; // Ensure the uploadImageFile import is included
 
-jest.mock("../models/projectModel"); // Mock the Project model
-jest.mock("../models/wallet"); // Mock the Wallet model
-jest.mock("../utils/uploadDocument"); // Mock the uploadDocument function
-jest.mock("../utils/imageUploader"); // Mock the uploadImageFile function
+jest.mock("../../models/projectModel"); // Mock the Project model
+jest.mock("../../models/wallet"); // Mock the Wallet model
+jest.mock("../../utils/uploadDocument"); // Mock the uploadDocument function
+jest.mock("../../utils/imageUploader"); // Mock the uploadImageFile function
 
 describe("Project Service", () => {
   const userId = "user_12345";

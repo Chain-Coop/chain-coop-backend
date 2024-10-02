@@ -1,8 +1,8 @@
 import { Request } from "express"; // Import the Request type
-import { uploadProfilePicture, deleteProfilePicture } from "../services/profilePictureService"; // Adjust the path as necessary
+import { uploadProfilePicture, deleteProfilePicture } from "../../services/profilePictureService"; // Adjust the path as necessary
 import cloudinary from "cloudinary";
 import fs from "fs";
-import { BadRequestError, EntityTooLarge } from "../errors"; // Adjust the path as necessary
+import { BadRequestError, EntityTooLarge } from "../../errors"; // Adjust the path as necessary
 
 jest.mock("cloudinary", () => ({
   v2: {

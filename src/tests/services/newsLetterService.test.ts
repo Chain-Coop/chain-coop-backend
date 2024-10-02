@@ -1,8 +1,8 @@
-import NewsLetter from "../models/newsLetterModel";
-import { addUserService, findNewsLetterUser } from "../services/newsLetterService"
+import NewsLetter from "../../models/newsLetterModel";
+import { addUserService, findNewsLetterUser } from "../../services/newsLetterService"
 
 // Mock the NewsLetter model
-jest.mock("../models/newsLetterModel");
+jest.mock("../../models/newsLetterModel");
 
 describe("Newsletter Service", () => {
   const mockEmail = "test@example.com";

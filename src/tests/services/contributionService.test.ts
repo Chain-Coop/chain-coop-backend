@@ -7,15 +7,15 @@ import {
   findContributionHistoryService,
   updateContributionBankDetails,
   processRecurringContributions,
-} from "../services/contributionService";
-import Contribution from "../models/contribution";
-import ContributionHistory from "../models/contributionHistory";
+} from "../../services/contributionService";
+import Contribution from "../../models/contribution";
+import ContributionHistory from "../../models/contributionHistory";
 
 const mockUserId = new mongoose.Types.ObjectId(); // Creating a mock user ID
 
 // Mock Mongoose models
-jest.mock("../models/contribution");
-jest.mock("../models/contributionHistory");
+jest.mock("../../models/contribution");
+jest.mock("../../models/contributionHistory");
 
 describe("Contribution Service Tests", () => {
   const mockContribution = {
