@@ -24,6 +24,12 @@ export const createPaystackSubscription = async (
 	}
 
 	try {
+		// Verify if planId is valid before proceeding
+  
+		if (!planId) {
+			throw new BadRequestError("Invalid plan code.");
+		}
+
 		const response: any = await axios.post(
 			PAYSTACK_SUBSCRIPTION_URL,
 			{
@@ -38,7 +44,6 @@ export const createPaystackSubscription = async (
 			}
 		);
 
-		console.log(response.data);
 		return response?.data?.message;
 	} catch (error: any) {
 		console.log(error.response);

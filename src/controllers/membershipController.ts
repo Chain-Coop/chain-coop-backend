@@ -26,7 +26,7 @@ const membershipAmounts: Record<string, number> = {
 // interface MembershipProps {
 // 	amount: number;
 // 	name_of_plan: string;
-// 	descruption: string;
+// 	description: string;
 // 	subscribed_users: Schema.Types.ObjectId[];
 // 	// ...
 // }
@@ -122,7 +122,7 @@ export const getMembershipDetails = async (req: Request, res: Response) => {
 
 export const subscribe = async (req: Request, res: Response) => {
 	const email = "tshegofatsoseane98@gmail.com";
-	const planId = "PLN_h27t8y4f4t6hbyc";
+	const planId = "PLN_ypa6gvavb1tbq1u";
 	const response = await createPaystackSubscription(email, planId);
 	res.status(StatusCodes.OK).json({ response });
 };
