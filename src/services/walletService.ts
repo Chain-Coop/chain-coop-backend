@@ -57,9 +57,7 @@ export const createPin = async (id: any, payload: iWallet) => {
 };
 
 export const findWalletService = async (payload: any) => {
-	console.log("Fetching wallet with:", payload);
 	const wallet = await Wallet.findOne(payload);
-	console.log("Fetched wallet:", wallet);
 	return wallet;
 };
 

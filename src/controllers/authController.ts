@@ -17,7 +17,11 @@ import {
 } from "../errors";
 import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
 import { generateAndSendOtp } from "../utils/sendOtp";
-import { createWalletService, iWallet } from "../services/walletService";
+import {
+	createWalletService,
+	findWalletService,
+	iWallet,
+} from "../services/walletService";
 
 const register = async (req: Request, res: Response) => {
 	const { email } = req.body;
@@ -122,7 +126,9 @@ const getUser = async (req: Request, res: Response) => {
 	//@ts-ignore
 	const id = req.user.userId;
 	const user = await getUserDetails(id);
-	res.status(StatusCodes.OK).json(user);
+	const wallet = await findWalletService({ user: id });
+	const isPinCreated = wallet?.isPinCreated;
+	res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated });
 };
 
 // localhost:5173/dashboard/wallet
