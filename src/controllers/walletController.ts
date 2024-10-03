@@ -32,7 +32,8 @@ const paystackWebhook = async (req: Request, res: Response) => {
 		const { event, data } = req.body;
 		if (event === "charge.success") {
 			console.log("Transaction successful");
-			await creditWallet(data);
+
+			 await creditWallet(data);
 		}
 		if (event === "transfer.success") {
 			console.log("Transfer successful", data);
@@ -60,7 +61,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 	}
 
 	// Calculate new balance
-	const newBalance = userWallet.balance + data.amount; 
+	const newBalance = userWallet.balance + data.amount;
 
 	// Update wallet balance
 	await updateWalletService(userWallet._id, {
@@ -69,7 +70,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 
 	// Create wallet history entry
 	const historyPayload: iWalletHistory = {
-		amount: data.amount, 
+		amount: data.amount,
 		label: "Wallet top up via Paystack",
 		ref: data.reference,
 		type: "credit",

@@ -8,7 +8,7 @@ export interface MembershipDocument extends Document {
   amount: number;
   activationDate: Date;
   bankReceiptUrl?: string;
-  subscriptionUrl?: string; // Add this field
+  subscriptionUrl?: string;
 }
 
 const MembershipSchema = new Schema<MembershipDocument>(
@@ -30,7 +30,7 @@ const MembershipSchema = new Schema<MembershipDocument>(
     },
     paymentMethod: {
       type: String,
-      enum: ["BankTransfer", "DebitCreditCard", "PaystackSubscription"], // Add PaystackSubscription
+      enum: ["BankTransfer", "PaystackSubscription"], 
       required: true,
     },
     amount: {
@@ -44,7 +44,7 @@ const MembershipSchema = new Schema<MembershipDocument>(
     bankReceiptUrl: {
       type: String,
     },
-    subscriptionUrl: { // Add this field
+    subscriptionUrl: { 
       type: String,
     },
   },
