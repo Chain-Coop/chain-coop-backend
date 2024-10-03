@@ -14,10 +14,12 @@ import { Request, Response } from "express";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 import uploadImageFile from "../utils/imageUploader";
-import { findUser } from "../services/authService";
+import { findUser, getUserDetails } from "../services/authService";
 import { createHmac } from "crypto";
 import bcrypt from "bcryptjs";
 import axios from "axios";
+import { generateAndSendOtp } from "../utils/sendOtp";
+import { findOtp } from "../services/otpService";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -30,7 +32,8 @@ const paystackWebhook = async (req: Request, res: Response) => {
 		const { event, data } = req.body;
 		if (event === "charge.success") {
 			console.log("Transaction successful");
-			await creditWallet(data);
+
+			 await creditWallet(data);
 		}
 		if (event === "transfer.success") {
 			console.log("Transfer successful", data);
@@ -58,7 +61,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 	}
 
 	// Calculate new balance
-	const newBalance = userWallet.balance + data.amount; 
+	const newBalance = userWallet.balance + data.amount;
 
 	// Update wallet balance
 	await updateWalletService(userWallet._id, {
@@ -67,7 +70,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 
 	// Create wallet history entry
 	const historyPayload: iWalletHistory = {
-		amount: data.amount, 
+		amount: data.amount,
 		label: "Wallet top up via Paystack",
 		ref: data.reference,
 		type: "credit",
@@ -317,6 +320,53 @@ export const fundWallet = async (req: Request, res: Response) => {
 		}
 	}
 };
+
+export const generatePinOtp = async (req: Request, res: Response) => {
+
+};
+
+export const GeneratePinOtp = async (req: Request, res: Response) => {
+	//@ts-ignore
+	const id = req.user.userId;
+	const user = await getUserDetails(id);
+
+	await generateAndSendOtp({
+		email: user!.email,
+		message: "Your OTP to change your pin is",
+		subject: "Pin verification",
+	});
+
+	res.status(StatusCodes.CREATED).json({
+		msg: "OTP successfully sent to your email",
+	});
+
+};
+
+export const ChangePin = async (req: Request, res: Response) => {
+	const {otp, newpin} = req.body;
+	
+	//@ts-ignore
+	const id = req.user.userId;
+	const user = await getUserDetails(id);
+
+	const validOtp = await findOtp(user!.email, otp);
+	if(!validOtp){
+		throw new BadRequestError("Invalid otp provided");
+	}
+
+	const wallet = await findWalletService({ user: id });
+		if (!wallet) {
+			throw new BadRequestError("Wallet not found");
+		}
+
+	wallet.pin = newpin;
+	await wallet.save();
+
+	res.status(StatusCodes.OK).json({
+		msg: "Pin Successfully Changed",
+	});
+
+}
 
 export {
 	// paystackWebhook,
