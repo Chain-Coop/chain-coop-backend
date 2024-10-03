@@ -33,7 +33,7 @@ const paystackWebhook = async (req: Request, res: Response) => {
 		if (event === "charge.success") {
 			console.log("Transaction successful");
 
-			// await creditWallet(data);
+			 await creditWallet(data);
 		}
 		if (event === "transfer.success") {
 			console.log("Transfer successful", data);
