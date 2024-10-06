@@ -58,7 +58,7 @@ export const activateMembership = async (req: Request, res: Response) => {
 			membershipType,
 			paymentMethod,
 			amount,
-			status: "pending",
+			status: "Active",
 			bankReceiptUrl,
 			subscriptionUrl: null,
 		});
@@ -144,6 +144,7 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 			await updateUserProfile(userId, {
 				membershipStatus: "pending",
 				membershipPaymentStatus: "in-progress",
+
 			});
 
 			// Return the created membership and subscription details

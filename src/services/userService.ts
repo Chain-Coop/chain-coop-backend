@@ -1,4 +1,4 @@
-import User, { UserDocument } from '../models/user'; // Import the correct UserDocument type
+import User, { UserDocument } from '../models/authModel'; // Import the correct UserDocument type
 import { NotFoundError } from '../errors';
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfileUpdates>) => {
@@ -17,8 +17,8 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.membershipPaymentStatus && ['paid', 'in-Progress', 'not_started'].includes(updates.membershipPaymentStatus)) {
         user.membershipPaymentStatus = updates.membershipPaymentStatus as 'paid' | 'in-progress' | 'not_started';
     }
-    if (updates.membershipType) {
-        user.membershipType = updates.membershipType;
+    if (updates.membershipType && ['Explorer', 'Pioneer', 'Voyager']) {
+        user.membershipType = updates.membershipType as 'Explorer', 'Pioneer', 'Voyager';
     }
 
     // Save the updated user profile
