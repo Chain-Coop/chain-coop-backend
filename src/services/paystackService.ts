@@ -8,7 +8,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_SUBSCRIPTION_URL = "https://api.paystack.co/subscription";
 const PAYSTACK_CUSTOMER_URL = "https://api.paystack.co/customer";
 const PAYSTACK_INITIALIZE_URL = "https://api.paystack.co/transaction/initialize";
-const PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify"; // Corrected verification URL
+const PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify";
 
 type MembershipType = "Explorer" | "Pioneer" | "Voyager";
 
@@ -35,7 +35,7 @@ export const createCustomer = async (email: string) => {
                 },
             }
         );
-        return response.data.data.id; // Return the customer ID
+        return response.data.data.id;
     } catch (error: any) {
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
@@ -48,7 +48,7 @@ export const createCustomer = async (email: string) => {
 }
 
 // Function to create a payment link
-export const createPaymentLink = async (email: string, amount: number, userId: string, membershipType: string) => {
+export const createPaymentLink = async (email: string, amount: number, userId: string, membershipType: string, planId: string) => {
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -59,11 +59,13 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                currency: "NGN", // Specify currency
-                callback_url: "http://localhost:5173/set-payment-plan/step3", // Update with your actual callback URL
+				planId,
+                currency: "NGN",
+                callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
-                    userId, // Pass user ID to metadata
-                    membershipType, // Pass membership type to metadata
+                    userId,
+                    membershipType, 
+					planId
                 },
             },
             {
@@ -74,7 +76,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             }
         );
 
-        return response.data.data; // Return the payment link data
+        return response.data.data;
     } catch (error: any) {
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
@@ -117,7 +119,7 @@ export const verifyPayment = async (reference: string) => {
 };
 
 // Function to create a Paystack subscription
-export const createPaystackSubscription = async (customerId: string, planId: string) => {
+export const createPaystackSubscription = async (email: string, planId: string) => {
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -130,7 +132,7 @@ export const createPaystackSubscription = async (customerId: string, planId: str
         const response: any = await axios.post(
             PAYSTACK_SUBSCRIPTION_URL,
             {
-                customer: customerId, 
+                customer: email, 
                 plan: planId,
             },
             {
@@ -162,4 +164,3 @@ export const getPlanIdForMembershipType = (membershipType: MembershipType): stri
     }
     return planId;
 };
-
