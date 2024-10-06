@@ -86,6 +86,26 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Function to verify a payment on Paystack
 export const verifyPayment = async (reference: string) => {
     if (!PAYSTACK_SECRET_KEY) {
