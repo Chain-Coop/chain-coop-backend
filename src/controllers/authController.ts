@@ -114,7 +114,7 @@ const login = async (req: Request, res: Response) => {
         throw new UnauthenticatedError("Invalid credentials");
     }
 
-    const validPassword = await user.comparePasswords(password!);
+    const validPassword =  user.comparePasswords(password!);
     if (!validPassword) {
         throw new UnauthenticatedError("Invalid credentials");
     }

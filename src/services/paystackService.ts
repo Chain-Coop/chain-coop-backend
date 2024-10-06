@@ -8,7 +8,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_SUBSCRIPTION_URL = "https://api.paystack.co/subscription";
 const PAYSTACK_CUSTOMER_URL = "https://api.paystack.co/customer";
 const PAYSTACK_INITIALIZE_URL = "https://api.paystack.co/transaction/initialize";
-const PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify";
+const PAYSTACK_VERIFY_URL = "https://api.paystack.co/transaction/verify"; // Corrected verification URL
 
 type MembershipType = "Explorer" | "Pioneer" | "Voyager";
 
@@ -35,7 +35,7 @@ export const createCustomer = async (email: string) => {
                 },
             }
         );
-        return response.data.data.id;
+        return response.data.data.id; // Return the customer ID
     } catch (error: any) {
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
@@ -59,11 +59,11 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                currency: "NGN",
-                callback_url: "http://localhost:5173/set-payment-plan/step3",
+                currency: "NGN", // Specify currency
+                callback_url: "http://localhost:3000/api/v1/membership/verify-payment", // Update with your actual callback URL
                 metadata: {
-                    userId,
-                    membershipType, 
+                    userId, // Pass user ID to metadata
+                    membershipType, // Pass membership type to metadata
                 },
             },
             {
@@ -74,7 +74,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             }
         );
 
-        return response.data.data;
+        return response.data.data; // Return the payment link data
     } catch (error: any) {
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
@@ -85,26 +85,6 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
         }
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Function to verify a payment on Paystack
 export const verifyPayment = async (reference: string) => {
