@@ -20,6 +20,7 @@ const plans: Record<MembershipType, string> = {
 
 // Function to create a customer on Paystack
 export const createCustomer = async (email: string) => {
+    console.log("Creating customer with email:", email); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -35,9 +36,11 @@ export const createCustomer = async (email: string) => {
                 },
             }
         );
+        console.log("Customer created successfully:", response.data); // Logging output
         return response.data.data.id;
     } catch (error: any) {
         if (error.response) {
+            console.error(`Error creating customer: ${error.response.data.message}`); // Logging error
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
             throw new InternalServerError("No response received from Paystack.");
@@ -49,23 +52,29 @@ export const createCustomer = async (email: string) => {
 
 // Function to create a payment link
 export const createPaymentLink = async (email: string, amount: number, userId: string, membershipType: string, planId: string) => {
+    console.log("Creating payment link for:", { email, amount, userId, membershipType, planId }); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
 
     try {
+        // Ensure planId is valid
+        if (!planId) {
+            throw new BadRequestError("Plan ID is required for creating a payment link.");
+        }
+
         const response: any = await axios.post(
             PAYSTACK_INITIALIZE_URL,
             {
                 email,
                 amount,
-				planId,
+                planId, // Ensure this is being passed correctly
                 currency: "NGN",
                 callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
                     userId,
                     membershipType, 
-					planId
+                    planId // Ensure this is also included
                 },
             },
             {
@@ -76,9 +85,11 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             }
         );
 
+        console.log("Payment link created successfully:", response.data); // Logging output
         return response.data.data;
     } catch (error: any) {
         if (error.response) {
+            console.error(`Error creating payment link: ${error.response.data.message}`); // Logging error
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
             throw new InternalServerError("No response received from Paystack.");
@@ -90,6 +101,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
 
 // Function to verify a payment on Paystack
 export const verifyPayment = async (reference: string) => {
+    console.log("Verifying payment with reference:", reference); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -104,10 +116,10 @@ export const verifyPayment = async (reference: string) => {
                 },
             }
         );
-        console.log("Payment verification response:", response.data); 
+        console.log("Payment verification response:", response.data); // Logging output
         return response.data.data; 
     } catch (error: any) {
-        console.error("Error verifying payment:", error); 
+        console.error("Error verifying payment:", error); // Logging error
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
@@ -120,6 +132,7 @@ export const verifyPayment = async (reference: string) => {
 
 // Function to create a Paystack subscription
 export const createPaystackSubscription = async (email: string, planId: string) => {
+    console.log("Creating subscription for email:", email, "with plan ID:", planId); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -143,9 +156,10 @@ export const createPaystackSubscription = async (email: string, planId: string) 
             }
         );
 
+        console.log("Subscription created successfully:", response?.data?.message); // Logging output
         return response?.data?.message;
     } catch (error: any) {
-        console.log(error.response);
+        console.error("Error creating subscription:", error); // Logging error
         if (error.response) {
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
@@ -160,7 +174,7 @@ export const createPaystackSubscription = async (email: string, planId: string) 
 export const getPlanIdForMembershipType = (membershipType: MembershipType): string | undefined => {
     const planId = plans[membershipType];
     if (!planId) {
-        console.error(`No Plan ID found for membership type: ${membershipType}`);
+        console.error(`No Plan ID found for membership type: ${membershipType}`); // Logging error
     }
     return planId;
 };

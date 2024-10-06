@@ -17,8 +17,8 @@ import { updateUserProfile } from "../services/userService";
 // Membership amounts for each type
 const membershipAmounts: Record<string, number> = {
 	Explorer: 50000,
-	Pioneer: 10000,
-	Voyager: 250000,
+	Pioneer: 250000,
+	Voyager: 10000,
 };
 
 // Activate membership based on payment method (BankTransfer/Paystack)
