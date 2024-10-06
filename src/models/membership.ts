@@ -25,7 +25,7 @@ const MembershipSchema = new Schema<MembershipDocument>(
     },
     status: {
       type: String,
-      enum: ["Active", "Pending"],
+      enum: ["in-progress", "Active"],
       default: "Pending",
     },
     paymentMethod: {
