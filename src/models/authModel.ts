@@ -14,7 +14,7 @@ export interface UserDocument extends Document {
 	};
 	username: String;
 	phoneNumber: String;
-	membershipType: string;
+	membershipType: 'Explorer' | 'Poineer' | 'Voyager';
 	membershipStatus: 'active' | 'pending' | 'inactive';
     membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
 }
@@ -41,10 +41,10 @@ const UserSchema = new Schema({
 		enum: ["admin", "user"],
 		default: "user",
 	},
-
+	
 	membershipType: {
 		type: String,
-		enum: ["Explorer", "Voyager", "Pioneer"],
+		enum: ["Explorer", "Pioneer", "Voyager"],
 		required: [true, "Membership type is required"],
 	},
 
@@ -73,7 +73,6 @@ const UserSchema = new Schema({
         default: 'not_started',
     },
 });
-
 
 
 UserSchema.pre("save", async function (next) {
