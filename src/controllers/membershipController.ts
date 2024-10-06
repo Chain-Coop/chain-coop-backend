@@ -82,8 +82,14 @@ export const activateMembership = async (req: Request, res: Response) => {
 			throw new BadRequestError("Invalid subscription tier.");
 		}
 
+				// ** Update user profile after creating membership **
+				await updateUserProfile(userId, {
+					membershipStatus: "pending",
+					membershipPaymentStatus: "in-progress",
+				});
+
 		// Create payment link for Paystack subscription
-		const paymentLink = await createPaymentLink(email, amount, userId, membershipType);
+		const paymentLink = await createPaymentLink(email, amount, userId, membershipType, planId);
 		return res.status(StatusCodes.OK).json({ paymentLink });
 	} 
 	// Invalid payment method error
@@ -104,7 +110,9 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 			const userId = paymentDetails.metadata.userId;
 			const membershipType = paymentDetails.metadata.membershipType;
 			const email = paymentDetails.customer.email;
-			const planId = paymentDetails.plan;
+			const planId = paymentDetails.metadata.planId;
+
+			
 
 			// Check if the user already has an active membership
 			const existingMembership = await findMembershipService(userId);
@@ -114,6 +122,13 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 					message: "Membership is already active.",
 				});
 			}
+
+
+		// ** Update user profile after creating membership **
+		await updateUserProfile(userId, {
+			membershipStatus: "pending",
+			membershipPaymentStatus: "in-progress",
+		});
 
 			// Create the Paystack subscription if the payment method was PaystackSubscription
 			let subscriptionResponse = null;
@@ -140,11 +155,10 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 					: "Subscription successfully created",
 			});
 
-			// ** Update user profile after successful membership creation **
+			// ** Update user profile after creating membership **
 			await updateUserProfile(userId, {
 				membershipStatus: "pending",
 				membershipPaymentStatus: "in-progress",
-
 			});
 
 			// Return the created membership and subscription details
