@@ -136,12 +136,14 @@ const login = async (req: Request, res: Response) => {
    //     });
   //  }
 
-    const token = await user.createJWT();
+    const token =  user.createJWT();
 
     res.status(StatusCodes.OK).json({
         _id: user._id,
         email: user.email,
+		
         token,
+		role: user.role,
 		//@ts-ignore
         membershipStatus: user.membershipStatus,
 		//@ts-ignore
