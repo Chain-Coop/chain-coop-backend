@@ -58,7 +58,7 @@ export const activateMembership = async (req: Request, res: Response) => {
 			membershipType,
 			paymentMethod,
 			amount,
-			status: "Active",
+			status: "Pending",
 			bankReceiptUrl,
 			subscriptionUrl: null,
 		});
@@ -81,12 +81,6 @@ export const activateMembership = async (req: Request, res: Response) => {
 		if (!planId) {
 			throw new BadRequestError("Invalid subscription tier.");
 		}
-
-				// ** Update user profile after creating membership **
-				await updateUserProfile(userId, {
-					membershipStatus: "pending",
-					membershipPaymentStatus: "in-progress",
-				});
 
 		// Create payment link for Paystack subscription
 		const paymentLink = await createPaymentLink(email, amount, userId, membershipType, planId);
@@ -112,8 +106,6 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 			const email = paymentDetails.customer.email;
 			const planId = paymentDetails.metadata.planId;
 
-			
-
 			// Check if the user already has an active membership
 			const existingMembership = await findMembershipService(userId);
 			if (existingMembership && existingMembership.status === "Active") {
@@ -122,13 +114,6 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 					message: "Membership is already active.",
 				});
 			}
-
-
-		// ** Update user profile after creating membership **
-		await updateUserProfile(userId, {
-			membershipStatus: "pending",
-			membershipPaymentStatus: "in-progress",
-		});
 
 			// Create the Paystack subscription if the payment method was PaystackSubscription
 			let subscriptionResponse = null;
@@ -150,16 +135,19 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
 				amount: membershipAmounts[membershipType],
 				status: "Active",
 				bankReceiptUrl: null,
+				membershipPaymentStatus: "in-progress",
 				subscriptionUrl: subscriptionResponse
 					? subscriptionResponse
 					: "Subscription successfully created",
 			});
 
-			// ** Update user profile after creating membership **
+			// ** Update user profile after successful membership creation **
+			console.log("Updating user profile to in-progress after payment verification");
 			await updateUserProfile(userId, {
 				membershipStatus: "pending",
 				membershipPaymentStatus: "in-progress",
 			});
+			console.log("User profile updated");
 
 			// Return the created membership and subscription details
 			return res.status(StatusCodes.OK).json({
