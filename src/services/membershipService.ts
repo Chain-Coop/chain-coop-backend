@@ -31,7 +31,7 @@ export const updateMembershipStatusService = async (
 	}
 
 	// Update the membership status to "Active"
-	membership.status = "In-progress";
+	membership.status = "in-progress";
 	membership.membershipType = membershipType;
 	await membership.save(); // Save the updated membership
 };

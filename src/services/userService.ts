@@ -1,4 +1,4 @@
-import User, { UserDocument } from '../models/authModel'; // Import the correct UserDocument type
+import User, { UserDocument } from '../models/authModel'; 
 import { NotFoundError } from '../errors';
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfileUpdates>) => {
@@ -13,12 +13,15 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     // Update the user fields, ensuring the updates conform to the allowed enums
     if (updates.membershipStatus && ['active', 'pending', 'inactive'].includes(updates.membershipStatus)) {
         user.membershipStatus = updates.membershipStatus as 'active' | 'pending' | 'inactive';
+        console.log("Updates received:", updates);
     }
-    if (updates.membershipPaymentStatus && ['paid', 'in-Progress', 'not_started'].includes(updates.membershipPaymentStatus)) {
+    if (updates.membershipPaymentStatus && ['paid', 'in-progress', 'not_started'].includes(updates.membershipPaymentStatus)) {
         user.membershipPaymentStatus = updates.membershipPaymentStatus as 'paid' | 'in-progress' | 'not_started';
+        console.log("Updates received:", updates);
     }
     if (updates.membershipType && ['Explorer', 'Pioneer', 'Voyager']) {
         user.membershipType = updates.membershipType as 'Explorer', 'Pioneer', 'Voyager';
+        console.log("Updates received:", updates);
     }
 
     // Save the updated user profile
@@ -28,11 +31,10 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     return user;
 };
 
-// Define the interface for the updates object (optional but recommended)
 interface UserProfileUpdates {
-    membershipStatus?: 'active' | 'pending' | 'inactive'; // Use the same types as UserDocument
-    membershipPaymentStatus?: 'paid' | 'in-progress' | 'not_started'; // Use the same types as UserDocument
-    membershipType?: string; // Assuming membershipType is just a string and not restricted to an enum
+    membershipStatus?: 'active' | 'pending' | 'inactive'; 
+    membershipPaymentStatus?: 'paid' | 'in-progress' | 'not_started'; 
+    membershipType?: string; 
 }
 
 

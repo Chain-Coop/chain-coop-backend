@@ -9,6 +9,7 @@ export interface MembershipDocument extends Document {
   activationDate: Date;
   bankReceiptUrl?: string;
   subscriptionUrl?: string;
+  membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
 }
 
 const MembershipSchema = new Schema<MembershipDocument>(
@@ -23,9 +24,14 @@ const MembershipSchema = new Schema<MembershipDocument>(
       enum: ["Explorer", "Pioneer", "Voyager"],
       required: true,
     },
+    membershipPaymentStatus: {
+      type: String,
+      enum: ['paid', 'in-progress', 'not_started'],
+      default: 'not_started',
+  },
     status: {
       type: String,
-      enum: ["in-progress", "Active"],
+      enum: ["in-progress", "Active", "Pending"],
       default: "Pending",
     },
     paymentMethod: {
