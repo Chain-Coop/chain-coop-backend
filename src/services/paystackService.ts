@@ -123,14 +123,18 @@ export const verifyPayment = async (reference: string) => {
     } catch (error: any) {
         console.error("Error verifying payment:", error); // Logging error
         if (error.response) {
+            console.error(`Paystack verification error response: ${JSON.stringify(error.response.data)}`); // Log full error response
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
+            console.error("No response received from Paystack. Request details:", error.request); // Log request details
             throw new InternalServerError("No response received from Paystack.");
         } else {
+            console.error(`Unexpected error: ${error.message}`); // Log unexpected errors
             throw new InternalServerError(`Error verifying payment: ${error.message}`);
         }
     }
 };
+
 
 // Function to create a Paystack subscription
 export const createPaystackSubscription = async (email: string, planId: string) => {
