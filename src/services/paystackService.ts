@@ -76,7 +76,6 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
                     membershipType, 
                     planId // Ensure this is also included
                 },
-				plan: planId // Add the plan ID here
             },
             {
                 headers: {
@@ -149,7 +148,6 @@ export const createPaystackSubscription = async (email: string, planId: string) 
                 customer: email, 
                 plan: planId,
             },
-			
             {
                 headers: {
                     Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
@@ -158,8 +156,8 @@ export const createPaystackSubscription = async (email: string, planId: string) 
             }
         );
 
-        console.log("Subscription created successfully:", response.data.message); // Logging output
-        return response.data.message;
+        console.log("Subscription created successfully:", response?.data?.message); // Logging output
+        return response?.data?.message;
     } catch (error: any) {
         console.error("Error creating subscription:", error); // Logging error
         if (error.response) {
