@@ -177,6 +177,7 @@ export const getPlanIdForMembershipType = (membershipType: MembershipType): stri
     const planId = plans[membershipType];
     if (!planId) {
         console.error(`No Plan ID found for membership type: ${membershipType}`); // Logging error
+        throw new BadRequestError(`No Plan ID configured for ${membershipType}`);
     }
     return planId;
 };
