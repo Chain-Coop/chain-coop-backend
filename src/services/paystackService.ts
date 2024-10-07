@@ -52,7 +52,7 @@ export const createCustomer = async (email: string) => {
 
 // Function to create a payment link
 export const createPaymentLink = async (email: string, amount: number, userId: string, membershipType: string, planId: string) => {
-    console.log("Creating payment link for:", { email, amount, userId, membershipType, planId }); 
+    console.log("Creating payment link for:", { email, amount, userId, membershipType, planId }); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -68,15 +68,15 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                //planId, 
+                planId, // Ensure this is being passed correctly
                 currency: "NGN",
                 callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
                     userId,
                     membershipType, 
-                    planId 
+                    planId // Ensure this is also included
                 },
-				plan: planId 
+				plan: planId // Add the plan ID here
             },
             {
                 headers: {
