@@ -16,8 +16,8 @@ import { updateUserProfile } from "../services/userService";
 
 // Membership amounts for each type
 const membershipAmounts: Record<string, number> = {
-    Explorer: 50000,
-    Pioneer: 250000,
+    Explorer: 5000,
+    Pioneer: 25000,
     Voyager: 10000,
 };
 
