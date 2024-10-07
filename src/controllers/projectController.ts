@@ -12,6 +12,7 @@ import {
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors"; 
+import { logUserOperation } from "../middlewares/logging";
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
@@ -31,6 +32,7 @@ export const createProject = async (req: Request, res: Response) => {
             file
         );
 
+        await logUserOperation(userId, req, "CREATE_PROJECT", "Success");
         return res.status(StatusCodes.CREATED).json({
             statusCode: StatusCodes.CREATED,
             message: "Project created successfully",
@@ -38,6 +40,7 @@ export const createProject = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error(error);
+        await logUserOperation(userId, req, "CREATE_PROJECT", "Failure");
         res.status(
             error instanceof BadRequestError
                 ? StatusCodes.BAD_REQUEST
@@ -127,9 +130,10 @@ export const fundProject = async (req: Request, res: Response) => {
     const { amount } = req.body;
     // @ts-ignore 
     const userId = req.user.userId;
-
     try {
         const project = await fundProjectService(userId, id, amount);
+
+        await logUserOperation(userId, req, "FUND_PROJECT", "Success");
         
         return res.status(StatusCodes.OK).json({
             statusCode: StatusCodes.OK,
@@ -139,6 +143,7 @@ export const fundProject = async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
     
+        await logUserOperation(userId, req, "FUND_PROJECT", "Failure");
         // @ts-ignore
         return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
             // @ts-ignore

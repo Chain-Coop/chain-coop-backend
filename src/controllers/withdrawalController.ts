@@ -13,6 +13,7 @@ import {
 	findWalletService,
 	validateWalletPin,
 } from "../services/walletService";
+import { logUserOperation } from "../middlewares/logging";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ADMIN_EMAIL = process.env.EMAIL_ADDRESS;
@@ -23,9 +24,10 @@ if (!PAYSTACK_SECRET_KEY || !ADMIN_EMAIL) {
 }
 
 export const requestWithdrawal = async (req: Request, res: Response) => {
+	let userId = null;
 	try {
 		//@ts-ignore
-		const userId = req.user.userId;
+		userId = req.user.userId;
 		const { amount, accountNumber, bankCode, pin } = req.body;
 
 		if (!amount || !accountNumber || !bankCode || !pin) {
@@ -92,11 +94,13 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 		// Send email notification to admin
 		await sendEmail(emailOptions);
 
+		await logUserOperation(userId, req, "WITHDRAWAL_REQUEST", "Success");
 		res.status(StatusCodes.CREATED).json({
 			message: "Withdrawal request created successfully",
 			withdrawal,
 		});
 	} catch (error) {
+		await logUserOperation(userId, req, "WITHDRAWAL_REQUEST", "Failure");
 		if (error instanceof Error) {
 			res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
 		} else {
