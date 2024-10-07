@@ -52,7 +52,7 @@ export const createCustomer = async (email: string) => {
 
 // Function to create a payment link
 export const createPaymentLink = async (email: string, amount: number, userId: string, membershipType: string, planId: string) => {
-    console.log("Creating payment link for:", { email, amount, userId, membershipType, planId }); // Logging input
+    console.log("Creating payment link for:", { email, amount, userId, membershipType, planId }); 
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -68,14 +68,15 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                planId, // Ensure this is being passed correctly
+                //planId, 
                 currency: "NGN",
                 callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
                     userId,
                     membershipType, 
-                    planId // Ensure this is also included
+                    //planId 
                 },
+				plan: planId 
             },
             {
                 headers: {
@@ -148,6 +149,7 @@ export const createPaystackSubscription = async (email: string, planId: string) 
                 customer: email, 
                 plan: planId,
             },
+			
             {
                 headers: {
                     Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
@@ -156,8 +158,8 @@ export const createPaystackSubscription = async (email: string, planId: string) 
             }
         );
 
-        console.log("Subscription created successfully:", response?.data?.message); // Logging output
-        return response?.data?.message;
+        console.log("Subscription created successfully:", response.data.message); // Logging output
+        return response.data.message;
     } catch (error: any) {
         console.error("Error creating subscription:", error); // Logging error
         if (error.response) {
@@ -178,3 +180,5 @@ export const getPlanIdForMembershipType = (membershipType: MembershipType): stri
     }
     return planId;
 };
+
+
