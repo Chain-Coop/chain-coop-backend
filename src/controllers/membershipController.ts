@@ -95,94 +95,95 @@ export const activateMembership = async (req: Request, res: Response) => {
 // Verify Paystack payment and activate the membership
 export const verifyPaymentCallback = async (req: Request, res: Response) => {
     const { reference } = req.query;
-    if (!reference) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            statusCode: StatusCodes.BAD_REQUEST,
-            message: "Reference is missing from the request."
-        });
-    }
 
     try {
-        // Verify the payment using the reference
+        // Verify the payment using the reference provided
         const paymentDetails = await verifyPayment(reference as string);
 
-        // Log full payment details
-        console.log("Full payment details:", JSON.stringify(paymentDetails, null, 2));
+        if (paymentDetails.status === "success") {
+            const userId = paymentDetails.metadata.userId;
+            const membershipType = paymentDetails.metadata.membershipType;
+            const email = paymentDetails.customer.email;
+            const planId = paymentDetails.metadata.planId;
 
-        // Check if the payment was successful
-        if (paymentDetails.status !== "success") {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                statusCode: StatusCodes.BAD_REQUEST,
-                message: "Payment verification failed."
-            });
-        }
-
-        // Validate metadata fields
-        const { metadata } = paymentDetails;
-        if (!metadata || !metadata.userId || !metadata.membershipType) {
-            console.error("Missing metadata from payment verification.");
-            throw new InternalServerError("Missing metadata from payment verification.");
-        }
-
-        const userId = metadata.userId;
-        const membershipType = metadata.membershipType;
-        const email = paymentDetails.customer.email;
-        const planId = metadata.planId;
-
-        // Check if the user already has an active membership
-        const existingMembership = await findMembershipService(userId);
-        if (existingMembership && existingMembership.status === "Active") {
-            return res.status(StatusCodes.CONFLICT).json({
-                statusCode: StatusCodes.CONFLICT,
-                message: "Membership is already active.",
-            });
-        }
-
-        // Create the Paystack subscription if applicable
-        let subscriptionResponse = null;
-        if (planId) {
-            subscriptionResponse = await createPaystackSubscription(email, planId);
-            if (!subscriptionResponse) {
-                return res.status(StatusCodes.BAD_REQUEST).json({
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    message: "Failed to create subscription.",
+            // Check if the user already has an active membership
+            const existingMembership = await findMembershipService(userId);
+            if (existingMembership && existingMembership.status === "Active") {
+                return res.status(StatusCodes.CONFLICT).json({
+                    statusCode: StatusCodes.CONFLICT,
+                    message: "Membership is already active.",
                 });
             }
+
+            // Create the Paystack subscription if the payment method was PaystackSubscription
+            let subscriptionResponse = null;
+            if (planId) {
+                subscriptionResponse = await createPaystackSubscription(email, planId);
+                if (!subscriptionResponse) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        message: "Failed to create subscription.",
+                    });
+                }
+            }
+
+            // Create the membership record after successful payment verification
+            const membership = await createMembershipService({
+                user: userId,
+                membershipType,
+                paymentMethod: "PaystackSubscription",
+                amount: membershipAmounts[membershipType],
+                status: "Active",
+                bankReceiptUrl: null,
+                membershipPaymentStatus: "in-progress",
+                subscriptionUrl: subscriptionResponse
+                    ? subscriptionResponse
+                    : "Subscription successfully created",
+            });
+
+            // ** Update user profile after successful membership creation **
+            console.log("Updating user profile to in-progress after payment verification");
+            await updateUserProfile(userId, {
+                membershipStatus: "pending",
+                membershipPaymentStatus: "in-progress",
+            });
+            console.log("User profile updated");
+
+            // Return the created membership and subscription details
+            return res.status(StatusCodes.OK).json({
+                statusCode: StatusCodes.OK,
+                message: "Membership activated successfully",
+                membership: {
+                    user: membership.user,
+                    membershipType: membership.membershipType,
+                    status: membership.status,
+                    paymentMethod: membership.paymentMethod,
+                    amount: membership.amount,
+                    bankReceiptUrl: membership.bankReceiptUrl,
+                    subscriptionUrl: membership.subscriptionUrl,
+                    _id: membership._id,
+                    activationDate: membership.activationDate,
+                    //@ts-ignore
+                    createdAt: membership.createdAt,
+                    //@ts-ignore
+                    updatedAt: membership.updatedAt,
+                    __v: membership.__v,
+                },
+            });
+        } else {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                statusCode: StatusCodes.BAD_REQUEST,
+                message: "Payment verification failed.",
+            });
         }
-
-        // Create the membership record after successful payment
-        const membership = await createMembershipService({
-            user: userId,
-            membershipType,
-            paymentMethod: "PaystackSubscription",
-            amount: membershipAmounts[membershipType],
-            status: "Active",
-            bankReceiptUrl: null,
-            membershipPaymentStatus: "in-progress",
-            subscriptionUrl: subscriptionResponse ? subscriptionResponse : "Subscription created",
-        });
-
-        // Update user profile
-        await updateUserProfile(userId, {
-            membershipStatus: "pending",
-            membershipPaymentStatus: "in-progress",
-        });
-
-        // Return the created membership
-        return res.status(StatusCodes.OK).json({
-            statusCode: StatusCodes.OK,
-            message: "Membership activated successfully",
-            membership,
-        });
     } catch (error) {
-        console.error("Error during payment verification:", error);
+        console.error(error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
             message: "An error occurred during payment verification.",
         });
     }
 };
-
 
 // Retrieve membership details for the logged-in user
 export const getMembershipDetails = async (req: Request, res: Response) => {
