@@ -17,7 +17,6 @@ import {
   updateWalletService,
 } from "../../services/walletService";
 import { StatusCodes } from "http-status-codes";
-import { BadRequestError } from "../../errors";
 
 // Mock the services
 jest.mock("../../services/contributionService");
@@ -35,7 +34,7 @@ const mockUserId = "mockUserId";
 
 // Middleware to mock user ID
 app.use((req: Request & { user?: { userId: string } }, res: Response, next) => {
-  req.user = { userId: mockUserId };
+  req.user = { userId: mockUserId }; // Assign mock userId
   next();
 });
 

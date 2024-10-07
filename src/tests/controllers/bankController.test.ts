@@ -13,11 +13,12 @@ app.use(express.json());
 app.get("/banks", getAllBanks);
 app.post("/verify-account", verifyBankAccount);
 
-// Mock Paystack secret key
-process.env.PAYSTACK_KEY = "test_paystack_key";
-
 // Tests for getAllBanks
 describe("Paystack Controller - getAllBanks", () => {
+  beforeAll(() => {
+    process.env.PAYSTACK_SECRET_KEY = "test_paystack_key"; // Set environment variable
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -61,6 +62,10 @@ describe("Paystack Controller - getAllBanks", () => {
 
 // Tests for verifyBankAccount
 describe("Paystack Controller - verifyBankAccount", () => {
+  beforeAll(() => {
+    process.env.PAYSTACK_SECRET_KEY = "test_paystack_key"; // Set environment variable
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
