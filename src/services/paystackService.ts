@@ -132,8 +132,8 @@ export const verifyPayment = async (reference: string) => {
 };
 
 // Function to create a Paystack subscription
-export const createPaystackSubscription = async (email: string, planId: string) => {
-    console.log("Creating subscription for email:", email, "with plan ID:", planId); // Logging input
+export const createPaystackSubscription = async (customerId: string, planId: string) => {
+    console.log("Creating subscription for email:", customerId, "with plan ID:", planId); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -146,7 +146,7 @@ export const createPaystackSubscription = async (email: string, planId: string) 
         const response: any = await axios.post(
             PAYSTACK_SUBSCRIPTION_URL,
             {
-                customer: email, 
+                customer: customerId, 
                 plan: planId,
             },
 			
