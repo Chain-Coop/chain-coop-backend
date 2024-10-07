@@ -68,7 +68,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                //planId, 
+                planId, 
                 currency: "NGN",
                 callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
@@ -132,8 +132,8 @@ export const verifyPayment = async (reference: string) => {
 };
 
 // Function to create a Paystack subscription
-export const createPaystackSubscription = async (customerId: string, planId: string) => {
-    console.log("Creating subscription for email:", customerId, "with plan ID:", planId); // Logging input
+export const createPaystackSubscription = async (email: string, planId: string) => {
+    console.log("Creating subscription for email:", email, "with plan ID:", planId); // Logging input
     if (!PAYSTACK_SECRET_KEY) {
         throw new InternalServerError("Paystack secret key is not defined.");
     }
@@ -146,7 +146,7 @@ export const createPaystackSubscription = async (customerId: string, planId: str
         const response: any = await axios.post(
             PAYSTACK_SUBSCRIPTION_URL,
             {
-                customer: customerId, 
+                customer: email, 
                 plan: planId,
             },
 			
