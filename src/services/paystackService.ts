@@ -68,13 +68,13 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
             {
                 email,
                 amount,
-                planId, 
+                //planId, 
                 currency: "NGN",
                 callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
                 metadata: {
                     userId,
                     membershipType, 
-                    //planId 
+                    planId 
                 },
 				plan: planId 
             },
