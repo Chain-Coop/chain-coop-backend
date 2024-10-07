@@ -13,6 +13,8 @@ import {
     verifyPayment,
 } from "../services/paystackService";
 import { updateUserProfile } from "../services/userService";
+import { log } from "console";
+import { logUserOperation } from "../middlewares/logging";
 
 // Membership amounts for each type
 const membershipAmounts: Record<string, number> = {
@@ -96,12 +98,14 @@ export const activateMembership = async (req: Request, res: Response) => {
 export const verifyPaymentCallback = async (req: Request, res: Response) => {
     const { reference } = req.query;
 
+    let userId = null;
+
     try {
         // Verify the payment using the reference provided
         const paymentDetails = await verifyPayment(reference as string);
 
         if (paymentDetails.status === "success") {
-            const userId = paymentDetails.metadata.userId;
+            userId = paymentDetails.metadata.userId;
             const membershipType = paymentDetails.metadata.membershipType;
             const email = paymentDetails.customer.email;
             const planId = paymentDetails.metadata.planId;
@@ -149,6 +153,8 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
             });
             console.log("User profile updated");
 
+            await logUserOperation(userId, req, 'ACTIVATE_MEMBERSHIP', 'Success');
+
             // Return the created membership and subscription details
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -177,6 +183,8 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
             });
         }
     } catch (error) {
+      await logUserOperation(userId, req, 'ACTIVATE_MEMBERSHIP', 'Failure');
+
         console.error(error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
