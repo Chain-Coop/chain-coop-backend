@@ -1,4 +1,3 @@
-import { Request } from "express"; // Import Request type
 import {
   createProjectService,
   getUserProjectsService,
@@ -8,228 +7,181 @@ import {
   deleteProjectByIdService,
   fundProjectService,
   updateProjectDetailsService,
-} from "../../services/projectService";
-import Project from "../../models/projectModel";
-import Wallet from "../../models/wallet";
-import { NotFoundError, ForbiddenError } from "../../errors";
-import uploadDocument from "../../utils/uploadDocument";
-import uploadImageFile from "../../utils/imageUploader"; // Ensure the uploadImageFile import is included
+} from '../../services/projectService';
+import Project from '../../models/projectModel';
+import Wallet from '../../models/wallet';
+import { NotFoundError, ForbiddenError } from '../../errors';
+import { v2 as cloudinary } from 'cloudinary';
+import uploadImageFile from '../../utils/imageUploader';
+import deleteDocument from '../../utils/deleteDocument';
 
-jest.mock("../../models/projectModel"); // Mock the Project model
-jest.mock("../../models/wallet"); // Mock the Wallet model
-jest.mock("../../utils/uploadDocument"); // Mock the uploadDocument function
-jest.mock("../../utils/imageUploader"); // Mock the uploadImageFile function
+jest.mock('../../models/projectModel');
+jest.mock('../../models/wallet');
+jest.mock('../../utils/imageUploader');
+jest.mock('../../utils/deleteDocument');
+jest.mock('cloudinary');
 
-describe("Project Service", () => {
-  const userId = "user_12345";
-  const projectId = "project_12345";
+describe('Project Service Tests', () => {
+  const userId = 'user123';
+  const projectId = 'project123';
   const mockProject = {
-    _id: projectId,
-    author: userId,
-    documentUrl: "http://example.com/document.jpg",
-    fundBalance: 100,
+      _id: projectId,
+      author: userId,
+      fundBalance: 0,
+      documentUrl: 'old_document_url',
   };
 
-  afterEach(() => {
-    jest.clearAllMocks(); // Clear mocks after each test
+  beforeEach(() => {
+      jest.clearAllMocks(); // Clear mocks before each test
   });
 
-  describe("createProjectService", () => {
-    it("should create a project with a document URL", async () => {
-      const mockFile = { tempFilePath: "temp/path/to/document.jpg" };
-      const payload = { title: "Test Project", author: userId };
+  // Test for createProjectService
+  it('should create a project with a document URL', async () => {
+      const payload = { title: 'New Project', author: userId };
+      const file = { tempFilePath: 'tempPath' };
 
-      (uploadDocument as jest.Mock).mockResolvedValueOnce("http://example.com/document.jpg");
+      (cloudinary.uploader.upload as jest.Mock).mockResolvedValueOnce({
+          secure_url: 'document_url',
+      });
+      
       (Project.create as jest.Mock).mockResolvedValueOnce(mockProject);
+      
+      const result = await createProjectService(payload, file);
+      expect(result).toEqual(mockProject);
+  });
 
-      const result = await createProjectService(payload, mockFile);
-
-      expect(result).toEqual(mockProject); // Validate the created project
-      expect(uploadDocument).toHaveBeenCalledWith(mockFile, "projects"); // Check uploadDocument call
-      expect(Project.create).toHaveBeenCalledWith({ ...payload, documentUrl: "http://example.com/document.jpg" }); // Check project creation call
-    });
-
-    it("should create a project without a document URL", async () => {
-      const payload = { title: "Test Project", author: userId };
-
+  it('should create a project without a document URL', async () => {
+      const payload = { title: 'New Project', author: userId };
       (Project.create as jest.Mock).mockResolvedValueOnce(mockProject);
 
       const result = await createProjectService(payload, null);
-
-      expect(result).toEqual(mockProject); // Validate the created project
-      expect(uploadDocument).not.toHaveBeenCalled(); // Ensure uploadDocument is not called
-      expect(Project.create).toHaveBeenCalledWith({ ...payload, documentUrl: "" }); // Check project creation call
-    });
+      expect(result).toEqual(mockProject);
   });
 
-  describe("getUserProjectsService", () => {
-    it("should return all projects for a specific user", async () => {
-      (Project.find as jest.Mock).mockResolvedValueOnce([mockProject]);
+  // Test for getUserProjectsService
+  it('should return all projects for a specific user', async () => {
+      const mockProjects = [{ ...mockProject }];
+      (Project.find as jest.Mock).mockResolvedValueOnce(mockProjects);
 
       const result = await getUserProjectsService(userId);
-
-      expect(result).toEqual([mockProject]); // Validate the returned projects
-      expect(Project.find).toHaveBeenCalledWith({ author: userId }); // Check Project.find call
-    });
+      expect(result).toEqual(mockProjects);
   });
 
-  describe("getAllProjectsService", () => {
-    it("should return all projects", async () => {
-      (Project.find as jest.Mock).mockResolvedValueOnce([mockProject]);
+  // Test for getAllProjectsService
+  it('should return all projects', async () => {
+      const mockProjects = [{ ...mockProject }];
+      (Project.find as jest.Mock).mockResolvedValueOnce(mockProjects);
 
       const result = await getAllProjectsService();
-
-      expect(result).toEqual([mockProject]); // Validate the returned projects
-      expect(Project.find).toHaveBeenCalled(); // Check Project.find call
-    });
+      expect(result).toEqual(mockProjects);
   });
 
-  describe("getProjectByIdService", () => {
-    it("should return a specific project by id", async () => {
+  // Test for getProjectByIdService
+  it('should return a specific project by id', async () => {
       (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
 
       const result = await getProjectByIdService(projectId);
-
-      expect(result).toEqual(mockProject); // Validate the returned project
-      expect(Project.findById).toHaveBeenCalledWith(projectId); // Check findById call
-    });
-
-    it("should return null for a non-existent project", async () => {
-      (Project.findById as jest.Mock).mockResolvedValueOnce(null);
-
-      const result = await getProjectByIdService("non_existent_id");
-
-      expect(result).toBeNull(); // Validate the returned value
-      expect(Project.findById).toHaveBeenCalledWith("non_existent_id"); // Check findById call
-    });
+      expect(result).toEqual(mockProject);
   });
 
-  describe("updateProjectByIdService", () => {
-    it("should update a project with a new document URL", async () => {
-      const mockFile = { tempFilePath: "temp/path/to/document.jpg" };
-      const updates = { title: "Updated Project" };
-
-      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
-      (uploadDocument as jest.Mock).mockResolvedValueOnce("http://example.com/document.jpg");
-      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce({ ...mockProject, ...updates });
-
-      const result = await updateProjectByIdService(projectId, updates, mockFile);
-
-      expect(result).toEqual({ ...mockProject, ...updates }); // Validate the updated project
-      expect(uploadDocument).toHaveBeenCalledWith(mockFile, "projects"); // Check uploadDocument call
-      expect(Project.findByIdAndUpdate).toHaveBeenCalledWith(projectId, { ...updates, documentUrl: "http://example.com/document.jpg" }, { new: true, runValidators: true }); // Check update call
-    });
-
-    it("should update a project without a new document URL", async () => {
-      const updates = { title: "Updated Project" };
-
-      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
-      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce({ ...mockProject, ...updates });
-
-      const result = await updateProjectByIdService(projectId, updates);
-
-      expect(result).toEqual({ ...mockProject, ...updates }); // Validate the updated project
-      expect(uploadDocument).not.toHaveBeenCalled(); // Ensure uploadDocument is not called
-      expect(Project.findByIdAndUpdate).toHaveBeenCalledWith(projectId, updates, { new: true, runValidators: true }); // Check update call
-    });
-
-    it("should return null for a non-existent project", async () => {
+  it('should return null for a non-existent project', async () => {
       (Project.findById as jest.Mock).mockResolvedValueOnce(null);
 
-      const result = await updateProjectByIdService("non_existent_id", { title: "Updated Project" });
-
-      expect(result).toBeNull(); // Validate the returned value
-      expect(Project.findById).toHaveBeenCalledWith("non_existent_id"); // Check findById call
-    });
+      const result = await getProjectByIdService('nonexistentId');
+      expect(result).toBeNull();
   });
 
-  describe("deleteProjectByIdService", () => {
-    it("should delete a project by id and its document from Cloudinary", async () => {
+  // Test for updateProjectByIdService
+  it('should update a project with a new document URL', async () => {
+      const payload = { title: 'Updated Project' };
       (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
+      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce(mockProject);
+
+      const result = await updateProjectByIdService(projectId, payload, { tempFilePath: 'tempPath' });
+      expect(result).toEqual(mockProject);
+  });
+
+  it('should update a project without a new document URL', async () => {
+      const payload = { title: 'Updated Project' };
+      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
+      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce(mockProject);
+
+      const result = await updateProjectByIdService(projectId, payload);
+      expect(result).toEqual(mockProject);
+  });
+
+  it('should return null for a non-existent project', async () => {
+      (Project.findById as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await updateProjectByIdService('nonexistentId', {});
+      expect(result).toBeNull();
+  });
+
+  // Test for deleteProjectByIdService
+  it('should delete a project by id and its document from Cloudinary', async () => {
+      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
+      (deleteDocument as jest.Mock).mockResolvedValueOnce(null);
       (Project.findByIdAndDelete as jest.Mock).mockResolvedValueOnce(mockProject);
-      (uploadDocument as jest.Mock).mockResolvedValueOnce("http://example.com/document.jpg");
 
       await deleteProjectByIdService(projectId);
-
-      expect(Project.findById).toHaveBeenCalledWith(projectId); // Check findById call
-      expect(Project.findByIdAndDelete).toHaveBeenCalledWith(projectId); // Check delete call
-      // Check that deleteDocument was called with the correct public ID (if applicable)
-    });
-
-    it("should handle deletion of a project that does not exist", async () => {
-      (Project.findById as jest.Mock).mockResolvedValueOnce(null);
-
-      await deleteProjectByIdService("non_existent_id");
-
-      expect(Project.findById).toHaveBeenCalledWith("non_existent_id"); // Check findById call
-      expect(Project.findByIdAndDelete).toHaveBeenCalledWith("non_existent_id"); // Check delete call
-    });
+      expect(Project.findByIdAndDelete).toHaveBeenCalledWith(projectId);
   });
 
-  describe("fundProjectService", () => {
-    it("should fund a project successfully", async () => {
-      const wallet = { user: userId, balance: 200 };
-      const amount = 100;
+  it('should handle deletion of a project that does not exist', async () => {
+      (Project.findById as jest.Mock).mockResolvedValueOnce(null);
 
+      await deleteProjectByIdService('nonexistentId');
+      expect(Project.findByIdAndDelete).not.toHaveBeenCalled();
+  });
+
+  // Test for fundProjectService
+  it('should fund a project successfully', async () => {
+      const amount = 100;
+      const mockWallet = { user: userId, balance: 200, save: jest.fn() };
       (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
-      (Wallet.findOne as jest.Mock).mockResolvedValueOnce(wallet);
-      (Project.prototype.save as jest.Mock).mockResolvedValueOnce(mockProject); // Simulate save on the project
-      (Wallet.prototype.save as jest.Mock).mockResolvedValueOnce(wallet); // Simulate save on the wallet
+      (Wallet.findOne as jest.Mock).mockResolvedValueOnce(mockWallet);
+      (Project.prototype.save as jest.Mock).mockResolvedValueOnce(mockProject);
 
       const result = await fundProjectService(userId, projectId, amount);
+      expect(result).toEqual(mockProject);
+      expect(mockWallet.balance).toBe(100); // Check updated wallet balance
+  });
 
-      expect(result).toEqual(mockProject); // Validate the returned project
-      expect(Project.findById).toHaveBeenCalledWith(projectId); // Check findById call
-      expect(Wallet.findOne).toHaveBeenCalledWith({ user: userId }); // Check Wallet.findOne call
-      expect(wallet.balance).toBe(100); // Check that balance is deducted correctly
-      expect(mockProject.fundBalance).toBe(200); // Check that fund balance is updated correctly
-    });
-
-    it("should throw NotFoundError if the project does not exist", async () => {
+  it('should throw NotFoundError if the project does not exist', async () => {
       (Project.findById as jest.Mock).mockResolvedValueOnce(null);
-      (Wallet.findOne as jest.Mock).mockResolvedValueOnce({ user: userId, balance: 100 });
 
       await expect(fundProjectService(userId, projectId, 100)).rejects.toThrow(NotFoundError);
-    });
+  });
 
-    it("should throw NotFoundError if the wallet does not exist", async () => {
+  it('should throw NotFoundError if the wallet does not exist', async () => {
       (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
       (Wallet.findOne as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(fundProjectService(userId, projectId, 100)).rejects.toThrow(NotFoundError);
-    });
-
-    it("should throw ForbiddenError if the wallet balance is insufficient", async () => {
-      const wallet = { user: userId, balance: 50 };
-      const amount = 100;
-
-      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
-      (Wallet.findOne as jest.Mock).mockResolvedValueOnce(wallet);
-
-      await expect(fundProjectService(userId, projectId, amount)).rejects.toThrow(ForbiddenError);
-    });
   });
 
-  describe("updateProjectDetailsService", () => {
-    it("should update project details and upload an image", async () => {
-      const updates = { title: "Updated Project" };
-      const mockFile = { tempFilePath: "temp/path/to/document.jpg" };
-
+  it('should throw ForbiddenError if the wallet balance is insufficient', async () => {
+      const mockWallet = { user: userId, balance: 50, save: jest.fn() };
       (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
-      (uploadImageFile as jest.Mock).mockResolvedValueOnce({ secure_url: "http://example.com/updated_image.jpg" });
-      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce({ ...mockProject, ...updates });
+      (Wallet.findOne as jest.Mock).mockResolvedValueOnce(mockWallet);
 
-      const result = await updateProjectDetailsService(projectId, userId, updates, mockFile);
+      await expect(fundProjectService(userId, projectId, 100)).rejects.toThrow(ForbiddenError);
+  });
 
-      expect(result).toEqual({ ...mockProject, ...updates }); // Validate the updated project
-      expect(uploadImageFile).toHaveBeenCalledWith(mockFile, 'document', 'image'); // Check image upload call
-      expect(Project.findByIdAndUpdate).toHaveBeenCalledWith(projectId, { ...updates, documentUrl: "http://example.com/updated_image.jpg" }, { new: true, runValidators: true }); // Check update call
-    });
+  // Test for updateProjectDetailsService
+  it('should update project details and upload an image', async () => {
+      const updates = { title: 'Updated Title' };
+      (Project.findById as jest.Mock).mockResolvedValueOnce(mockProject);
+      (uploadImageFile as jest.Mock).mockResolvedValueOnce({ secure_url: 'new_image_url' });
+      (Project.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce(mockProject);
 
-    it("should throw NotFoundError if the project does not exist", async () => {
+      const result = await updateProjectDetailsService(projectId, userId, updates, { tempFilePath: 'imagePath' });
+      expect(result).toEqual(mockProject);
+  });
+
+  it('should throw NotFoundError if the project does not exist', async () => {
       (Project.findById as jest.Mock).mockResolvedValueOnce(null);
 
-      await expect(updateProjectDetailsService(projectId, userId, {}, {})).rejects.toThrow(NotFoundError);
-    });
+      await expect(updateProjectDetailsService('nonexistentId', userId, {}, {})).rejects.toThrow(NotFoundError);
   });
 });

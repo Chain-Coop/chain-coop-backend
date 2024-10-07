@@ -1,10 +1,10 @@
 import mongoose, { Types } from "mongoose";
-import Membership from "../../models/membership"; // Adjust the import according to your structure
+import Membership from "../../models/membership";
 import {
   createMembershipService,
   updateMembershipService,
   findMembershipService,
-} from "../../services/membershipService"; // Adjust the import according to your structure
+} from "../../services/membershipService";
 
 // Mock the Membership model
 jest.mock("../../models/membership");
@@ -21,7 +21,8 @@ describe("Membership Service", () => {
   });
 
   it("should create a new membership", async () => {
-    (Membership.create as jest.Mock).mockResolvedValue(mockMembershipPayload); // Mock the create function
+    const membershipWithId = { ...mockMembershipPayload, _id: new Types.ObjectId() }; // Add _id to the mock
+    (Membership.create as jest.Mock).mockResolvedValue(membershipWithId); // Mock the create function
 
     const membership = await createMembershipService(mockMembershipPayload);
     expect(membership).toHaveProperty("_id"); // Check that it has an _id
@@ -39,7 +40,9 @@ describe("Membership Service", () => {
 
   it("should find the latest membership by userId", async () => {
     const existingMembership = { ...mockMembershipPayload, _id: new Types.ObjectId() }; // Mock existing membership
-    (Membership.findOne as jest.Mock).mockResolvedValue(existingMembership); // Mock the findOne function
+    (Membership.findOne as jest.Mock).mockReturnValue({
+      sort: jest.fn().mockResolvedValue(existingMembership), // Mock the return value of sort
+    }); // Mock the findOne function
 
     const foundMembership = await findMembershipService(mockMembershipPayload.user.toString());
     

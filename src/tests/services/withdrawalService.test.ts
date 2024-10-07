@@ -72,7 +72,11 @@ describe('Withdrawal Service', () => {
 
     describe('getAllWithdrawals', () => {
         it('should return all withdrawals sorted by createdAt', async () => {
-            (Withdrawal.find as jest.Mock).mockResolvedValueOnce([mockWithdrawal]);
+            const mockFind = jest.fn().mockReturnValue({
+                sort: jest.fn().mockResolvedValueOnce([mockWithdrawal]), // Return sorted entries
+            });
+
+            (Withdrawal.find as jest.Mock).mockImplementation(mockFind); // Mock the find method
 
             const result = await getAllWithdrawals();
 
@@ -84,7 +88,11 @@ describe('Withdrawal Service', () => {
 
     describe('findWithdrawalRequests', () => {
         it('should find withdrawal requests for a specific user', async () => {
-            (Withdrawal.find as jest.Mock).mockResolvedValueOnce([mockWithdrawal]);
+            const mockFind = jest.fn().mockReturnValue({
+                sort: jest.fn().mockResolvedValueOnce([mockWithdrawal]), // Return sorted entries
+            });
+
+            (Withdrawal.find as jest.Mock).mockImplementation(mockFind); // Mock the find method
 
             const result = await findWithdrawalRequests(userId);
 
