@@ -83,7 +83,7 @@ export const activateMembership = async (req: Request, res: Response) => {
         }
 
         // Create payment link for Paystack subscription
-        const paymentLink = await createPaymentLink(email, amount, userId, membershipType, planId);
+        const paymentLink = await createPaymentLink(email, amount * 100, userId, membershipType, planId);
         return res.status(StatusCodes.OK).json({ paymentLink });
     } 
     // Invalid payment method error
