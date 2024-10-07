@@ -76,7 +76,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
                     membershipType, 
                     planId // Ensure this is also included
                 },
-
+                //plan: planId
             },
             {
                 headers: {
@@ -123,14 +123,18 @@ export const verifyPayment = async (reference: string) => {
     } catch (error: any) {
         console.error("Error verifying payment:", error); // Logging error
         if (error.response) {
+            console.error(`Paystack verification error response: ${JSON.stringify(error.response.data)}`); // Log full error response
             throw new BadRequestError(`Paystack error: ${error.response.data.message}`);
         } else if (error.request) {
+            console.error("No response received from Paystack. Request details:", error.request); // Log request details
             throw new InternalServerError("No response received from Paystack.");
         } else {
+            console.error(`Unexpected error: ${error.message}`); // Log unexpected errors
             throw new InternalServerError(`Error verifying payment: ${error.message}`);
         }
     }
 };
+
 
 // Function to create a Paystack subscription
 export const createPaystackSubscription = async (email: string, planId: string) => {
@@ -177,6 +181,7 @@ export const getPlanIdForMembershipType = (membershipType: MembershipType): stri
     const planId = plans[membershipType];
     if (!planId) {
         console.error(`No Plan ID found for membership type: ${membershipType}`); // Logging error
+        throw new BadRequestError(`No Plan ID configured for ${membershipType}`);
     }
     return planId;
 };
