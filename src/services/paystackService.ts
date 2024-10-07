@@ -76,7 +76,7 @@ export const createPaymentLink = async (email: string, amount: number, userId: s
                     membershipType, 
                     planId // Ensure this is also included
                 },
-                plan: planId
+                //plan: planId
             },
             {
                 headers: {
