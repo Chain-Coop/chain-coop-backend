@@ -24,20 +24,20 @@ const ContributionHistorySchema = new Schema({
     required: true
   },
   contributionPlan: {
-    type: String,   // Add contributionPlan to schema
+    type: String,   
     required: true
   },
   savingsCategory: {
-    type: String,   // Add savingsCategory to schema
+    type: String,   
     required: true
   },
   frequency: {
-    type: String,   // Add frequency to schema
+    type: String, 
     required: true
   },
   status: {
     type: String,
-    enum: ['Pending', 'Completed'], // Ensure the status enum includes "Completed"
+    enum: ['Pending', 'Completed'],  
     required: true
   },
   date: {

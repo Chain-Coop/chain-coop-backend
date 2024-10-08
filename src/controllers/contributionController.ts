@@ -9,15 +9,15 @@ import {
 import {
   findWalletService,
   updateWalletService,
+  validateWalletPin,
 } from "../services/walletService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
-import { logUserOperation } from "../middlewares/logging";
 
 export const createContribution = async (req: Request, res: Response) => {
   let userId = null;
   try {
-    const { contributionPlan, amount, savingsCategory, frequency, startDate, endDate } = req.body;  // Get savingsCategory and frequency from request
+    const { contributionPlan, amount, savingsCategory, frequency, startDate, endDate, pin } = req.body;
     //@ts-ignore
     userId = req.user.userId;
 
@@ -26,6 +26,12 @@ export const createContribution = async (req: Request, res: Response) => {
     if (!wallet) {
       throw new BadRequestError("Wallet not found");
     }
+		// Validate wallet pin
+		const isPinValid = await validateWalletPin(userId, pin);
+		if (!isPinValid) {
+			return res.status(StatusCodes.UNAUTHORIZED).json({ status: StatusCodes.UNAUTHORIZED, error: "Invalid wallet pin" });
+		}
+
 
     if (wallet.balance < amount) {
       throw new BadRequestError("Insufficient funds in the wallet");
@@ -44,15 +50,15 @@ export const createContribution = async (req: Request, res: Response) => {
     const contribution = await createContributionService({
       user: userId,
       contributionPlan,
-      savingsCategory, // Save the savings category
-      frequency, // Save the contribution frequency
+      savingsCategory,
+      frequency, 
       amount,
       balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
       status: "Completed",
-      startDate,         // Pass start date
-      endDate,           // Pass end date
+      startDate,  
+      endDate,  
     });
 
     // Deduct the contribution amount from the wallet
@@ -64,19 +70,17 @@ export const createContribution = async (req: Request, res: Response) => {
     }
 
     // Create a contribution history record
-    await createContributionHistoryService(
-      //@ts-ignore
-      contribution._id.toString(),
-      userId,
-      contribution.amount,     // Use the amount from the created contribution
-      contribution.contributionPlan, // Pass the plan for consistency
-      contribution.savingsCategory,  // Pass the category for consistency
-      contribution.frequency,   // Pass the frequency for clarity
-      "Completed"               // Set the status as "Completed"
-    );
+await createContributionHistoryService(
+  //@ts-ignore
+  contribution._id.toString(),
+  userId,
+  contribution.amount,   
+  contribution.contributionPlan, 
+  contribution.savingsCategory,  
+  contribution.frequency,   
+  "Completed"              
+);
 
-   
-    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Success");
     // Respond with the contribution details, including the status code
     res.status(StatusCodes.CREATED).json({
       statusCode: StatusCodes.CREATED,
@@ -88,21 +92,18 @@ export const createContribution = async (req: Request, res: Response) => {
         frequency: contribution.frequency,
         amount: contribution.amount,
         balance: contribution.balance,
-        startDate: contribution.startDate, // Return start date
-        endDate: contribution.endDate,     // Return end date
+        startDate: contribution.startDate, 
+        endDate: contribution.endDate,     
         nextContributionDate: contribution.nextContributionDate,
         lastContributionDate: contribution.lastContributionDate,
         status: contribution.status,
         _id: contribution._id,
-        //createdAt: contribution.createdAt,
-        //updatedAt: contribution.updatedAt,
         __v: contribution.__v,
       },
       nextContributionDate,
     });
   } catch (error) {
     console.error(error);
-    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Failure");
     res
       .status(
         error instanceof BadRequestError
