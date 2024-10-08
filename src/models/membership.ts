@@ -8,7 +8,8 @@ export interface MembershipDocument extends Document {
   amount: number;
   activationDate: Date;
   bankReceiptUrl?: string;
-  subscriptionUrl?: string; // Add this field
+  subscriptionUrl?: string;
+  membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
 }
 
 const MembershipSchema = new Schema<MembershipDocument>(
@@ -23,14 +24,19 @@ const MembershipSchema = new Schema<MembershipDocument>(
       enum: ["Explorer", "Pioneer", "Voyager"],
       required: true,
     },
+    membershipPaymentStatus: {
+      type: String,
+      enum: ['paid', 'in-progress', 'not_started'],
+      default: 'not_started',
+  },
     status: {
       type: String,
-      enum: ["Active", "Pending"],
+      enum: ["in-progress", "Active", "Pending"],
       default: "Pending",
     },
     paymentMethod: {
       type: String,
-      enum: ["BankTransfer", "DebitCreditCard", "PaystackSubscription"], // Add PaystackSubscription
+      enum: ["BankTransfer", "PaystackSubscription"], 
       required: true,
     },
     amount: {
@@ -44,7 +50,7 @@ const MembershipSchema = new Schema<MembershipDocument>(
     bankReceiptUrl: {
       type: String,
     },
-    subscriptionUrl: { // Add this field
+    subscriptionUrl: { 
       type: String,
     },
   },

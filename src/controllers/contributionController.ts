@@ -12,12 +12,14 @@ import {
 } from "../services/walletService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
+import { logUserOperation } from "../middlewares/logging";
 
 export const createContribution = async (req: Request, res: Response) => {
+  let userId = null;
   try {
     const { contributionPlan, amount } = req.body;
     //@ts-ignore
-    const userId = req.user.userId;
+    userId = req.user.userId;
 
     // Fetch the user's wallet
     const wallet = await findWalletService({ user: userId });
@@ -66,6 +68,8 @@ export const createContribution = async (req: Request, res: Response) => {
       "Pending"
     );
 
+   
+    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Success");
     // Respond with the contribution details, including the status code
     res.status(StatusCodes.CREATED).json({
       statusCode: StatusCodes.CREATED,
@@ -75,6 +79,7 @@ export const createContribution = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error(error);
+    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Failure");
     res
       .status(
         error instanceof BadRequestError
@@ -85,7 +90,7 @@ export const createContribution = async (req: Request, res: Response) => {
         statusCode: error instanceof BadRequestError 
           ? StatusCodes.BAD_REQUEST 
           : StatusCodes.INTERNAL_SERVER_ERROR,
-        error: (error as Error).message 
+          error: (error as Error).message 
       });
   }
 };

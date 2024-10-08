@@ -13,6 +13,8 @@ const findUser = async (by: string, val: string) =>
 const getUserDetails = async (id: string) =>
 	await User.findOne({ _id: id }).select("-password");
 
+const getAdminDetails = async () => await User.find({ role: "admin" }).select("-password");
+
 const updateUserByEmail = async (email: string, payload: any) =>
 	await User.findOneAndUpdate({ email }, payload, {
 		new: true,
@@ -37,4 +39,5 @@ export {
 	updateUserById,
 	getUserDetails,
 	resetUserPassword,
+	getAdminDetails
 };

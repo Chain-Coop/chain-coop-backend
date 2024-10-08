@@ -15,7 +15,11 @@ export interface UserDocument extends Document {
 	username: String;
 	phoneNumber: String;
 	membershipType: string;
+	membershipStatus: 'active' | 'pending' | 'inactive';
+    membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
 }
+
+
 
 const UserSchema = new Schema({
 	email: {
@@ -40,7 +44,7 @@ const UserSchema = new Schema({
 
 	membershipType: {
 		type: String,
-		enum: ["patron", "investor members"],
+		enum: ["Explorer", "Voyager", "Pioneer"],
 		required: [true, "Membership type is required"],
 	},
 
@@ -57,7 +61,17 @@ const UserSchema = new Schema({
 	profilePhoto: {
 		url: String,
 		imageId: String,
-	}
+	},
+	membershipStatus: {
+        type: String,
+        enum: ['active', 'pending', 'inactive'],
+        default: 'inactive',
+    },
+    membershipPaymentStatus: {
+        type: String,
+        enum: ['paid', 'in-progress', 'not_started'],
+        default: 'not_started',
+    },
 });
 
 
