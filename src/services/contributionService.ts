@@ -3,6 +3,10 @@ import Contribution, { ContributionDocument } from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
 
 export interface iContribution {
+  endDate: any | Date | undefined;
+  startDate: any | Date | undefined;
+  frequency: any | string;
+  savingsCategory: any | string;
   _id?: ObjectId;
   user: ObjectId;
   contributionPlan: string;
@@ -18,15 +22,21 @@ export interface iContribution {
 }
 
 export const createContributionService = async (payload: iContribution) => {
-  // Fetch the most recent contribution to get the current balance
   const lastContribution = await findContributionService({ user: payload.user });
-
-  // Calculate the new balance
   const newBalance = (lastContribution?.balance || 0) + payload.amount;
 
-  // Create the contribution with the updated balance
-  return await Contribution.create({ ...payload, balance: newBalance });
+  return await Contribution.create({
+    ...payload,
+    balance: newBalance,
+    savingsCategory: payload.savingsCategory,
+    frequency: payload.frequency,
+    startDate: payload.startDate,   // Add start date
+    endDate: payload.endDate,       // Add end date
+  });
 };
+
+
+
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
   return await Contribution.findByIdAndUpdate(id, payload, {
@@ -46,14 +56,34 @@ export const findContributionService = async ({
   return await Contribution.findOne({ user }).sort({ createdAt: -1 });
 };
 
-export const createContributionHistoryService = async (contributionId: ObjectId, userId: ObjectId, amount: number, status: string) => {
-  return await ContributionHistory.create({
-    contribution: contributionId,
-    user: userId,
-    amount,
-    status,
-  });
+// contributionService.ts
+export const createContributionHistoryService = async (
+  contributionId: string,
+  userId: string,
+  amount: number,
+  contributionPlan: string, 
+  savingsCategory: string,   
+  frequency: string,    
+  status: string      
+) => {
+  try {
+    // Create the contribution history entry
+    return await ContributionHistory.create({
+      contribution: contributionId,  
+      user: userId,
+      amount: amount,
+      contributionPlan: contributionPlan,  
+      savingsCategory: savingsCategory,    
+      frequency: frequency,           
+      status: status,             
+      date: new Date() 
+    });
+  } catch (error) {
+    console.error('Error creating contribution history:', error);
+    throw new Error('Failed to create contribution history');
+  }
 };
+
 
 export const findContributionHistoryService = async (userId: ObjectId) => {
   return await ContributionHistory.find({ user: userId }).sort({ createdAt: -1 });
@@ -67,9 +97,9 @@ export const updateContributionBankDetails = async (contributionId: ObjectId, ba
   );
 };
 
-export const calculateNextContributionDate = (plan: string): Date => {
+export const calculateNextContributionDate = (frequency: string): Date => {
   const date = new Date();
-  switch (plan) {
+  switch (frequency) {
     case "Daily":
       date.setDate(date.getDate() + 1);
       break;
@@ -79,14 +109,12 @@ export const calculateNextContributionDate = (plan: string): Date => {
     case "Monthly":
       date.setMonth(date.getMonth() + 1);
       break;
-    case "Yearly":
-      date.setFullYear(date.getFullYear() + 1);
-      break;
     default:
-      throw new Error(`Invalid contribution plan: ${plan}`);
+      throw new Error(`Invalid contribution frequency: ${frequency}`);
   }
   return date;
 };
+
 
 // new function to process recurring contributions
 export const processRecurringContributions = async () => {
@@ -103,6 +131,10 @@ export const processRecurringContributions = async () => {
         amount,
         nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
         lastContributionDate: new Date(),
+        frequency: undefined,
+        savingsCategory: undefined,
+        endDate: undefined,
+        startDate: undefined
       });
 
       await updateContributionService(contribution._id as ObjectId, {

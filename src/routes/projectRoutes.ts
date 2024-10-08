@@ -6,6 +6,7 @@ import {
     getProject,
     updateProject,
     deleteProject,
+    getUserFundedProjects,
 } from "../controllers/projectController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 import { fundProject } from "../controllers/projectController";
@@ -15,6 +16,9 @@ const router = Router();
 router
     .route("/all-projects")
     .get(authorize, getAllProjects); // Get all projects (admin only)
+
+
+router.get("/funded", authorize, getUserFundedProjects);
 
 router
     .route("/")
@@ -36,5 +40,6 @@ router
 
 
 router.post("/:id/fund", authorize, fundProject);
+
 
 export default router;

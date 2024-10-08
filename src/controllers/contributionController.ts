@@ -9,15 +9,15 @@ import {
 import {
   findWalletService,
   updateWalletService,
+  validateWalletPin,
 } from "../services/walletService";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
-import { logUserOperation } from "../middlewares/logging";
 
 export const createContribution = async (req: Request, res: Response) => {
   let userId = null;
   try {
-    const { contributionPlan, amount } = req.body;
+    const { contributionPlan, amount, savingsCategory, frequency, startDate, endDate, pin } = req.body;
     //@ts-ignore
     userId = req.user.userId;
 
@@ -26,13 +26,19 @@ export const createContribution = async (req: Request, res: Response) => {
     if (!wallet) {
       throw new BadRequestError("Wallet not found");
     }
+		// Validate wallet pin
+		const isPinValid = await validateWalletPin(userId, pin);
+		if (!isPinValid) {
+			return res.status(StatusCodes.UNAUTHORIZED).json({ status: StatusCodes.UNAUTHORIZED, error: "Invalid wallet pin" });
+		}
+
 
     if (wallet.balance < amount) {
       throw new BadRequestError("Insufficient funds in the wallet");
     }
 
-    // Calculate the next contribution date
-    const nextContributionDate = calculateNextContributionDate(contributionPlan);
+    // Calculate the next contribution date based on frequency
+    const nextContributionDate = calculateNextContributionDate(frequency);
 
     // Fetch the latest contribution for the user, ignoring status
     const lastContribution = await findContributionService({ user: userId });
@@ -40,15 +46,19 @@ export const createContribution = async (req: Request, res: Response) => {
     // Calculate the new balance by adding the contribution amount
     const newBalance = (lastContribution?.balance || 0) + amount;
 
-    // Create the contribution with the updated balance
+    // Create the contribution with the updated balance, category, and frequency
     const contribution = await createContributionService({
       user: userId,
       contributionPlan,
+      savingsCategory,
+      frequency, 
       amount,
       balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
-      status: "Completed", 
+      status: "Completed",
+      startDate,  
+      endDate,  
     });
 
     // Deduct the contribution amount from the wallet
@@ -60,26 +70,40 @@ export const createContribution = async (req: Request, res: Response) => {
     }
 
     // Create a contribution history record
-    await createContributionHistoryService(
-      //@ts-ignore
-      contribution._id.toString(),
-      userId,
-      amount,
-      "Pending"
-    );
+await createContributionHistoryService(
+  //@ts-ignore
+  contribution._id.toString(),
+  userId,
+  contribution.amount,   
+  contribution.contributionPlan, 
+  contribution.savingsCategory,  
+  contribution.frequency,   
+  "Completed"              
+);
 
-   
-    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Success");
     // Respond with the contribution details, including the status code
     res.status(StatusCodes.CREATED).json({
       statusCode: StatusCodes.CREATED,
       message: "Contribution created successfully",
-      contribution,
+      contribution: {
+        user: contribution.user,
+        contributionPlan: contribution.contributionPlan,
+        savingsCategory: contribution.savingsCategory,
+        frequency: contribution.frequency,
+        amount: contribution.amount,
+        balance: contribution.balance,
+        startDate: contribution.startDate, 
+        endDate: contribution.endDate,     
+        nextContributionDate: contribution.nextContributionDate,
+        lastContributionDate: contribution.lastContributionDate,
+        status: contribution.status,
+        _id: contribution._id,
+        __v: contribution.__v,
+      },
       nextContributionDate,
     });
   } catch (error) {
     console.error(error);
-    await logUserOperation(userId, req, "CREATE_CONTRIBUTION", "Failure");
     res
       .status(
         error instanceof BadRequestError
@@ -94,6 +118,7 @@ export const createContribution = async (req: Request, res: Response) => {
       });
   }
 };
+
 
 export const getContributionDetails = async (req: Request, res: Response) => {
   try {
@@ -134,3 +159,4 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   const history = await findContributionHistoryService(userId);
   res.status(StatusCodes.OK).json(history);
 };
+
