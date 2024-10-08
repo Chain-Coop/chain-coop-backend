@@ -5,7 +5,7 @@ import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
 import { ForbiddenError, NotFoundError } from "../errors"; 
-import uploadImageFile from "../utils/imageUploader"; 
+import uploadImageFile from "../utils/imageUploader";
 
 // Create a new project service
 export const createProjectService = async (
@@ -110,6 +110,18 @@ export const fundProjectService = async (
 
     // Deduct the amount from the user's wallet
     wallet.balance -= amount;
+    await wallet.save();
+
+    //Add amount to funded projects
+    const fundedProject = wallet.fundedProjects.find(
+        (project) => project.projectId == projectId
+    );
+    if (fundedProject) {
+        fundedProject.amount += amount;
+    } else {
+        wallet.fundedProjects.push({ projectId, amount });
+    }
+
     await wallet.save();
 
     // Add the amount to the project's fund balance
