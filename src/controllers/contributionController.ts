@@ -159,4 +159,3 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   const history = await findContributionHistoryService(userId);
   res.status(StatusCodes.OK).json(history);
 };
-

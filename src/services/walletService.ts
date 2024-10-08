@@ -129,6 +129,7 @@ export const validateWalletPin = async (userId: string, pin: string) => {
 	}
 };
 
+
 //GET ALL FUNDED PROJECTS
 export const getUserFundedProjectsService = async (
     userId: string
