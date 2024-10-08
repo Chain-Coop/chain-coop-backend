@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BadRequestError } from "../errors";
+import { BadRequestError, NotFoundError } from "../errors";
 import Wallet from "../models/wallet";
 import WalletHistory from "../models/walletHistory";
 import bcrypt from "bcryptjs";
@@ -127,4 +127,18 @@ export const validateWalletPin = async (userId: string, pin: string) => {
 		console.error(`Error validating pin for user ID: ${userId}`, error);
 		throw new BadRequestError("Error validating wallet pin.");
 	}
+};
+
+//GET ALL FUNDED PROJECTS
+export const getUserFundedProjectsService = async (
+    userId: string
+) => {
+    const wallet = await Wallet.findOne({ user: userId }).populate(
+		"fundedProjects.projectId", "title description"
+	);
+	
+    if (!wallet) {
+        throw new NotFoundError("Wallet not found");
+    }
+    return wallet;
 };

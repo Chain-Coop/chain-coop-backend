@@ -10,6 +10,12 @@ export interface WalletDocument extends Document {
         accountNumber: string;
         bankCode: string;
     };
+    fundedProjects: Array<fundedProject>;
+}
+
+export type fundedProject = {
+	amount: number;
+	projectId: any;
 }
 
 const WalletSchema = new Schema<WalletDocument>(
@@ -27,7 +33,19 @@ const WalletSchema = new Schema<WalletDocument>(
         bankDetails: {
             accountNumber: String,
             bankCode: String,
-        }
+        },
+        fundedProjects: [
+            {
+                amount: {
+                    type: Number
+                },
+                projectId: {
+                    type: Schema.Types.ObjectId,
+                    ref: "Project"
+                },
+                _id: false
+            }
+        ]
     },
     { timestamps: true }
 );

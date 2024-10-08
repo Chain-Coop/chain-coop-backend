@@ -12,6 +12,7 @@ import {
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors"; 
+import { getUserFundedProjectsService } from "../services/walletService";
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
@@ -149,4 +150,33 @@ export const fundProject = async (req: Request, res: Response) => {
     }
 };
 
+export const getUserFundedProjects = async (req:Request, res: Response) => {
+    // @ts-ignore
+    console.log(req.user.userId);
+    // @ts-ignore
+    const t = await getUserFundedProjectsService(req.user.userId);
 
+    let total : number = 0;
+    let totalProject : number = t.fundedProjects.length;
+    const fundedProjects = Array<{
+        title: string,
+        description: string,
+        fundedAmount: number
+    }>();
+
+    t.fundedProjects.forEach((e) => {
+        total += e.amount;
+        fundedProjects.push({
+            "title": e.projectId.title,
+            "description": e.projectId.description,
+            "fundedAmount": e.amount
+        });
+    })
+
+    res.send({
+        "status": "success",
+        "totalFundedProjects": total,
+        "totalFundedAmount": totalProject,
+        "fundedProjects": fundedProjects
+    })
+}

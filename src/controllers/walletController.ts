@@ -216,7 +216,7 @@ const setWalletPin = async (req: Request, res: Response) => {
 	const salt = await bcrypt.genSalt(10);
 	const hashedPin = await req.body.pin;
 
-	await createPin(userWallet._id, { pin: hashedPin }); // Save hashed pin
+	await createPin(userWallet._id, { pin: req.body.pin }); // Save hashed pin
 	res.status(StatusCodes.OK).json({ msg: "Pin created successfully" });
 };
 

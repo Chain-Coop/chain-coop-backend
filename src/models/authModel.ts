@@ -57,8 +57,7 @@ const UserSchema = new Schema({
 	profilePhoto: {
 		url: String,
 		imageId: String,
-	},
-	
+	}
 });
 
 
