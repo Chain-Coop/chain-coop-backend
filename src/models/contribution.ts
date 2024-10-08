@@ -2,11 +2,11 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string;  // Daily, Weekly, Monthly
-  savingsCategory: string;   // House Rent, School Fees, etc.
-  frequency: string;         // Daily, Weekly, Monthly
+  contributionPlan: string;  
+  savingsCategory: string;   
+  frequency: string;        
   amount: number;
-  startDate?: Date;          // New start date field
+  startDate?: Date;         
   endDate?: Date;  
   balance: number; 
   nextContributionDate?: Date; 
