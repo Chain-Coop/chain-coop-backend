@@ -89,8 +89,7 @@ export const createPaymentLink = async (
 				amount,
 				planId, // Ensure this is being passed correctly
 				currency: "NGN",
-				callback_url:
-					"https://chain-coop-backend.onrender.com/api/v1/membership/verify-payment",
+				callback_url: "http://localhost:5173/set-payment-plan/step3",
 				metadata: {
 					userId,
 					membershipType,
