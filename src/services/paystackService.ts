@@ -89,7 +89,8 @@ export const createPaymentLink = async (
 				amount,
 				planId, // Ensure this is being passed correctly
 				currency: "NGN",
-				callback_url: "http://localhost:3000/api/v1/membership/verify-payment",
+				callback_url:
+					"https://chain-coop-backend.onrender.com/api/v1/membership/verify-payment",
 				metadata: {
 					userId,
 					membershipType,
@@ -207,7 +208,7 @@ export const createPaystackSubscription = async (
 		console.log("Subscription created successfully:", response?.data?.message); // Logging output
 		return response?.data?.message;
 	} catch (error: any) {
-		console.error("Error creating subscription:", error); // Logging error
+		console.error("Error creating subscription:", error.response.data); // Logging error
 		if (error.response) {
 			throw new BadRequestError(
 				`Paystack error: ${error.response.data.message}`
