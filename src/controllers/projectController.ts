@@ -12,6 +12,8 @@ import {
 import fs from 'fs';
 import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors"; 
+import { logUserOperation } from "../middlewares/logging";
+import { getUserFundedProjectsService } from "../services/walletService";
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
@@ -31,6 +33,7 @@ export const createProject = async (req: Request, res: Response) => {
             file
         );
 
+        await logUserOperation(userId, req, "CREATE_PROJECT", "Success");
         return res.status(StatusCodes.CREATED).json({
             statusCode: StatusCodes.CREATED,
             message: "Project created successfully",
@@ -38,6 +41,7 @@ export const createProject = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error(error);
+        await logUserOperation(userId, req, "CREATE_PROJECT", "Failure");
         res.status(
             error instanceof BadRequestError
                 ? StatusCodes.BAD_REQUEST
@@ -124,16 +128,60 @@ export const deleteProject = async (req: Request, res: Response) => {
 
 export const fundProject = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { amount } = req.body; 
+    const { amount } = req.body;
     // @ts-ignore 
     const userId = req.user.userId;
-
     try {
         const project = await fundProjectService(userId, id, amount);
-        res.status(200).json({ msg: "Project funded successfully", project });
+
+        await logUserOperation(userId, req, "FUND_PROJECT", "Success");
+        
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            message: "Project funded successfully",
+            project
+        });
     } catch (error) {
-        //@ts-ignore
-        res.status(error.statusCode || 500).json({ error: error.message });
+        console.error(error);
+    
+        await logUserOperation(userId, req, "FUND_PROJECT", "Failure");
+        // @ts-ignore
+        return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
+            // @ts-ignore
+            statusCode: error?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+            // @ts-ignore
+            error: error?.message
+        });
     }
 };
 
+export const getUserFundedProjects = async (req:Request, res: Response) => {
+    // @ts-ignore
+    console.log(req.user.userId);
+    // @ts-ignore
+    const t = await getUserFundedProjectsService(req.user.userId);
+
+    let total : number = 0;
+    let totalProject : number = t.fundedProjects.length;
+    const fundedProjects = Array<{
+        title: string,
+        description: string,
+        fundedAmount: number
+    }>();
+
+    t.fundedProjects.forEach((e) => {
+        total += e.amount;
+        fundedProjects.push({
+            "title": e.projectId.title,
+            "description": e.projectId.description,
+            "fundedAmount": e.amount
+        });
+    })
+
+    res.send({
+        "status": "success",
+        "totalFundedProjects": total,
+        "totalFundedAmount": totalProject,
+        "fundedProjects": fundedProjects
+    })
+}
