@@ -121,8 +121,8 @@ export const getMembershipDetails = async (req: Request, res: Response) => {
 };
 
 export const subscribe = async (req: Request, res: Response) => {
-	const email = "tshegofatsoseane98@gmail.com";
-	const planId = "PLN_h27t8y4f4t6hbyc";
+	const email = "patiencesimoniseoluwa@gmail.com";
+	const planId = "PLN_uey43rapmhe1zq7";
 	const response = await createPaystackSubscription(email, planId);
 	res.status(StatusCodes.OK).json({ response });
 };

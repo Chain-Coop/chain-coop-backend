@@ -22,26 +22,20 @@ export const createPaystackSubscription = async (
 	if (!PAYSTACK_SECRET_KEY) {
 		throw new InternalServerError("Paystack secret key is not defined.");
 	}
-
+	const payload = { customer: email, plan: planId };
+	console.log(payload);
 	try {
-		const response: any = await axios.post(
-			PAYSTACK_SUBSCRIPTION_URL,
-			{
-				customer: email,
-				plan: planId,
+		const response: any = await axios.post(PAYSTACK_SUBSCRIPTION_URL, payload, {
+			headers: {
+				Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+				"Content-Type": "application/json",
 			},
-			{
-				headers: {
-					Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-					"Content-Type": "application/json",
-				},
-			}
-		);
+		});
 
 		console.log(response.data);
 		return response?.data?.message;
 	} catch (error: any) {
-		console.log(error.response);
+		console.log(error.response?.data);
 		if (error.response) {
 			throw new BadRequestError(
 				`Paystack error: ${error.response.data.message}`
