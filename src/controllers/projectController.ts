@@ -167,6 +167,7 @@ export const getUserFundedProjects = async (req:Request, res: Response) => {
         title: string,
         description: string,
         fundedAmount: number
+        imageUrl: string, 
     }>();
 
     t.fundedProjects.forEach((e) => {
@@ -174,7 +175,8 @@ export const getUserFundedProjects = async (req:Request, res: Response) => {
         fundedProjects.push({
             "title": e.projectId.title,
             "description": e.projectId.description,
-            "fundedAmount": e.amount
+            "fundedAmount": e.amount,
+            "imageUrl": e.projectId.documentUrl
         });
     })
 
