@@ -62,19 +62,22 @@ export const createContributionHistoryService = async (
   contributionPlan: string, 
   savingsCategory: string,   
   frequency: string,    
-  status: string      
+  status: string,
+  startDate: Date, 
+  endDate: Date   
 ) => {
   try {
     // Create the contribution history entry
     return await ContributionHistory.create({
-      contribution: contributionId,  
+      contribution: contributionId,
       user: userId,
       amount: amount,
-      contributionPlan: contributionPlan,  
-      savingsCategory: savingsCategory,    
-      frequency: frequency,           
-      status: status,             
-      date: new Date() 
+      contributionPlan: contributionPlan,
+      savingsCategory: savingsCategory,
+      frequency: frequency,
+      status: status,
+      startDate,       
+      endDate           
     });
   } catch (error) {
     console.error('Error creating contribution history:', error);

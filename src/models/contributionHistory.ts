@@ -40,9 +40,18 @@ const ContributionHistorySchema = new Schema({
     enum: ['Pending', 'Completed'],  
     required: true
   },
+  startDate: {        
+    type: Date,
+    required: true
+  },
+  endDate: {      
+    type: Date,
+    required: true
+  },
   date: {
     type: Date,
     default: Date.now
   }
 }, { timestamps: true });
+
 export default model<ContributionHistoryDocument>("ContributionHistory", ContributionHistorySchema);
