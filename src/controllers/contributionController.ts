@@ -56,8 +56,8 @@ export const createContribution = async (req: Request, res: Response) => {
       nextContributionDate,
       lastContributionDate: new Date(),
       status: "Completed",
-      startDate,
-      endDate,
+      startDate, 
+      endDate,  
       frequency: undefined
     });
 
@@ -69,7 +69,7 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Failed to update wallet balance");
     }
 
-    // Create a contribution history record
+    // Create a contribution history record with startDate and endDate
     await createContributionHistoryService(
       //@ts-ignore
       contribution._id.toString(),
@@ -77,8 +77,10 @@ export const createContribution = async (req: Request, res: Response) => {
       contribution.amount,
       contribution.contributionPlan,
       contribution.savingsCategory,
-      contributionPlan,  // Use contributionPlan as frequency
-      "Completed"
+      contributionPlan,  
+      "Completed",
+      startDate, 
+      endDate   
     );
 
     // Respond with the contribution details
