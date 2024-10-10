@@ -28,14 +28,12 @@ export const createContributionService = async (payload: iContribution) => {
   return await Contribution.create({
     ...payload,
     balance: newBalance,
-    savingsCategory: payload.savingsCategory,
-    frequency: payload.frequency,
-    startDate: payload.startDate,   // Add start date
-    endDate: payload.endDate,       // Add end date
+    savingsCategory: payload.savingsCategory, 
+    contributionPlan: payload.contributionPlan, 
+    startDate: payload.startDate,
+    endDate: payload.endDate,
   });
 };
-
-
 
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
