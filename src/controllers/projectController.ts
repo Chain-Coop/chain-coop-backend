@@ -157,8 +157,6 @@ export const fundProject = async (req: Request, res: Response) => {
 
 export const getUserFundedProjects = async (req:Request, res: Response) => {
     // @ts-ignore
-    console.log(req.user.userId);
-    // @ts-ignore
     const t = await getUserFundedProjectsService(req.user.userId);
 
     let total : number = 0;
@@ -166,7 +164,8 @@ export const getUserFundedProjects = async (req:Request, res: Response) => {
     const fundedProjects = Array<{
         title: string,
         description: string,
-        fundedAmount: number
+        fundedAmount: number,
+        documentUrl?: string
     }>();
 
     t.fundedProjects.forEach((e) => {
@@ -174,7 +173,8 @@ export const getUserFundedProjects = async (req:Request, res: Response) => {
         fundedProjects.push({
             "title": e.projectId.title,
             "description": e.projectId.description,
-            "fundedAmount": e.amount
+            "fundedAmount": e.amount,
+            "documentUrl": e.projectId.documentUrl
         });
     })
 

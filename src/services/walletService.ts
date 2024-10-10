@@ -134,7 +134,7 @@ export const getUserFundedProjectsService = async (
     userId: string
 ) => {
     const wallet = await Wallet.findOne({ user: userId }).populate(
-		"fundedProjects.projectId", "title description"
+		"fundedProjects.projectId", "title description documentUrl"
 	);
 	
     if (!wallet) {
