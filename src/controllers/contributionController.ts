@@ -7,11 +7,13 @@ import {
   findContributionService,
 } from "../services/contributionService";
 import {
+  createWalletHistoryService,
   findWalletService,
+  iWalletHistory,
   updateWalletService,
   validateWalletPin,
 } from "../services/walletService";
-import { BadRequestError } from "../errors";
+import { BadRequestError, NotFoundError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 
 export const createContribution = async (req: Request, res: Response) => {
@@ -162,4 +164,44 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   const userId = req.user.userId;
   const history = await findContributionHistoryService(userId);
   res.status(StatusCodes.OK).json(history);
+};
+
+export const withdrawContribution = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const wallet = await findWalletService({ user: req.user.userId });
+  //@ts-ignore
+  const contribution = await findContributionService({ user: req.user.userId });
+
+  if (!wallet || !contribution) {
+    throw new NotFoundError("Wallet not found");
+  }
+
+  const { amount } = req.body;
+
+  if (contribution.balance < amount || amount <= 0) {
+    throw new BadRequestError("Insufficient funds in wallet");
+  }
+
+  contribution.balance -= amount;
+  wallet.balance += amount;
+
+  const historyPayload : iWalletHistory = {
+    amount,
+    label: "Withdrawal from Contribution",
+    type: "credit",
+    ref: "Self",
+    //@ts-ignore
+    user: req.user.userId,
+  };
+
+  await createWalletHistoryService(historyPayload);
+
+  await contribution.save();
+  await wallet.save();
+
+  res.status(StatusCodes.OK).json({
+    message: "Transfer successful. Proceed to your wallet to complete the withdrawal process."
+  });
+
+
 };
