@@ -79,8 +79,10 @@ export const createContribution = async (req: Request, res: Response) => {
       contribution.savingsCategory,
       contributionPlan,  
       "Completed",
-      startDate, 
-      endDate   
+      startDate,        
+      endDate,   
+      nextContributionDate, 
+      new Date() 
     );
 
     // Respond with the contribution details

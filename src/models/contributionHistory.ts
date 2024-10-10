@@ -48,6 +48,14 @@ const ContributionHistorySchema = new Schema({
     type: Date,
     required: true
   },
+  nextContributionDate: { 
+    type: Date,
+    required: true
+  },
+  lastContributionDate: {  
+    type: Date,
+    required: true
+  },
   date: {
     type: Date,
     default: Date.now
