@@ -70,7 +70,7 @@ const creditWallet = async (data: WebHookDataProps) => {
 
 	// Create wallet history entry
 	const historyPayload: iWalletHistory = {
-		amount: data.amount,
+		 amount: data.amount / 100,
 		label: "Wallet top up via Paystack",
 		ref: data.reference,
 		type: "credit",
