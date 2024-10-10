@@ -17,7 +17,7 @@ import { StatusCodes } from "http-status-codes";
 export const createContribution = async (req: Request, res: Response) => {
   let userId = null;
   try {
-    const { contributionPlan, amount, startDate, endDate, pin } = req.body;
+    const { contributionPlan, amount, savingsCategory, startDate, endDate, pin } = req.body;
     //@ts-ignore
     userId = req.user.userId;
 
@@ -37,11 +37,8 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Insufficient funds in the wallet");
     }
 
-    // Extract frequency and category from contributionPlan
-    const [frequency, savingsCategory] = contributionPlan.split(" "); // E.g., "Weekly Rent"
-
-    // Calculate the next contribution date based on frequency
-    const nextContributionDate = calculateNextContributionDate(frequency);
+    // Calculate the next contribution date based on contributionPlan (frequency)
+    const nextContributionDate = calculateNextContributionDate(contributionPlan);
 
     // Fetch the latest contribution for the user
     const lastContribution = await findContributionService({ user: userId });
@@ -54,7 +51,6 @@ export const createContribution = async (req: Request, res: Response) => {
       user: userId,
       contributionPlan,
       savingsCategory,
-      frequency,
       amount,
       balance: newBalance,
       nextContributionDate,
@@ -62,6 +58,7 @@ export const createContribution = async (req: Request, res: Response) => {
       status: "Completed",
       startDate,
       endDate,
+      frequency: undefined
     });
 
     // Deduct the contribution amount from the wallet
@@ -80,7 +77,7 @@ export const createContribution = async (req: Request, res: Response) => {
       contribution.amount,
       contribution.contributionPlan,
       contribution.savingsCategory,
-      contribution.frequency,
+      contributionPlan,  // Use contributionPlan as frequency
       "Completed"
     );
 
@@ -92,7 +89,6 @@ export const createContribution = async (req: Request, res: Response) => {
         user: contribution.user,
         contributionPlan: contribution.contributionPlan,
         savingsCategory: contribution.savingsCategory,
-        frequency: contribution.frequency,
         amount: contribution.amount,
         balance: contribution.balance,
         startDate: contribution.startDate,

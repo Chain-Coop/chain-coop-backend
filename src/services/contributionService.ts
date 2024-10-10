@@ -25,20 +25,15 @@ export const createContributionService = async (payload: iContribution) => {
   const lastContribution = await findContributionService({ user: payload.user });
   const newBalance = (lastContribution?.balance || 0) + payload.amount;
 
-  // Split the contributionPlan to get frequency and savingsCategory
-  const [frequency, savingsCategory] = payload.contributionPlan.split(" ");
-
   return await Contribution.create({
     ...payload,
     balance: newBalance,
-    savingsCategory,
-    frequency,
+    savingsCategory: payload.savingsCategory, 
+    contributionPlan: payload.contributionPlan, 
     startDate: payload.startDate,
     endDate: payload.endDate,
   });
 };
-
-
 
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {

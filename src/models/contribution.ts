@@ -2,9 +2,8 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string;
-  savingsCategory: string; 
-  frequency: string; 
+  contributionPlan: string; // Frequency (e.g., "Weekly", "Monthly")
+  savingsCategory: string;  // Specific savings category (e.g., "Rent", "School Fees")
   amount: number;
   startDate?: Date;
   endDate?: Date;
@@ -23,15 +22,12 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     contributionPlan: {
       type: String,
-      enum: ["Daily Rent", "Weekly Rent", "Monthly Rent", "Weekly School Fees", "Monthly School Fees", "Daily Food", "Monthly Car", "Others"],
+      enum: ["Daily", "Weekly", "Monthly", "Yearly"], // Frequency options
       required: true,
     },
     savingsCategory: {
       type: String,
-      required: true,
-    },
-    frequency: {
-      type: String,
+      enum: ["House Rent", "School Fees", "Food", "Personal Need", "Car", "Others"],
       required: true,
     },
     amount: {
