@@ -157,8 +157,6 @@ export const fundProject = async (req: Request, res: Response) => {
 
 export const getUserFundedProjects = async (req:Request, res: Response) => {
     // @ts-ignore
-    console.log(req.user.userId);
-    // @ts-ignore
     const t = await getUserFundedProjectsService(req.user.userId);
 
     let total : number = 0;
