@@ -17,7 +17,7 @@ import { StatusCodes } from "http-status-codes";
 export const createContribution = async (req: Request, res: Response) => {
   let userId = null;
   try {
-    const { contributionPlan, amount, savingsCategory, frequency, startDate, endDate, pin } = req.body;
+    const { contributionPlan, amount, startDate, endDate, pin } = req.body;
     //@ts-ignore
     userId = req.user.userId;
 
@@ -26,21 +26,24 @@ export const createContribution = async (req: Request, res: Response) => {
     if (!wallet) {
       throw new BadRequestError("Wallet not found");
     }
-		// Validate wallet pin
-		const isPinValid = await validateWalletPin(userId, pin);
-		if (!isPinValid) {
-			return res.status(StatusCodes.UNAUTHORIZED).json({ status: StatusCodes.UNAUTHORIZED, error: "Invalid wallet pin" });
-		}
 
+    // Validate wallet pin
+    const isPinValid = await validateWalletPin(userId, pin);
+    if (!isPinValid) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ status: StatusCodes.UNAUTHORIZED, error: "Invalid wallet pin" });
+    }
 
     if (wallet.balance < amount) {
       throw new BadRequestError("Insufficient funds in the wallet");
     }
 
+    // Extract frequency and category from contributionPlan
+    const [frequency, savingsCategory] = contributionPlan.split(" "); // E.g., "Weekly Rent"
+
     // Calculate the next contribution date based on frequency
     const nextContributionDate = calculateNextContributionDate(frequency);
 
-    // Fetch the latest contribution for the user, ignoring status
+    // Fetch the latest contribution for the user
     const lastContribution = await findContributionService({ user: userId });
 
     // Calculate the new balance by adding the contribution amount
@@ -51,14 +54,14 @@ export const createContribution = async (req: Request, res: Response) => {
       user: userId,
       contributionPlan,
       savingsCategory,
-      frequency, 
+      frequency,
       amount,
       balance: newBalance,
       nextContributionDate,
       lastContributionDate: new Date(),
       status: "Completed",
-      startDate,  
-      endDate,  
+      startDate,
+      endDate,
     });
 
     // Deduct the contribution amount from the wallet
@@ -70,18 +73,18 @@ export const createContribution = async (req: Request, res: Response) => {
     }
 
     // Create a contribution history record
-await createContributionHistoryService(
-  //@ts-ignore
-  contribution._id.toString(),
-  userId,
-  contribution.amount,   
-  contribution.contributionPlan, 
-  contribution.savingsCategory,  
-  contribution.frequency,   
-  "Completed"              
-);
+    await createContributionHistoryService(
+      //@ts-ignore
+      contribution._id.toString(),
+      userId,
+      contribution.amount,
+      contribution.contributionPlan,
+      contribution.savingsCategory,
+      contribution.frequency,
+      "Completed"
+    );
 
-    // Respond with the contribution details, including the status code
+    // Respond with the contribution details
     res.status(StatusCodes.CREATED).json({
       statusCode: StatusCodes.CREATED,
       message: "Contribution created successfully",
@@ -92,8 +95,8 @@ await createContributionHistoryService(
         frequency: contribution.frequency,
         amount: contribution.amount,
         balance: contribution.balance,
-        startDate: contribution.startDate, 
-        endDate: contribution.endDate,     
+        startDate: contribution.startDate,
+        endDate: contribution.endDate,
         nextContributionDate: contribution.nextContributionDate,
         lastContributionDate: contribution.lastContributionDate,
         status: contribution.status,
@@ -110,11 +113,12 @@ await createContributionHistoryService(
           ? StatusCodes.BAD_REQUEST
           : StatusCodes.INTERNAL_SERVER_ERROR
       )
-      .json({ 
-        statusCode: error instanceof BadRequestError 
-          ? StatusCodes.BAD_REQUEST 
-          : StatusCodes.INTERNAL_SERVER_ERROR,
-          error: (error as Error).message 
+      .json({
+        statusCode:
+          error instanceof BadRequestError
+            ? StatusCodes.BAD_REQUEST
+            : StatusCodes.INTERNAL_SERVER_ERROR,
+        error: (error as Error).message,
       });
   }
 };

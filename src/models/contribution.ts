@@ -2,15 +2,15 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string;  
-  savingsCategory: string;   
-  frequency: string;        
+  contributionPlan: string;
+  savingsCategory: string; 
+  frequency: string; 
   amount: number;
-  startDate?: Date;         
-  endDate?: Date;  
-  balance: number; 
-  nextContributionDate?: Date; 
-  lastContributionDate?: Date; 
+  startDate?: Date;
+  endDate?: Date;
+  balance: number;
+  nextContributionDate?: Date;
+  lastContributionDate?: Date;
   status: string;
 }
 
@@ -23,41 +23,39 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     contributionPlan: {
       type: String,
-      enum: ["Daily", "Weekly", "Monthly", "Yearly"],
+      enum: ["Daily Rent", "Weekly Rent", "Monthly Rent", "Weekly School Fees", "Monthly School Fees", "Daily Food", "Monthly Car", "Others"],
       required: true,
     },
-    savingsCategory: {        // New field for savings category
+    savingsCategory: {
       type: String,
-      enum: ["House Rent", "School Fees", "Food", "Personal Need", "Car", "Others"],
       required: true,
     },
-    frequency: {              // New field for savings frequency
+    frequency: {
       type: String,
-      enum: ["Daily", "Weekly", "Monthly"],
       required: true,
     },
     amount: {
       type: Number,
       required: true,
     },
-    balance: { 
-      type: Number, 
-      required: true, 
-      default: 0 
+    balance: {
+      type: Number,
+      required: true,
+      default: 0,
     },
-    startDate: {              // Start date for the contribution
+    startDate: {
       type: Date,
       required: true,
     },
-    endDate: {                // End date for the contribution
+    endDate: {
       type: Date,
       required: false,
     },
-    nextContributionDate: { 
-      type: Date 
+    nextContributionDate: {
+      type: Date,
     },
     lastContributionDate: {
-      type: Date 
+      type: Date,
     },
     status: {
       type: String,
