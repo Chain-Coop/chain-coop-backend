@@ -31,12 +31,12 @@ const MembershipSchema = new Schema<MembershipDocument>(
   },
     status: {
       type: String,
-      enum: ["in-progress", "Active", "Pending"],
+      enum: ["in-progress", "active", "pending"],
       default: "Pending",
     },
     paymentMethod: {
       type: String,
-      enum: ["BankTransfer", "PaystackSubscription"], 
+      enum: ["onceOff", "PaystackSubscription"], 
       required: true,
     },
     amount: {
