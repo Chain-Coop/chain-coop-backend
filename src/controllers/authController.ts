@@ -26,10 +26,12 @@ import { verifyPayment } from "../services/paystackService";
 
 // Updated register method to include membership statusimport { LogModel } from "../models/logModel";
 import { logUserOperation } from "../middlewares/logging";
+import { registerValidator } from "../utils/requestValidator";
 
 const register = async (req: Request, res: Response) => {
 	let user: any = null;
   try {
+    registerValidator(req);
     const { email } = req.body;
     const legacyUser = await findUser("email", email!);
     if (legacyUser) {
