@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import { createPortfolioService, getUserPortfoliosService } from "../services/portfolioService";
+import { portfolioCreateValidator } from "../utils/requestValidator";
 
 export const createPortfolio = async (req: Request, res: Response) => {
+  portfolioCreateValidator(req);
   const { netWorthAsset, assetType } = req.body;
   // @ts-ignore - extract the userId from the authenticated user
   const userId = req.user.userId;

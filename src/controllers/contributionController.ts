@@ -15,10 +15,12 @@ import {
 } from "../services/walletService";
 import { BadRequestError, NotFoundError } from "../errors";
 import { StatusCodes } from "http-status-codes";
+import { validateCreateContribution } from "../utils/requestValidator";
 
 export const createContribution = async (req: Request, res: Response) => {
   let userId = null;
   try {
+    validateCreateContribution(req);
     const { contributionPlan, amount, savingsCategory, startDate, endDate, pin } = req.body;
     //@ts-ignore
     userId = req.user.userId;

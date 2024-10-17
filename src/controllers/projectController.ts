@@ -14,9 +14,11 @@ import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors"; 
 import { logUserOperation } from "../middlewares/logging";
 import { getUserFundedProjectsService } from "../services/walletService";
+import { createProjectValidator } from "../utils/requestValidator";
 
 // Create a new project
 export const createProject = async (req: Request, res: Response) => {
+    createProjectValidator(req);
     const { title, description, projectPrice, } = req.body;
     // @ts-ignore - extract the userId from the authenticated user
     const userId = req.user.userId;
