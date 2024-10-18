@@ -5,7 +5,6 @@ import ContributionHistory from "../models/contributionHistory";
 export interface iContribution {
   endDate: any | Date | undefined;
   startDate: any | Date | undefined;
-  frequency: any | string;
   savingsCategory: any | string;
   _id?: ObjectId;
   user: ObjectId;
@@ -16,7 +15,7 @@ export interface iContribution {
     accountNumber: string;
     bankCode: string;
   };
-  balance?: number; 
+  balance?: number;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
 }
@@ -27,7 +26,7 @@ export const createContributionService = async (payload: iContribution) => {
 
   return await Contribution.create({
     ...payload,
-    balance: newBalance,
+    balance: 0,
     savingsCategory: payload.savingsCategory, 
     contributionPlan: payload.contributionPlan, 
     startDate: payload.startDate,
@@ -123,29 +122,42 @@ export const calculateNextContributionDate = (frequency: string): Date => {
 
 // new function to process recurring contributions
 export const processRecurringContributions = async () => {
-  const contributions = await Contribution.find({ status: "Pending" });
+  try {
+    const contributions = await Contribution.find({ status: "Pending" });
 
-  for (const contribution of contributions) {
-    const { nextContributionDate, lastContributionDate, amount, user } = contribution;
+    for (const contribution of contributions) {
+      const { nextContributionDate, contributionPlan, amount, user, savingsCategory, startDate, endDate } = contribution;
 
-    if (nextContributionDate && nextContributionDate <= new Date()) {
-      // Create a new contribution for this user
-      await createContributionService({
-        user,
-        contributionPlan: contribution.contributionPlan,
-        amount,
-        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
-        lastContributionDate: new Date(),
-        frequency: undefined,
-        savingsCategory: undefined,
-        endDate: undefined,
-        startDate: undefined
-      });
+      // Check if it's time to process the next contribution
+      if (nextContributionDate && nextContributionDate <= new Date()) {
+        // Update balance only when processing the contribution
+        const lastContribution = await findContributionService({ user });
+        const newBalance = (lastContribution?.balance || 0) + amount;
 
-      await updateContributionService(contribution._id as ObjectId, {
-        lastContributionDate: new Date(),
-        nextContributionDate: calculateNextContributionDate(contribution.contributionPlan),
-      });
+        // Create a new contribution for this user
+        await createContributionService({
+          user,
+          contributionPlan,
+          amount,
+          savingsCategory,
+          startDate,
+          endDate,
+          nextContributionDate: calculateNextContributionDate(contributionPlan),
+          lastContributionDate: new Date(),
+          // Set the new balance on the new contribution
+          balance: newBalance,
+          status: "Completed", // Mark as completed when processed
+        });
+
+        // Update the current contribution's lastContributionDate and nextContributionDate
+        await updateContributionService(contribution._id as ObjectId, {
+          lastContributionDate: new Date(),
+          nextContributionDate: calculateNextContributionDate(contributionPlan),
+        });
+      }
     }
+  } catch (error) {
+    console.error("Error processing contributions:", error);
+    throw new Error("Failed to process recurring contributions");
   }
 };
