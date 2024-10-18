@@ -31,7 +31,7 @@ import { registerValidator } from "../utils/requestValidator";
 const register = async (req: Request, res: Response) => {
 	let user: any = null;
   try {
-    registerValidator(req);
+    //registerValidator(req);
     const { email } = req.body;
     const legacyUser = await findUser("email", email!);
     if (legacyUser) {
