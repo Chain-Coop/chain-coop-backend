@@ -31,10 +31,6 @@ const ContributionHistorySchema = new Schema({
     type: String,   
     required: true
   },
-  frequency: {
-    type: String, 
-    required: true
-  },
   status: {
     type: String,
     enum: ['Pending', 'Completed'],  

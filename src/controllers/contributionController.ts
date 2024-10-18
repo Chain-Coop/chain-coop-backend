@@ -41,53 +41,19 @@ export const createContribution = async (req: Request, res: Response) => {
       throw new BadRequestError("Insufficient funds in the wallet");
     }
 
-    // Calculate the next contribution date based on contributionPlan (frequency)
-    const nextContributionDate = calculateNextContributionDate(contributionPlan);
-
-    // Fetch the latest contribution for the user
-    const lastContribution = await findContributionService({ user: userId });
-
-    // Calculate the new balance by adding the contribution amount
-    const newBalance = (lastContribution?.balance || 0) + amount;
-
-    // Create the contribution with the updated balance, category, and frequency
+    // Store the contribution without processing it
     const contribution = await createContributionService({
       user: userId,
       contributionPlan,
       savingsCategory,
       amount,
-      balance: newBalance,
-      nextContributionDate,
+      balance: 0, // Set balance to 0 initially
+      nextContributionDate: calculateNextContributionDate(contributionPlan),
       lastContributionDate: new Date(),
-      status: "Completed",
-      startDate, 
-      endDate,  
-      frequency: undefined
+      status: "Pending", // Set contribution status to Pending
+      startDate,
+      endDate,
     });
-
-    // Deduct the contribution amount from the wallet
-    const updatedWallet = await updateWalletService(wallet._id, {
-      balance: wallet.balance - amount,
-    });
-    if (!updatedWallet) {
-      throw new BadRequestError("Failed to update wallet balance");
-    }
-
-    // Create a contribution history record with startDate and endDate
-    await createContributionHistoryService(
-      //@ts-ignore
-      contribution._id.toString(),
-      userId,
-      contribution.amount,
-      contribution.contributionPlan,
-      contribution.savingsCategory,
-      contributionPlan,  
-      "Completed",
-      startDate,        
-      endDate,   
-      nextContributionDate, 
-      new Date() 
-    );
 
     // Respond with the contribution details
     res.status(StatusCodes.CREATED).json({
@@ -98,7 +64,7 @@ export const createContribution = async (req: Request, res: Response) => {
         contributionPlan: contribution.contributionPlan,
         savingsCategory: contribution.savingsCategory,
         amount: contribution.amount,
-        balance: contribution.balance,
+        balance: contribution.balance, 
         startDate: contribution.startDate,
         endDate: contribution.endDate,
         nextContributionDate: contribution.nextContributionDate,
@@ -107,7 +73,6 @@ export const createContribution = async (req: Request, res: Response) => {
         _id: contribution._id,
         __v: contribution.__v,
       },
-      nextContributionDate,
     });
   } catch (error) {
     console.error(error);
@@ -207,3 +172,4 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
 
 };
+
