@@ -9,7 +9,6 @@ import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
 import { processRecurringContributions } from "./services/contributionService";
-import { loggerMiddleware } from "./middlewares/logging";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -58,9 +57,6 @@ app.use(
 		tempFileDir: "/tmp",
 	})
 );
-app.use(loggerMiddleware);
-
-
 
 // Routes
 app.use("/api/v1/auth", authRouter);
