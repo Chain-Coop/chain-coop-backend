@@ -1,16 +1,19 @@
+// models/contribution.ts
 import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string; // Frequency (e.g., "Weekly", "Monthly")
-  savingsCategory: string;  // Specific savings category (e.g., "Rent", "School Fees")
+  contributionPlan: string; 
+  savingsCategory: string;  
   amount: number;
   startDate?: Date;
   endDate?: Date;
-  balance: number;
+  categoryBalances: Record<string, number>; // Change Map to Record
+  balance: number; // Total balance across all categories
   nextContributionDate?: Date;
   lastContributionDate?: Date;
   status: string;
+  paymentReference?: string;
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -22,7 +25,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     contributionPlan: {
       type: String,
-      enum: ["Daily", "Weekly", "Monthly", "Yearly"], // Frequency options
+      enum: ["Daily", "Weekly", "Monthly", "Yearly"],
       required: true,
     },
     savingsCategory: {
@@ -33,6 +36,12 @@ const ContributionSchema = new Schema<ContributionDocument>(
     amount: {
       type: Number,
       required: true,
+    },
+    categoryBalances: {
+      type: Map,
+      of: Number,
+      required: true,
+      default: {}
     },
     balance: {
       type: Number,
@@ -58,6 +67,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
       enum: ["Pending", "Completed"],
       default: "Pending",
     },
+    paymentReference: { type: String },
   },
   { timestamps: true }
 );
