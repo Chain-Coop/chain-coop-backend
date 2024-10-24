@@ -204,27 +204,24 @@ export const verifyContributionPayment = async (reference: string) => {
 
 export const processRecurringContributions = async () => {
   const now = new Date();
-  // Find contributions whose nextContributionDate is due
   const contributions = await Contribution.find({
     nextContributionDate: { $lte: now },
-    status: "Successful",  // Status should reflect ongoing or active contributions
+    status: "Successful",
   });
 
   for (const contribution of contributions) {
-    // Convert ObjectId to string for findUser
-    const user = await findUser("_id", contribution.user.toString()); // Fetch user info for email
+    const user = await findUser("_id", contribution.user.toString()); 
     if (!user) {
       console.error(`User not found for contribution: ${contribution._id}`);
       continue;
     }
 
-    // Initialize payment with Paystack
     const response: any = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
         email: user.email,
-        amount: contribution.amount * 100, // Amount in kobo (multiplied by 100)
-        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, // Callback URL for payment verification
+        amount: contribution.amount * 100, 
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, 
       },
       {
         headers: {
@@ -233,7 +230,6 @@ export const processRecurringContributions = async () => {
       }
     );
 
-    // Send email with the payment link
     const emailOptions: EmailOptions = {
       to: user.email,
       subject: "Payment Due: Complete Your Contribution",
@@ -245,18 +241,13 @@ export const processRecurringContributions = async () => {
       `,
     };
     
-    await sendEmail(emailOptions); // Send the payment email to the user
+    await sendEmail(emailOptions); 
 
-    // Ensure nextContributionDate is defined
-    const nextContributionDate = contribution.nextContributionDate || new Date(); // Fallback to current date if undefined
-
-    // Update the contribution's next contribution date
+    const nextContributionDate = contribution.nextContributionDate || new Date();
     const newNextContributionDate = calculateNextContributionDate(nextContributionDate, contribution.contributionPlan);
-    
-    // Update the contribution record with the new nextContributionDate
     contribution.nextContributionDate = newNextContributionDate;
-    contribution.lastContributionDate = now;  // Update last contribution date to the current time
-    await contribution.save();  // Save the updated contribution
+    contribution.lastContributionDate = now; 
+    await contribution.save();  
 
     console.log(`Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`);
   }
