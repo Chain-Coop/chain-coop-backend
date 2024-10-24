@@ -82,19 +82,7 @@ export const createContributionService = async (data: {
       }
     );
 
-    const emailOptions: EmailOptions = {
-      to: data.email,  
-      subject: "Payment Notification", 
-      text: "Please complete your payment.", 
-      html: `
-        <h3>Hello,</h3>
-      <p>Your contribution of ${data.amount} for ${data.savingsCategory} is due. Please complete your payment by following this link:</p>
-      <a href="${response.data.data.authorization_url}">Payment Link</a>
-      `,  // HTML message (optional)
-    };
-    
-    // Send email with the payment link
-    await sendEmail(emailOptions);
+
 
     return {
       contribution: contribution._id,
@@ -216,28 +204,64 @@ export const verifyContributionPayment = async (reference: string) => {
 
 export const processRecurringContributions = async () => {
   const now = new Date();
+  // Find contributions whose nextContributionDate is due
   const contributions = await Contribution.find({
     nextContributionDate: { $lte: now },
-    status: "Successful", 
+    status: "Successful",  // Status should reflect ongoing or active contributions
   });
 
   for (const contribution of contributions) {
-    const newContributionData = {
-      user: contribution.user,
-      contributionPlan: contribution.contributionPlan,
-      amount: contribution.amount,
-      savingsCategory: contribution.savingsCategory,
-      startDate: contribution.nextContributionDate,
-      endDate: contribution.endDate,
-      nextContributionDate: contribution.nextContributionDate,
-      lastContributionDate: contribution.lastContributionDate,
-      //@ts-ignore
-      frequency: contribution.frequency, 
+    // Convert ObjectId to string for findUser
+    const user = await findUser("_id", contribution.user.toString()); // Fetch user info for email
+    if (!user) {
+      console.error(`User not found for contribution: ${contribution._id}`);
+      continue;
+    }
+
+    // Initialize payment with Paystack
+    const response: any = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        email: user.email,
+        amount: contribution.amount * 100, // Amount in kobo (multiplied by 100)
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, // Callback URL for payment verification
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    // Send email with the payment link
+    const emailOptions: EmailOptions = {
+      to: user.email,
+      subject: "Payment Due: Complete Your Contribution",
+      text: `Your contribution of ${contribution.amount} for ${contribution.savingsCategory} is due. Please complete your payment.`,
+      html: `
+        <h3>Hello,</h3>
+        <p>Your contribution of ${contribution.amount} for the ${contribution.savingsCategory} category is now due. Please complete your payment using the link below:</p>
+        <a href="${response.data.data.authorization_url}">Complete Payment</a>
+      `,
     };
-    //@ts-ignore
-    await createContributionService(newContributionData); 
+    
+    await sendEmail(emailOptions); // Send the payment email to the user
+
+    // Ensure nextContributionDate is defined
+    const nextContributionDate = contribution.nextContributionDate || new Date(); // Fallback to current date if undefined
+
+    // Update the contribution's next contribution date
+    const newNextContributionDate = calculateNextContributionDate(nextContributionDate, contribution.contributionPlan);
+    
+    // Update the contribution record with the new nextContributionDate
+    contribution.nextContributionDate = newNextContributionDate;
+    contribution.lastContributionDate = now;  // Update last contribution date to the current time
+    await contribution.save();  // Save the updated contribution
+
+    console.log(`Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`);
   }
 };
+
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
   const contribution = await Contribution.findById(id);
