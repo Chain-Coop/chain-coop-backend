@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { createContribution, getContributionHistory, getContributionDetails, withdrawContribution, verifyContribution} from "../controllers/contributionController";
+import { createContribution, getContributionHistory, getContributionDetails, withdrawContribution, verifyContribution, getContributionsByCategory} from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
 import ContributionModel from '../models/contribution'; 
 import HistoryModel from '../models/contributionHistory';
@@ -11,6 +11,7 @@ router.get("/history", authorize, getContributionHistory);
 router.get("/balance", authorize, getContributionDetails);
 router.post("/withdraw", authorize, withdrawContribution);
 router.get("/verify-contribution", verifyContribution);
+router.get('/category/:category', authorize, getContributionsByCategory);
 
 router.delete('/delete', async (req: Request, res: Response) => {
     try {

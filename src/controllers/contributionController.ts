@@ -105,17 +105,7 @@ export const handleRecurringContributions = async () => {
   }
 };
 
-async function findExistingContribution(userId: string, savingsCategory: string) {
-  return await Contribution.findOne({ user: userId, savingsCategory });
-}
 
-async function updateContribution(contributionId: string, updateData: any) {
-  return await Contribution.findByIdAndUpdate(contributionId, updateData, { new: true });
-}
-
-async function createNewContribution(userId: string, newContributionData: any) {
-  return await Contribution.create({ user: userId, ...newContributionData });
-}
 
 export const getContributionDetails = async (req: Request, res: Response) => {
   try {
@@ -155,12 +145,12 @@ export const getContributionHistory = async (req: Request, res: Response) => {
     console.log("Contribution history:", history);
 
     const combinedHistory: { [key: string]: any } = {};
+    let totalBalance = 0;
 
     for (const contribution of history) {
       //@ts-ignore
       const category = contribution.savingsCategory;
-      
-     
+
       if (!combinedHistory[category]) {
         combinedHistory[category] = {
           contribution: contribution._id,
@@ -168,10 +158,12 @@ export const getContributionHistory = async (req: Request, res: Response) => {
           contributionPlan: contribution.contributionPlan,
           savingsCategory: category,
           SavingsName: category,
-          Balance: 0, 
+          Balance: 0,
           startDate: contribution.startDate,
           endDate: contribution.endDate,
           status: contribution.status,
+          nextContributionDate: contribution.nextContributionDate,
+          lastContributionDate: contribution.lastContributionDate,
           //@ts-ignore
           createdAt: contribution.createdAt,
           //@ts-ignore
@@ -180,11 +172,18 @@ export const getContributionHistory = async (req: Request, res: Response) => {
       }
 
       combinedHistory[category].Balance += contribution.amount;
+      totalBalance += contribution.amount;
     }
 
     const formattedHistory = Object.values(combinedHistory);
 
-    res.status(StatusCodes.OK).json(formattedHistory);
+    const response = {
+      statusCode: StatusCodes.OK,
+      totalBalance, 
+      contributions: formattedHistory,
+    };
+
+    res.status(StatusCodes.OK).json(response);
   } catch (error) {
     console.error("Error fetching contribution history:", error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -234,3 +233,66 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 };
 
 
+export const getContributionsByCategory = async (req: Request, res: Response) => {
+    const { category } = req.params;
+
+    try {
+        //@ts-ignore
+        if (!req.user || !req.user.userId) {
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                message: "Unauthorized: User not found.",
+            });
+        }
+        //@ts-ignore
+        const userId = req.user.userId;
+
+        const contributions = await Contribution.find({
+            user: userId,
+            savingsCategory: category,
+        });
+
+        if (!contributions || contributions.length === 0) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                message: "No contributions found for this category.",
+            });
+        }
+
+        const totalBalance = contributions.reduce((sum, contribution) => {
+            return sum + contribution.amount;
+        }, 0);
+
+        const filteredContribution = contributions.reduce((prev, current) => {
+            return (prev.amount > current.amount) ? prev : current;
+        });
+
+        const response = {
+            statusCode: StatusCodes.OK,
+            totalBalance: totalBalance,
+            contributions: [
+                {
+                    contribution: filteredContribution._id,
+                    user: filteredContribution.user,
+                    contributionPlan: filteredContribution.contributionPlan,
+                    savingsCategory: filteredContribution.savingsCategory,
+                    startDate: filteredContribution.startDate,
+                    endDate: filteredContribution.endDate,
+                    status: filteredContribution.status,
+                    nextContributionDate: filteredContribution.nextContributionDate,
+                    lastContributionDate: filteredContribution.lastContributionDate,
+                    //@ts-ignore
+                    createdAt: filteredContribution.createdAt,
+                    //@ts-ignore
+                    updatedAt: filteredContribution.updatedAt,
+                }
+            ]
+        };
+
+        // Return a 200 OK status with the response
+        return res.status(StatusCodes.OK).json(response);
+    } catch (error) {
+        console.error("Error fetching contributions by category:", error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error: "An unexpected error occurred while fetching contributions.",
+        });
+    }
+};

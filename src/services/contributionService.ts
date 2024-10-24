@@ -53,6 +53,8 @@ export const createContributionService = async (data: {
     categoryBalances[data.savingsCategory] = (categoryBalances[data.savingsCategory] || 0) + data.amount;
     totalBalance += data.amount;
 
+    const nextContributionDate = calculateNextContributionDate(data.contributionPlan);
+
     // Create new contribution
     const contribution = await Contribution.create({
       user: data.user,
@@ -61,7 +63,7 @@ export const createContributionService = async (data: {
       savingsCategory: data.savingsCategory,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
-      nextContributionDate: new Date(data.startDate),
+      nextContributionDate, 
       lastContributionDate: new Date(),
       categoryBalances, 
       balance: totalBalance,
@@ -97,6 +99,8 @@ export const createContributionService = async (data: {
       createdAt: contribution.createdAt,
       //@ts-ignore
       updatedAt: contribution.updatedAt,
+      nextContributionDate: contribution.nextContributionDate,
+      lastContributionDate: contribution.lastContributionDate,
       paymentUrl: response.data.data.authorization_url,
   };
   
@@ -170,8 +174,8 @@ export const verifyContributionPayment = async (reference: string) => {
         contribution.nextContributionDate || new Date(),
         new Date(), // lastContributionDate
         contribution.balance || 0,
-        contribution.categoryBalances || new Map<string, number>()
-      );
+        contribution.categoryBalances || new Map<string, number>() 
+      ); 
 
       // Return the updated contribution details
       return {
@@ -184,6 +188,8 @@ export const verifyContributionPayment = async (reference: string) => {
         startDate: contribution.startDate,
         endDate: contribution.endDate,
         status: contribution.status,
+        nextContributionDate: contribution.nextContributionDate,
+        lastContributionDate: contribution.lastContributionDate,
         _id: contribution._id,
         //@ts-ignore
         createdAt: contribution.createdAt,
@@ -219,6 +225,8 @@ export const processRecurringContributions = async () => {
       savingsCategory: contribution.savingsCategory,
       startDate: contribution.nextContributionDate,
       endDate: contribution.endDate,
+      nextContributionDate: contribution.nextContributionDate,
+      lastContributionDate: contribution.lastContributionDate,
       //@ts-ignore
       frequency: contribution.frequency, 
     };
@@ -281,7 +289,7 @@ export const createContributionHistoryService = async (
   categoryBalances: Record<string, number> 
 ) => {
   try {
-    return await ContributionHistory.create({
+    const contributionHistory = await ContributionHistory.create({
       contribution: contributionId,
       user: userId,
       amount,
@@ -296,6 +304,13 @@ export const createContributionHistoryService = async (
       totalBalance,
       categoryBalances,
     });
+    
+    // Return the created history along with next and last dates
+    return {
+      contributionHistory,
+      nextContributionDate,
+      lastContributionDate,
+    };
   } catch (error) {
     console.error('Error creating contribution history:', error);
     throw new Error('Failed to create contribution history');
