@@ -40,7 +40,6 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-  
     const existingContribution = await Contribution.findOne({
       user: data.user,
       savingsCategory: data.savingsCategory,
@@ -49,11 +48,10 @@ export const createContributionService = async (data: {
     let categoryBalances = existingContribution?.categoryBalances || {};
     let totalBalance = existingContribution?.balance || 0;
 
-    // Update the category balance for the new contribution
     categoryBalances[data.savingsCategory] = (categoryBalances[data.savingsCategory] || 0) + data.amount;
     totalBalance += data.amount;
 
-    const nextContributionDate = calculateNextContributionDate(data.contributionPlan);
+    const nextContributionDate = calculateNextContributionDate(data.startDate, data.contributionPlan);
 
     // Create new contribution
     const contribution = await Contribution.create({
@@ -64,7 +62,7 @@ export const createContributionService = async (data: {
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       nextContributionDate, 
-      lastContributionDate: new Date(),
+      lastContributionDate: new Date(data.endDate),
       categoryBalances, 
       balance: totalBalance,
     });
@@ -73,7 +71,7 @@ export const createContributionService = async (data: {
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
           email: data.email,
-          amount: data.amount * 100, // Convert amount to kobo
+          amount: data.amount * 100,
           callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, 
       },
       {
@@ -81,10 +79,9 @@ export const createContributionService = async (data: {
               Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
           },
       }
-  );
-  
-  // Ensure you include the payment link in the return statement
-  return {
+    );
+
+    return {
       contribution: contribution._id,
       user: data.user,
       contributionPlan: contribution.contributionPlan,
@@ -102,8 +99,7 @@ export const createContributionService = async (data: {
       nextContributionDate: contribution.nextContributionDate,
       lastContributionDate: contribution.lastContributionDate,
       paymentUrl: response.data.data.authorization_url,
-  };
-  
+    };
 
   } catch (error: any) {
     console.error("Error creating contribution and initiating payment:", error);
@@ -112,6 +108,7 @@ export const createContributionService = async (data: {
     );
   }
 };
+
 
 
 export const verifyContributionPayment = async (reference: string) => {
@@ -135,10 +132,9 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("User not found");
       }
 
-      // Find the contribution associated with the user
       const contribution = await Contribution.findOne({
         user: user._id,
-        amount: amount / 100, // Convert amount back to currency
+        amount: amount / 100, 
         status: "Pending",
       });
 
@@ -147,19 +143,15 @@ export const verifyContributionPayment = async (reference: string) => {
       }
 
       contribution.status = "Completed";
-      contribution.balance += amount / 100; // Update total balance
+      contribution.balance += amount / 100; 
 
-      // Update the specific category balance
       contribution.categoryBalances[contribution.savingsCategory] = 
         (contribution.categoryBalances[contribution.savingsCategory] || 0) + (amount / 100);
       
       await contribution.save();
 
+      const frequency = contribution.contributionPlan; 
 
-      //@ts-ignore
-      const frequency = contribution.frequency || "Monthly"; 
-
-      // Create contribution history
       await createContributionHistoryService(
         //@ts-ignore
         contribution._id,
@@ -171,13 +163,13 @@ export const verifyContributionPayment = async (reference: string) => {
         "Completed",
         contribution.startDate,
         contribution.endDate,
-        contribution.nextContributionDate || new Date(),
-        new Date(), // lastContributionDate
+        contribution.nextContributionDate ? contribution.nextContributionDate : new Date(),
+        contribution.endDate ? new Date(contribution.endDate) : new Date(),
         contribution.balance || 0,
-        contribution.categoryBalances || new Map<string, number>() 
+        contribution.categoryBalances || {} 
       ); 
 
-      // Return the updated contribution details
+
       return {
         contribution: contribution._id,
         user: user._id,
@@ -189,7 +181,7 @@ export const verifyContributionPayment = async (reference: string) => {
         endDate: contribution.endDate,
         status: contribution.status,
         nextContributionDate: contribution.nextContributionDate,
-        lastContributionDate: contribution.lastContributionDate,
+        lastContributionDate: contribution.endDate,
         _id: contribution._id,
         //@ts-ignore
         createdAt: contribution.createdAt,
@@ -208,8 +200,6 @@ export const verifyContributionPayment = async (reference: string) => {
 };
 
 
-
-// Function to process recurring contributions
 export const processRecurringContributions = async () => {
   const now = new Date();
   const contributions = await Contribution.find({
@@ -242,11 +232,10 @@ export const updateContributionService = async (id: ObjectId, payload: Partial<i
   const categoryBalances = contribution.categoryBalances || {};
 
   if (payload.savingsCategory && payload.amount) {
-    // Adjust old category balance
+
     const oldCategoryBalance = categoryBalances[contribution.savingsCategory] || 0;
     categoryBalances[contribution.savingsCategory] = oldCategoryBalance - contribution.amount;
 
-    // Adjust new category balance
     categoryBalances[payload.savingsCategory] = (categoryBalances[payload.savingsCategory] || 0) + payload.amount;
   }
 
@@ -305,7 +294,6 @@ export const createContributionHistoryService = async (
       categoryBalances,
     });
     
-    // Return the created history along with next and last dates
     return {
       contributionHistory,
       nextContributionDate,
@@ -330,8 +318,9 @@ export const updateContributionBankDetails = async (contributionId: ObjectId, ba
   );
 };
 
-export const calculateNextContributionDate = (frequency: string): Date => {
-  const date = new Date();
+export const calculateNextContributionDate = (startDate: Date, frequency: string): Date => {
+  const date = new Date(startDate);
+
   switch (frequency) {
     case "Daily":
       date.setDate(date.getDate() + 1);
@@ -345,5 +334,6 @@ export const calculateNextContributionDate = (frequency: string): Date => {
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
   }
+
   return date;
 };
