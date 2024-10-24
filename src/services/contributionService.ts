@@ -5,6 +5,7 @@ import { BadRequestError } from "../errors";
 import axios from "axios";
 import dotenv from "dotenv";
 import { findUser } from "./authService";
+import { EmailOptions, sendEmail } from "../utils/sendEmail"
 
 dotenv.config();
 
@@ -81,6 +82,20 @@ export const createContributionService = async (data: {
       }
     );
 
+    const emailOptions: EmailOptions = {
+      to: data.email,  
+      subject: "Payment Notification", 
+      text: "Please complete your payment.", 
+      html: `
+        <h3>Hello,</h3>
+      <p>Your contribution of ${data.amount} for ${data.savingsCategory} is due. Please complete your payment by following this link:</p>
+      <a href="${response.data.data.authorization_url}">Payment Link</a>
+      `,  // HTML message (optional)
+    };
+    
+    // Send email with the payment link
+    await sendEmail(emailOptions);
+
     return {
       contribution: contribution._id,
       user: data.user,
@@ -108,7 +123,6 @@ export const createContributionService = async (data: {
     );
   }
 };
-
 
 
 export const verifyContributionPayment = async (reference: string) => {
