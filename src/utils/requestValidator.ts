@@ -25,10 +25,6 @@ export const validateCreateContribution = (req: Request) => {
         throw new BadRequestError("End date is required");
     }
 
-    if (!pin) {
-        throw new BadRequestError("Pin is required");
-    }
-
 };
 
 export const registerValidator = (req: Request) => {
