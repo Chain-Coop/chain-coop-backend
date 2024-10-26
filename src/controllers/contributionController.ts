@@ -242,6 +242,7 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
     const { category } = req.params;
 
     try {
+        // Check if user is authenticated
         //@ts-ignore
         if (!req.user || !req.user.userId) {
             return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -251,22 +252,26 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
         //@ts-ignore
         const userId = req.user.userId;
 
-        const contributions = await Contribution.find({
+        // Fetch contributions from the database filtered by user and category
+        const contributions = await ContributionHistory.find({
             user: userId,
             savingsCategory: category,
         });
 
+        // Check if contributions exist
         if (!contributions || contributions.length === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 message: "No contributions found for this category.",
             });
         }
 
+        // Calculate the total balance from the contributions
         const totalBalance = contributions.reduce((sum, contribution) => {
             return sum + contribution.amount;
         }, 0);
 
-        const filteredContribution = contributions.reduce((prev, current) => {
+        // Find the contribution with the highest amount
+        const highestContribution = contributions.reduce((prev, current) => {
             return (prev.amount > current.amount) ? prev : current;
         });
 
@@ -275,19 +280,19 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
             totalBalance: totalBalance,
             contributions: [
                 {
-                    contribution: filteredContribution._id,
-                    user: filteredContribution.user,
-                    contributionPlan: filteredContribution.contributionPlan,
-                    savingsCategory: filteredContribution.savingsCategory,
-                    startDate: filteredContribution.startDate,
-                    endDate: filteredContribution.endDate,
-                    status: filteredContribution.status,
-                    nextContributionDate: filteredContribution.nextContributionDate,
-                    lastContributionDate: filteredContribution.lastContributionDate,
+                    contribution: highestContribution._id,
+                    user: highestContribution.user,
+                    contributionPlan: highestContribution.contributionPlan,
+                    savingsCategory: highestContribution.savingsCategory,
+                    startDate: highestContribution.startDate,
+                    endDate: highestContribution.endDate,
+                    status: highestContribution.status,
+                    nextContributionDate: highestContribution.nextContributionDate,
+                    lastContributionDate: highestContribution.lastContributionDate,
                     //@ts-ignore
-                    createdAt: filteredContribution.createdAt,
+                    createdAt: highestContribution.createdAt,
                     //@ts-ignore
-                    updatedAt: filteredContribution.updatedAt,
+                    updatedAt: highestContribution.updatedAt,
                 }
             ]
         };
@@ -301,3 +306,4 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
         });
     }
 };
+
