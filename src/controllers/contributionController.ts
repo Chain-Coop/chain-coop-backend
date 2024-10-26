@@ -4,7 +4,6 @@ import {
   createContributionHistoryService,
   findContributionHistoryService,
   calculateNextContributionDate,
-  findContributionService,
   processRecurringContributions,
   verifyContributionPayment,
 } from "../services/contributionService";
@@ -20,7 +19,7 @@ import { StatusCodes } from "http-status-codes";
 import { validateCreateContribution } from "../utils/requestValidator";
 import { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
-
+import ContributionHistory from "../models/contributionHistory";
 
 export interface iContribution {
   endDate: any | Date | undefined;
@@ -107,30 +106,36 @@ export const handleRecurringContributions = async () => {
 
 
 
-export const getContributionDetails = async (req: Request, res: Response) => {
+export const getTotalBalance = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
 
-    const contribution = await findContributionService({ user: userId });
+    const history = await ContributionHistory.find({ user: userId });
 
-    if (!contribution) {
-      return res.status(StatusCodes.OK).json({
-        balance: 0,
-        nextContributionDate: null,
-      });
-    }
+    const totalBalance = history.reduce((sum, contribution) => sum + contribution.amount, 0);
 
-    const { balance, nextContributionDate } = contribution;
+    res.status(200).json({ totalBalance });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching total contribution balance' });
+  }
+};
 
-    return res.status(StatusCodes.OK).json({
-      balance,
-      nextContributionDate,
+
+
+export const deleteAllContributions = async (req: Request, res: Response) => {
+  try {
+    await Contribution.deleteMany({});
+    await ContributionHistory.deleteMany({});
+
+    res.status(200).json({
+      message: "All contributions and contribution histories have been successfully deleted.",
     });
   } catch (error) {
-    console.error("Error fetching contribution details:", error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: "An unexpected error occurred while fetching contribution details.",
+    console.error("Error deleting all contributions and histories:", error);
+    res.status(500).json({
+      error: "An error occurred while deleting contributions and histories.",
     });
   }
 };
@@ -237,6 +242,7 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
     const { category } = req.params;
 
     try {
+        // Check if user is authenticated
         //@ts-ignore
         if (!req.user || !req.user.userId) {
             return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -246,22 +252,26 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
         //@ts-ignore
         const userId = req.user.userId;
 
-        const contributions = await Contribution.find({
+        // Fetch contributions from the database filtered by user and category
+        const contributions = await ContributionHistory.find({
             user: userId,
             savingsCategory: category,
         });
 
+        // Check if contributions exist
         if (!contributions || contributions.length === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 message: "No contributions found for this category.",
             });
         }
 
+        // Calculate the total balance from the contributions
         const totalBalance = contributions.reduce((sum, contribution) => {
             return sum + contribution.amount;
         }, 0);
 
-        const filteredContribution = contributions.reduce((prev, current) => {
+        // Find the contribution with the highest amount
+        const highestContribution = contributions.reduce((prev, current) => {
             return (prev.amount > current.amount) ? prev : current;
         });
 
@@ -270,19 +280,19 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
             totalBalance: totalBalance,
             contributions: [
                 {
-                    contribution: filteredContribution._id,
-                    user: filteredContribution.user,
-                    contributionPlan: filteredContribution.contributionPlan,
-                    savingsCategory: filteredContribution.savingsCategory,
-                    startDate: filteredContribution.startDate,
-                    endDate: filteredContribution.endDate,
-                    status: filteredContribution.status,
-                    nextContributionDate: filteredContribution.nextContributionDate,
-                    lastContributionDate: filteredContribution.lastContributionDate,
+                    contribution: highestContribution._id,
+                    user: highestContribution.user,
+                    contributionPlan: highestContribution.contributionPlan,
+                    savingsCategory: highestContribution.savingsCategory,
+                    startDate: highestContribution.startDate,
+                    endDate: highestContribution.endDate,
+                    status: highestContribution.status,
+                    nextContributionDate: highestContribution.nextContributionDate,
+                    lastContributionDate: highestContribution.lastContributionDate,
                     //@ts-ignore
-                    createdAt: filteredContribution.createdAt,
+                    createdAt: highestContribution.createdAt,
                     //@ts-ignore
-                    updatedAt: filteredContribution.updatedAt,
+                    updatedAt: highestContribution.updatedAt,
                 }
             ]
         };
@@ -296,3 +306,4 @@ export const getContributionsByCategory = async (req: Request, res: Response) =>
         });
     }
 };
+

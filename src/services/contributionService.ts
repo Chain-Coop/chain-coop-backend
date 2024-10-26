@@ -41,20 +41,9 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    const existingContribution = await Contribution.findOne({
-      user: data.user,
-      savingsCategory: data.savingsCategory,
-    });
-
-    let categoryBalances = existingContribution?.categoryBalances || {};
-    let totalBalance = existingContribution?.balance || 0;
-
-    categoryBalances[data.savingsCategory] = (categoryBalances[data.savingsCategory] || 0) + data.amount;
-    totalBalance += data.amount;
-
     const nextContributionDate = calculateNextContributionDate(data.startDate, data.contributionPlan);
 
-    // Create new contribution
+    // Create new contribution, without updating balance or categoryBalances yet
     const contribution = await Contribution.create({
       user: data.user,
       contributionPlan: data.contributionPlan,
@@ -62,28 +51,24 @@ export const createContributionService = async (data: {
       savingsCategory: data.savingsCategory,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
-      nextContributionDate, 
+      nextContributionDate,
       lastContributionDate: new Date(data.endDate),
-      categoryBalances, 
-      balance: totalBalance,
+      balance: 0, 
     });
 
     const response: any = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
-          email: data.email,
-          amount: data.amount * 100,
-          callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, 
+        email: data.email,
+        amount: data.amount * 100, // Amount in kobo
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, 
       },
       {
-          headers: {
-              Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-          },
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
       }
     );
-
-
-
     return {
       paymentUrl: response.data.data.authorization_url,
       reference: response.data.data.reference,
@@ -96,6 +81,7 @@ export const createContributionService = async (data: {
     );
   }
 };
+
 
 
 export const verifyContributionPayment = async (reference: string) => {
@@ -131,13 +117,10 @@ export const verifyContributionPayment = async (reference: string) => {
 
       contribution.status = "Completed";
       contribution.balance += amount / 100; 
-
       contribution.categoryBalances[contribution.savingsCategory] = 
         (contribution.categoryBalances[contribution.savingsCategory] || 0) + (amount / 100);
       
-      await contribution.save();
-
-      const frequency = contribution.contributionPlan; 
+      await contribution.save(); 
 
       await createContributionHistoryService(
         //@ts-ignore
@@ -146,16 +129,15 @@ export const verifyContributionPayment = async (reference: string) => {
         contribution.amount,
         contribution.contributionPlan,
         contribution.savingsCategory,
-        frequency, 
+        contribution.contributionPlan, 
         "Completed",
         contribution.startDate,
         contribution.endDate,
-        contribution.nextContributionDate ? contribution.nextContributionDate : new Date(),
-        contribution.endDate ? new Date(contribution.endDate) : new Date(),
+        contribution.nextContributionDate || new Date(),
+        contribution.endDate || new Date(),
         contribution.balance || 0,
         contribution.categoryBalances || {} 
       ); 
-
 
       return {
         contribution: contribution._id,
@@ -266,15 +248,7 @@ export const updateContributionService = async (id: ObjectId, payload: Partial<i
 };
 
 
-export const findContributionService = async ({
-  _id,
-  user,
-}: {
-  _id?: ObjectId;
-  user?: ObjectId;
-}) => {
-  return await Contribution.findOne({ user }).sort({ createdAt: -1 });
-};
+
 
 export const createContributionHistoryService = async (
   contributionId: string,
