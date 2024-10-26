@@ -85,23 +85,8 @@ export const createContributionService = async (data: {
 
 
     return {
-      contribution: contribution._id,
-      user: data.user,
-      contributionPlan: contribution.contributionPlan,
-      savingsCategory: contribution.savingsCategory,
-      amount: contribution.amount,
-      SavingsName: contribution.savingsCategory,
-      SavingsBalance: totalBalance,
-      startDate: contribution.startDate,
-      endDate: contribution.endDate,
-      status: contribution.status,
-      //@ts-ignore
-      createdAt: contribution.createdAt,
-      //@ts-ignore
-      updatedAt: contribution.updatedAt,
-      nextContributionDate: contribution.nextContributionDate,
-      lastContributionDate: contribution.lastContributionDate,
       paymentUrl: response.data.data.authorization_url,
+      reference: response.data.data.reference,
     };
 
   } catch (error: any) {
