@@ -4,7 +4,6 @@ import {
   createContributionHistoryService,
   findContributionHistoryService,
   calculateNextContributionDate,
-  findContributionService,
   processRecurringContributions,
   verifyContributionPayment,
 } from "../services/contributionService";
@@ -20,7 +19,7 @@ import { StatusCodes } from "http-status-codes";
 import { validateCreateContribution } from "../utils/requestValidator";
 import { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
-
+import ContributionHistory from "../models/contributionHistory";
 
 export interface iContribution {
   endDate: any | Date | undefined;
@@ -107,30 +106,36 @@ export const handleRecurringContributions = async () => {
 
 
 
-export const getContributionDetails = async (req: Request, res: Response) => {
+export const getTotalBalance = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
 
-    const contribution = await findContributionService({ user: userId });
+    const history = await ContributionHistory.find({ user: userId });
 
-    if (!contribution) {
-      return res.status(StatusCodes.OK).json({
-        balance: 0,
-        nextContributionDate: null,
-      });
-    }
+    const totalBalance = history.reduce((sum, contribution) => sum + contribution.amount, 0);
 
-    const { balance, nextContributionDate } = contribution;
+    res.status(200).json({ totalBalance });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching total contribution balance' });
+  }
+};
 
-    return res.status(StatusCodes.OK).json({
-      balance,
-      nextContributionDate,
+
+
+export const deleteAllContributions = async (req: Request, res: Response) => {
+  try {
+    await Contribution.deleteMany({});
+    await ContributionHistory.deleteMany({});
+
+    res.status(200).json({
+      message: "All contributions and contribution histories have been successfully deleted.",
     });
   } catch (error) {
-    console.error("Error fetching contribution details:", error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: "An unexpected error occurred while fetching contribution details.",
+    console.error("Error deleting all contributions and histories:", error);
+    res.status(500).json({
+      error: "An error occurred while deleting contributions and histories.",
     });
   }
 };
