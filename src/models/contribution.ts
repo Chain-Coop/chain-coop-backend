@@ -1,15 +1,14 @@
-// models/contribution.ts
 import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
   contributionPlan: string; 
-  savingsCategory: string;  
+  savingsCategory: string; 
   amount: number;
   startDate?: Date;
   endDate?: Date;
-  categoryBalances: Record<string, number>; // Change Map to Record
-  balance: number; // Total balance across all categories
+  categoryBalances: Record<string, number>; 
+  balance: number; 
   nextContributionDate?: Date;
   lastContributionDate?: Date;
   status: string;
@@ -29,8 +28,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
       required: true,
     },
     savingsCategory: {
-      type: String,
-      enum: ["House Rent", "School Fees", "Food", "Personal Need", "Car", "Others"],
+      type: String, 
       required: true,
     },
     amount: {

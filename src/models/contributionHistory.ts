@@ -12,7 +12,7 @@ export interface ContributionHistoryDocument extends Document {
   nextContributionDate: Date;
   lastContributionDate: Date;
   totalBalance: number;
-  categoryBalances: Map<string, number>;
+  categoryBalances: Record<string, number>; 
 }
 
 const contributionHistorySchema = new Schema<ContributionHistoryDocument>({
@@ -20,7 +20,7 @@ const contributionHistorySchema = new Schema<ContributionHistoryDocument>({
   user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   amount: { type: Number, required: true },
   contributionPlan: { type: String, required: true },
-  savingsCategory: { type: String, required: true },
+  savingsCategory: { type: String, required: true }, 
   status: { type: String, required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },

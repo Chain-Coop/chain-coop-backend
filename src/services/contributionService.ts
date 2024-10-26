@@ -43,7 +43,6 @@ export const createContributionService = async (data: {
   try {
     const nextContributionDate = calculateNextContributionDate(data.startDate, data.contributionPlan);
 
-    // Create new contribution, without updating balance or categoryBalances yet
     const contribution = await Contribution.create({
       user: data.user,
       contributionPlan: data.contributionPlan,
