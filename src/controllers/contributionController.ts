@@ -115,12 +115,13 @@ export const getTotalBalance = async (req: Request, res: Response) => {
 
     const totalBalance = history.reduce((sum, contribution) => sum + contribution.amount, 0);
 
-    res.status(200).json({ totalBalance });
+    res.status(StatusCodes.OK).json({ totalBalance });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error fetching total contribution balance' });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Error fetching total contribution balance' });
   }
 };
+
 
 
 
@@ -144,48 +145,47 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
+    const { page = 1, limit = 5 } = req.query; 
 
-    const history = await findContributionHistoryService(userId);
+    const allHistory = await ContributionHistory.find({ user: userId });
 
-    console.log("Contribution history:", history);
+    // calculate the total balance based on all contributions
+    const totalBalance = allHistory.reduce((sum, contribution) => sum + contribution.amount, 0);
 
-    const combinedHistory: { [key: string]: any } = {};
-    let totalBalance = 0;
+    const skip = (Number(page) - 1) * Number(limit);
+    const paginatedHistory = await ContributionHistory.find({ user: userId })
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ createdAt: -1 }); 
 
-    for (const contribution of history) {
+    console.log("Contribution history:", paginatedHistory);
+
+    const formattedHistory = paginatedHistory.map((contribution) => ({
+      historyEntryId: contribution._id,
+      contributionId: contribution.contribution,
+      user: contribution.user,
+      contributionPlan: contribution.contributionPlan,
+      savingsCategory: contribution.savingsCategory,
+      amount: contribution.amount,
+      startDate: contribution.startDate,
+      endDate: contribution.endDate,
+      status: contribution.status,
+      balance: contribution.totalBalance,
+      nextContributionDate: contribution.nextContributionDate,
+      lastContributionDate: contribution.lastContributionDate,
       //@ts-ignore
-      const category = contribution.savingsCategory;
+      createdAt: contribution.createdAt,
+      //@ts-ignore
+      updatedAt: contribution.updatedAt,
+    }));
 
-      if (!combinedHistory[category]) {
-        combinedHistory[category] = {
-          contribution: contribution._id,
-          user: contribution.user,
-          contributionPlan: contribution.contributionPlan,
-          savingsCategory: category,
-          SavingsName: category,
-          Balance: 0,
-          startDate: contribution.startDate,
-          endDate: contribution.endDate,
-          status: contribution.status,
-          nextContributionDate: contribution.nextContributionDate,
-          lastContributionDate: contribution.lastContributionDate,
-          //@ts-ignore
-          createdAt: contribution.createdAt,
-          //@ts-ignore
-          updatedAt: contribution.updatedAt,
-        };
-      }
-
-      combinedHistory[category].Balance += contribution.amount;
-      totalBalance += contribution.amount;
-    }
-
-    const formattedHistory = Object.values(combinedHistory);
-
+    // Construct the response object
     const response = {
       statusCode: StatusCodes.OK,
-      totalBalance, 
+      totalBalance,
       contributions: formattedHistory,
+      currentPage: Number(page),
+      totalPages: Math.ceil(allHistory.length / Number(limit)), 
     };
 
     res.status(StatusCodes.OK).json(response);
@@ -196,6 +196,9 @@ export const getContributionHistory = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
 
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
@@ -238,72 +241,58 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 };
 
 
-export const getContributionsByCategory = async (req: Request, res: Response) => {
-    const { category } = req.params;
+export const getContributionsById = async (req: Request, res: Response) => {
+  const { id } = req.params; // Change category to id
 
-    try {
-        // Check if user is authenticated
-        //@ts-ignore
-        if (!req.user || !req.user.userId) {
-            return res.status(StatusCodes.UNAUTHORIZED).json({
-                message: "Unauthorized: User not found.",
-            });
-        }
-        //@ts-ignore
-        const userId = req.user.userId;
+  try {
+      //@ts-ignore
+      if (!req.user || !req.user.userId) {
+          return res.status(StatusCodes.UNAUTHORIZED).json({
+              message: "Unauthorized: User not found.",
+          });
+      }
+      //@ts-ignore
+      const userId = req.user.userId;
 
-        // Fetch contributions from the database filtered by user and category
-        const contributions = await ContributionHistory.find({
-            user: userId,
-            savingsCategory: category,
-        });
+      const contribution = await Contribution.findOne({
+          user: userId,
+          _id: id, 
+      });
 
-        // Check if contributions exist
-        if (!contributions || contributions.length === 0) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                message: "No contributions found for this category.",
-            });
-        }
+      if (!contribution) {
+          return res.status(StatusCodes.NOT_FOUND).json({
+              message: "Contribution not found.",
+          });
+      }
 
-        // Calculate the total balance from the contributions
-        const totalBalance = contributions.reduce((sum, contribution) => {
-            return sum + contribution.amount;
-        }, 0);
+      const response = {
+          statusCode: StatusCodes.OK,
+          contribution: {
+              _id: contribution._id,
+              user: contribution.user,
+              contributionPlan: contribution.contributionPlan,
+              savingsCategory: contribution.savingsCategory,
+              startDate: contribution.startDate,
+              endDate: contribution.endDate,
+              status: contribution.status,
+              balance: contribution.balance,
+              nextContributionDate: contribution.nextContributionDate,
+              lastContributionDate: contribution.lastContributionDate,
+              //@ts-ignore
+              createdAt: contribution.createdAt,
+              //@ts-ignore
+              updatedAt: contribution.updatedAt,
+              amount: contribution.amount,
+          },
+      };
 
-        // Find the contribution with the highest amount
-        const highestContribution = contributions.reduce((prev, current) => {
-            return (prev.amount > current.amount) ? prev : current;
-        });
-
-        const response = {
-            statusCode: StatusCodes.OK,
-            totalBalance: totalBalance,
-            contributions: [
-                {
-                    contribution: highestContribution._id,
-                    user: highestContribution.user,
-                    contributionPlan: highestContribution.contributionPlan,
-                    savingsCategory: highestContribution.savingsCategory,
-                    startDate: highestContribution.startDate,
-                    endDate: highestContribution.endDate,
-                    status: highestContribution.status,
-                    nextContributionDate: highestContribution.nextContributionDate,
-                    lastContributionDate: highestContribution.lastContributionDate,
-                    //@ts-ignore
-                    createdAt: highestContribution.createdAt,
-                    //@ts-ignore
-                    updatedAt: highestContribution.updatedAt,
-                }
-            ]
-        };
-
-        // Return a 200 OK status with the response
-        return res.status(StatusCodes.OK).json(response);
-    } catch (error) {
-        console.error("Error fetching contributions by category:", error);
-        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            error: "An unexpected error occurred while fetching contributions.",
-        });
-    }
+      return res.status(StatusCodes.OK).json(response);
+  } catch (error) {
+      console.error("Error fetching contribution by ID:", error);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+          error: "An unexpected error occurred while fetching the contribution.",
+      });
+  }
 };
+
 
