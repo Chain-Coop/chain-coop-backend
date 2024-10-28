@@ -205,7 +205,7 @@ export const processRecurringContributions = async () => {
       {
         email: user.email,
         amount: contribution.amount * 100, 
-        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`, 
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`, 
       },
       {
         headers: {
