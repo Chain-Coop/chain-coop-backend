@@ -41,6 +41,8 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
+
+
     const nextContributionDate = calculateNextContributionDate(data.startDate, data.contributionPlan);
 
     const contribution = await Contribution.create({
@@ -52,15 +54,19 @@ export const createContributionService = async (data: {
       endDate: new Date(data.endDate),
       nextContributionDate,
       lastContributionDate: new Date(data.endDate),
-      balance: 0, 
+      balance: 0,
+      status: "Pending", 
     });
 
+    console.log("Created Contribution ID:", contribution._id);
+
+    // Initialize the payment
     const response: any = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
         email: data.email,
         amount: data.amount * 100, // Amount in kobo
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`, 
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`,
       },
       {
         headers: {
@@ -68,9 +74,11 @@ export const createContributionService = async (data: {
         },
       }
     );
+
     return {
       paymentUrl: response.data.data.authorization_url,
       reference: response.data.data.reference,
+      contributionId: contribution._id, 
     };
 
   } catch (error: any) {
@@ -80,7 +88,6 @@ export const createContributionService = async (data: {
     );
   }
 };
-
 
 
 export const verifyContributionPayment = async (reference: string) => {
@@ -106,7 +113,7 @@ export const verifyContributionPayment = async (reference: string) => {
 
       const contribution = await Contribution.findOne({
         user: user._id,
-        amount: amount / 100, 
+        amount: amount / 100,
         status: "Pending",
       });
 
@@ -114,27 +121,37 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("Contribution not found");
       }
 
+      const existingHistory = await ContributionHistory.findOne({
+        contribution: contribution._id,
+        user: user._id,
+        status: "Completed", 
+      });
+
+      if (existingHistory) {
+        throw new BadRequestError("Contribution history already exists for this payment");
+      }
+
       contribution.status = "Completed";
-      contribution.balance += amount / 100; 
+      contribution.balance += amount / 100;
       contribution.categoryBalances[contribution.savingsCategory] = 
         (contribution.categoryBalances[contribution.savingsCategory] || 0) + (amount / 100);
       
-      await contribution.save(); 
+      await contribution.save();
 
       await createContributionHistoryService(
         //@ts-ignore
-        contribution._id,
-        user._id,
-        contribution.amount,
-        contribution.contributionPlan,
-        contribution.savingsCategory,
-        contribution.contributionPlan, 
-        "Completed",
+        contribution._id,  
+        user._id,  
+        contribution.amount,  
+        contribution.contributionPlan,  
+        contribution.savingsCategory,  
+        contribution.contributionPlan,  
+        "Completed",  
         contribution.startDate,
-        contribution.endDate,
-        contribution.nextContributionDate || new Date(),
-        contribution.endDate || new Date(),
-        contribution.balance || 0,
+        contribution.endDate,   
+        contribution.nextContributionDate || new Date(), 
+        contribution.endDate || new Date(),  
+        contribution.balance || 0,  
         contribution.categoryBalances || {} 
       ); 
 
@@ -166,6 +183,7 @@ export const verifyContributionPayment = async (reference: string) => {
     );
   }
 };
+
 
 
 export const processRecurringContributions = async () => {
