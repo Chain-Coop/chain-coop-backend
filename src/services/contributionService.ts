@@ -184,58 +184,59 @@ export const verifyContributionPayment = async (reference: string) => {
   }
 };
 
-
-
 export const processRecurringContributions = async () => {
   const now = new Date();
+
+  // Find contributions due for processing
   const contributions = await Contribution.find({
     nextContributionDate: { $lte: now },
     status: "Successful",
   });
 
   for (const contribution of contributions) {
-    const user = await findUser("_id", contribution.user.toString()); 
+    const user = await findUser("_id", contribution.user.toString());
     if (!user) {
       console.error(`User not found for contribution: ${contribution._id}`);
       continue;
     }
 
-    const response: any = await axios.post(
-      `${PAYSTACK_BASE_URL}/transaction/initialize`,
-      {
-        email: user.email,
-        amount: contribution.amount * 100, 
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`, 
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+    try {
+      // Initialize payment for the recurring contribution
+      const response: any = await axios.post(
+        `${PAYSTACK_BASE_URL}/transaction/initialize`,
+        {
+          email: user.email,
+          amount: contribution.amount * 100, // Convert to kobo
+          callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`, // Adjust callback URL if needed
         },
-      }
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          },
+        }
+      );
 
-    const emailOptions: EmailOptions = {
-      to: user.email,
-      subject: "Payment Due: Complete Your Contribution",
-      text: `Your contribution of ${contribution.amount} for ${contribution.savingsCategory} is due. Please complete your payment.`,
-      html: `
-        <h3>Hello,</h3>
-        <p>Your contribution of ${contribution.amount} for the ${contribution.savingsCategory} category is now due. Please complete your payment using the link below:</p>
-        <a href="${response.data.data.authorization_url}">Complete Payment</a>
-      `,
-    };
-    
-    await sendEmail(emailOptions); 
+      // No email reminder is sent, but you may still want to log or perform other actions.
 
-    const nextContributionDate = contribution.nextContributionDate || new Date();
-    const newNextContributionDate = calculateNextContributionDate(nextContributionDate, contribution.contributionPlan);
-    contribution.nextContributionDate = newNextContributionDate;
-    contribution.lastContributionDate = now; 
-    await contribution.save();  
+      // Calculate the new next contribution date based on the contribution plan
+      const newNextContributionDate = calculateNextContributionDate(
+        contribution.nextContributionDate || new Date(),
+        contribution.contributionPlan
+      );
 
-    console.log(`Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`);
+      // Update contribution's dates
+      contribution.nextContributionDate = newNextContributionDate;
+      contribution.lastContributionDate = now;
+      await contribution.save();
+
+      console.log(`Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`);
+
+    } catch (error) {
+      console.error(`Failed to process contribution for user ${user.email}:`, error);
+    }
   }
 };
+
 
 
 export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
