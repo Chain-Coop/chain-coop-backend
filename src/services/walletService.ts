@@ -143,12 +143,15 @@ export const getUserFundedProjectsService = async (userId: string) => {
 };
 
 //Add New Card
-export const addCardService = async (userId: string, card: string) => {
+export const addCardService = async (userId: string, card: any) => {
   const wallet = await Wallet.findOne({ user: userId });
   if (!wallet) {
     throw new NotFoundError("Wallet not found");
   }
-  wallet.allCards?.push(card);
+  wallet.allCards?.push({
+    number: card.number,
+    authCode: card.authCode,
+  });
   await wallet.save();
   return wallet;
 };

@@ -12,7 +12,10 @@ export interface WalletDocument extends Document {
     bankCode: string;
   };
   fundedProjects: Array<fundedProject>;
-  allCards?: Array<String>;
+  allCards?: Array<{
+    number: string;
+    authCode: string;
+  }>;
 }
 
 export type fundedProject = {
@@ -48,9 +51,17 @@ const WalletSchema = new Schema<WalletDocument>(
         _id: false,
       },
     ],
-    allCards: {
-      type: [String],
-    },
+    allCards: [
+      {
+        number: {
+          type: String,
+        },
+        authCode: {
+          type: String,
+        },
+        _id: false,
+      },
+    ],
   },
   { timestamps: true }
 );

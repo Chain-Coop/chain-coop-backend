@@ -123,10 +123,10 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
       ) {
         const userId = paymentDetails.metadata.userId;
 
-        await addCardService(
-          userId,
-          paymentDetails.authorization.authorization_code
-        );
+        await addCardService(userId, {
+          authCode: paymentDetails.authorization.authorization_code,
+          number: paymentDetails.authorization.last4,
+        });
       }
 
       // Check if the user already has an active membership
