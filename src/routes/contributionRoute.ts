@@ -1,8 +1,17 @@
-import { Router, Request, Response } from 'express';
-import { createContribution, getContributionHistory, withdrawContribution, deleteAllContributions, getTotalBalance, verifyContribution, getContributionsById } from "../controllers/contributionController";
+import { Router, Request, Response } from "express";
+import {
+  createContribution,
+  getContributionHistory,
+  withdrawContribution,
+  deleteAllContributions,
+  getTotalBalance,
+  verifyContribution,
+  getContributionsById,
+  chargeCardforContribution,
+} from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
-import ContributionModel from '../models/contribution'; 
-import HistoryModel from '../models/contributionHistory';
+import ContributionModel from "../models/contribution";
+import HistoryModel from "../models/contributionHistory";
 
 const router = Router();
 
@@ -11,8 +20,10 @@ router.get("/history", authorize, getContributionHistory);
 router.get("/balance", authorize, getTotalBalance);
 router.post("/withdraw", authorize, withdrawContribution);
 router.get("/verify-contribution", verifyContribution);
-router.get('/category/:id', authorize, getContributionsById );
+router.get("/category/:id", authorize, getContributionsById);
 
-router.delete('/delete', deleteAllContributions);
+router.delete("/delete", deleteAllContributions);
+
+router.route("/pay-contribution").post(authorize, chargeCardforContribution);
 
 export default router;

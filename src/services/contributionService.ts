@@ -443,3 +443,7 @@ export const calculateNextContributionDate = (
 
   return date;
 };
+
+export const findContributionService = async (payload: any) => {
+  return await Contribution.findOne(payload).populate("user");
+};
