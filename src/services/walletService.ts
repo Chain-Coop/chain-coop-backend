@@ -155,3 +155,32 @@ export const addCardService = async (userId: string, card: any) => {
   await wallet.save();
   return wallet;
 };
+
+//Delete Card
+export const deleteCardService = async (userId: string, authCode: string) => {
+  const wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new NotFoundError("Wallet not found");
+  }
+  wallet.allCards = wallet.allCards?.filter(
+    (card) => card.authCode !== authCode
+  );
+  await wallet.save();
+  return wallet;
+};
+
+//Set Preferred Card
+export const setPreferredCardService = async (
+  userId: string,
+  authCode: string
+) => {
+  const wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new NotFoundError("Wallet not found");
+  }
+  wallet.allCards?.forEach((card) => {
+    card.isPreferred = card.authCode === authCode;
+  });
+  await wallet.save();
+  return wallet;
+};

@@ -15,6 +15,8 @@ export interface WalletDocument extends Document {
   allCards?: Array<{
     number: string;
     authCode: string;
+    isPreferred?: boolean;
+    failedAttempts?: number;
   }>;
 }
 
@@ -60,6 +62,14 @@ const WalletSchema = new Schema<WalletDocument>(
           type: String,
         },
         _id: false,
+        isPreferred: {
+          type: Boolean,
+          default: false,
+        },
+        failedAttempts: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
   },
