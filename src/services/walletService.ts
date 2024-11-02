@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BANK_VERIFICATION_URL = "https://api.paystack.co/bank/resolve";
+const PAYSTACK_BASE_URL = "https://api.paystack.co";
 
 export interface iWallet {
   balance?: number;
@@ -183,4 +184,28 @@ export const setPreferredCardService = async (
   });
   await wallet.save();
   return wallet;
+};
+
+//Charge Card
+export const chargeCardService = async (
+  authCode: string,
+  email: string,
+  amount: number
+) => {
+  const charge = await axios.post(
+    `${PAYSTACK_BASE_URL}/transaction/charge_authorization`,
+    {
+      authorization_code: authCode,
+      //@ts-ignore
+      email: email,
+      amount: amount * 100,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
+
+  return charge;
 };

@@ -5,7 +5,12 @@ import { BadRequestError } from "../errors";
 import axios from "axios";
 import dotenv from "dotenv";
 import { findUser } from "./authService";
-import { EmailOptions, sendEmail } from "../utils/sendEmail"
+import { EmailOptions, sendEmail } from "../utils/sendEmail";
+import {
+  addCardService,
+  chargeCardService,
+  findWalletService,
+} from "./walletService";
 
 dotenv.config();
 
@@ -27,7 +32,6 @@ export interface iContribution {
   lastContributionDate?: Date;
 }
 
-
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
@@ -41,9 +45,10 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-
-
-    const nextContributionDate = calculateNextContributionDate(data.startDate, data.contributionPlan);
+    const nextContributionDate = calculateNextContributionDate(
+      data.startDate,
+      data.contributionPlan
+    );
 
     const contribution = await Contribution.create({
       user: data.user,
@@ -55,7 +60,7 @@ export const createContributionService = async (data: {
       nextContributionDate,
       lastContributionDate: new Date(data.endDate),
       balance: 0,
-      status: "Pending", 
+      status: "Pending",
     });
 
     console.log("Created Contribution ID:", contribution._id);
@@ -78,9 +83,8 @@ export const createContributionService = async (data: {
     return {
       paymentUrl: response.data.data.authorization_url,
       reference: response.data.data.reference,
-      contributionId: contribution._id, 
+      contributionId: contribution._id,
     };
-
   } catch (error: any) {
     console.error("Error creating contribution and initiating payment:", error);
     throw new BadRequestError(
@@ -88,7 +92,6 @@ export const createContributionService = async (data: {
     );
   }
 };
-
 
 export const verifyContributionPayment = async (reference: string) => {
   try {
@@ -111,6 +114,11 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("User not found");
       }
 
+      await addCardService(user._id as string, {
+        number: paymentData.authorization.last4,
+        authCode: paymentData.authorization.authorization_code,
+      });
+
       const contribution = await Contribution.findOne({
         user: user._id,
         amount: amount / 100,
@@ -124,36 +132,39 @@ export const verifyContributionPayment = async (reference: string) => {
       const existingHistory = await ContributionHistory.findOne({
         contribution: contribution._id,
         user: user._id,
-        status: "Completed", 
+        status: "Completed",
       });
 
       if (existingHistory) {
-        throw new BadRequestError("Contribution history already exists for this payment");
+        throw new BadRequestError(
+          "Contribution history already exists for this payment"
+        );
       }
 
       contribution.status = "Completed";
       contribution.balance += amount / 100;
-      contribution.categoryBalances[contribution.savingsCategory] = 
-        (contribution.categoryBalances[contribution.savingsCategory] || 0) + (amount / 100);
-      
+      contribution.categoryBalances[contribution.savingsCategory] =
+        (contribution.categoryBalances[contribution.savingsCategory] || 0) +
+        amount / 100;
+
       await contribution.save();
 
       await createContributionHistoryService(
         //@ts-ignore
-        contribution._id,  
-        user._id,  
-        contribution.amount,  
-        contribution.contributionPlan,  
-        contribution.savingsCategory,  
-        contribution.contributionPlan,  
-        "Completed",  
+        contribution._id,
+        user._id,
+        contribution.amount,
+        contribution.contributionPlan,
+        contribution.savingsCategory,
+        contribution.contributionPlan,
+        "Completed",
         contribution.startDate,
-        contribution.endDate,   
-        contribution.nextContributionDate || new Date(), 
-        contribution.endDate || new Date(),  
-        contribution.balance || 0,  
-        contribution.categoryBalances || {} 
-      ); 
+        contribution.endDate,
+        contribution.nextContributionDate || new Date(),
+        contribution.endDate || new Date(),
+        contribution.balance || 0,
+        contribution.categoryBalances || {}
+      );
 
       return {
         contribution: contribution._id,
@@ -184,8 +195,6 @@ export const verifyContributionPayment = async (reference: string) => {
   }
 };
 
-
-
 export const processRecurringContributions = async () => {
   const now = new Date();
   const contributions = await Contribution.find({
@@ -194,7 +203,7 @@ export const processRecurringContributions = async () => {
   });
 
   for (const contribution of contributions) {
-    const user = await findUser("_id", contribution.user.toString()); 
+    const user = await findUser("_id", contribution.user.toString());
     if (!user) {
       console.error(`User not found for contribution: ${contribution._id}`);
       continue;
@@ -204,8 +213,8 @@ export const processRecurringContributions = async () => {
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
         email: user.email,
-        amount: contribution.amount * 100, 
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`, 
+        amount: contribution.amount * 100,
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
       },
       {
         headers: {
@@ -224,48 +233,133 @@ export const processRecurringContributions = async () => {
         <a href="${response.data.data.authorization_url}">Complete Payment</a>
       `,
     };
-    
-    await sendEmail(emailOptions); 
 
-    const nextContributionDate = contribution.nextContributionDate || new Date();
-    const newNextContributionDate = calculateNextContributionDate(nextContributionDate, contribution.contributionPlan);
+    await sendEmail(emailOptions);
+
+    const nextContributionDate =
+      contribution.nextContributionDate || new Date();
+    const newNextContributionDate = calculateNextContributionDate(
+      nextContributionDate,
+      contribution.contributionPlan
+    );
     contribution.nextContributionDate = newNextContributionDate;
-    contribution.lastContributionDate = now; 
-    await contribution.save();  
+    contribution.lastContributionDate = now;
+    await contribution.save();
 
-    console.log(`Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`);
+    console.log(
+      `Processed recurring contribution for user ${user.email}. Next due date: ${newNextContributionDate}`
+    );
   }
 };
 
+export const tryRecurringContributions = async () => {
+  const contributions = await Contribution.find({
+    status: "Completed",
+    endDate: { $gte: new Date() },
+    nextContributionDate: { $lt: new Date() },
+  }).populate("user");
 
-export const updateContributionService = async (id: ObjectId, payload: Partial<iContribution>) => {
+  for (let contribution of contributions) {
+    const user = contribution.user;
+    //@ts-ignore
+    const wallet = await findWalletService({ user: user._id });
+
+    if (wallet?.allCards?.length) {
+      const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
+      const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
+      if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
+        continue;
+      }
+
+      const charge = (await chargeCardService(
+        usableCard.authCode,
+        //@ts-ignore
+        user.email,
+        contribution.amount
+      )) as {
+        data: any;
+      };
+      //@ts-ignore
+      if (charge.data.data.status === "success") {
+        contribution.lastContributionDate = new Date();
+
+        contribution.nextContributionDate = calculateNextContributionDate(
+          new Date(),
+          contribution.contributionPlan
+        );
+
+        contribution.balance += contribution.amount;
+
+        //Create contribution history
+        await createContributionHistoryService(
+          //@ts-ignore
+          contribution._id,
+          //@ts-ignore
+          user._id,
+          contribution.amount,
+          contribution.contributionPlan,
+          contribution.savingsCategory,
+          contribution.contributionPlan,
+          "Completed",
+          contribution.startDate,
+          contribution.endDate,
+          contribution.nextContributionDate || new Date(),
+          contribution.endDate || new Date(),
+          contribution.balance || 0,
+          contribution.categoryBalances || {}
+        );
+
+        await contribution.save();
+      } else {
+        //Increment used card failed count
+        usableCard.failedAttempts
+          ? usableCard.failedAttempts++
+          : (usableCard.failedAttempts = 1);
+        wallet.markModified("allCards");
+
+        await wallet.save();
+      }
+    }
+  }
+};
+
+export const updateContributionService = async (
+  id: ObjectId,
+  payload: Partial<iContribution>
+) => {
   const contribution = await Contribution.findById(id);
-  if (!contribution) throw new Error('Contribution not found');
+  if (!contribution) throw new Error("Contribution not found");
 
   const categoryBalances = contribution.categoryBalances || {};
 
   if (payload.savingsCategory && payload.amount) {
+    const oldCategoryBalance =
+      categoryBalances[contribution.savingsCategory] || 0;
+    categoryBalances[contribution.savingsCategory] =
+      oldCategoryBalance - contribution.amount;
 
-    const oldCategoryBalance = categoryBalances[contribution.savingsCategory] || 0;
-    categoryBalances[contribution.savingsCategory] = oldCategoryBalance - contribution.amount;
-
-    categoryBalances[payload.savingsCategory] = (categoryBalances[payload.savingsCategory] || 0) + payload.amount;
+    categoryBalances[payload.savingsCategory] =
+      (categoryBalances[payload.savingsCategory] || 0) + payload.amount;
   }
 
-  const newTotalBalance = Object.values(categoryBalances).reduce((acc, balance) => acc + balance, 0);
+  const newTotalBalance = Object.values(categoryBalances).reduce(
+    (acc, balance) => acc + balance,
+    0
+  );
 
-  return await Contribution.findByIdAndUpdate(id, {
-    ...payload,
-    categoryBalances, 
-    balance: newTotalBalance,
-  }, {
-    new: true,
-    runValidators: true,
-  });
+  return await Contribution.findByIdAndUpdate(
+    id,
+    {
+      ...payload,
+      categoryBalances,
+      balance: newTotalBalance,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 };
-
-
-
 
 export const createContributionHistoryService = async (
   contributionId: string,
@@ -280,7 +374,7 @@ export const createContributionHistoryService = async (
   nextContributionDate: Date,
   lastContributionDate: Date,
   totalBalance: number,
-  categoryBalances: Record<string, number> 
+  categoryBalances: Record<string, number>
 ) => {
   try {
     const contributionHistory = await ContributionHistory.create({
@@ -298,24 +392,28 @@ export const createContributionHistoryService = async (
       totalBalance,
       categoryBalances,
     });
-    
+
     return {
       contributionHistory,
       nextContributionDate,
       lastContributionDate,
     };
   } catch (error) {
-    console.error('Error creating contribution history:', error);
-    throw new Error('Failed to create contribution history');
+    console.error("Error creating contribution history:", error);
+    throw new Error("Failed to create contribution history");
   }
 };
 
-
 export const findContributionHistoryService = async (userId: ObjectId) => {
-  return await ContributionHistory.find({ user: userId }).sort({ createdAt: -1 });
+  return await ContributionHistory.find({ user: userId }).sort({
+    createdAt: -1,
+  });
 };
 
-export const updateContributionBankDetails = async (contributionId: ObjectId, bankDetails: { accountNumber: string, bankCode: string }) => {
+export const updateContributionBankDetails = async (
+  contributionId: ObjectId,
+  bankDetails: { accountNumber: string; bankCode: string }
+) => {
   return await Contribution.findByIdAndUpdate(
     contributionId,
     { bankDetails },
@@ -323,7 +421,10 @@ export const updateContributionBankDetails = async (contributionId: ObjectId, ba
   );
 };
 
-export const calculateNextContributionDate = (startDate: Date, frequency: string): Date => {
+export const calculateNextContributionDate = (
+  startDate: Date,
+  frequency: string
+): Date => {
   const date = new Date(startDate);
 
   switch (frequency) {
