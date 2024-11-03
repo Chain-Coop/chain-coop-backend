@@ -256,6 +256,7 @@ export const tryRecurringContributions = async () => {
   const contributions = await Contribution.find({
     status: "Completed",
     endDate: { $gte: new Date() },
+    startDate: { $lte: new Date() },
     nextContributionDate: { $lt: new Date() },
   }).populate("user");
 
