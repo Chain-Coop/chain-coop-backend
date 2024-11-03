@@ -1,15 +1,17 @@
 import { Router } from "express";
 import {
-	getWalletBalance,
-	getWalletHistory,
-	// paystackWebhook,
-	setWalletPin,
-	uploadReceipt,
-	fundWallet,
-	initiatePayment,
-	verifyPayment,
-	ChangePin,
-	GeneratePinOtp
+  getWalletBalance,
+  getWalletHistory,
+  // paystackWebhook,
+  setWalletPin,
+  uploadReceipt,
+  fundWallet,
+  initiatePayment,
+  verifyPayment,
+  ChangePin,
+  GeneratePinOtp,
+  setPreferredCard,
+  DeleteCard,
 } from "../controllers/walletController";
 import { authorize } from "../middlewares/authorization";
 
@@ -25,4 +27,9 @@ router.post("/generate-pin-otp", authorize, GeneratePinOtp);
 router.post("/change-pin", authorize, ChangePin);
 
 router.post("/fund-wallet", authorize, fundWallet);
+
+router
+  .route("/cards")
+  .post(authorize, setPreferredCard)
+  .delete(authorize, DeleteCard);
 export default router;
