@@ -10,6 +10,7 @@ import {
   getUserContributionStrictFieldsService,
   getHistoryLengthService,
   getContributionHistoryService,
+  getUserContributionsLengthService,
 } from "../services/contributionService";
 import {
   chargeCardService,
@@ -390,10 +391,22 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
+    const { page = 1, limit = 5 } = req.query;
 
-    const contributions = await getAllUserContributionsService(userId);
+    const skip = (Number(page) - 1) * Number(limit);
+    const conLength = await getUserContributionsLengthService(userId);
 
-    res.status(StatusCodes.OK).json({ contributions });
+    const contributions = await getAllUserContributionsService(
+      userId,
+      Number(limit),
+      skip
+    );
+
+    const totalPages = Math.ceil(conLength / Number(limit));
+
+    res
+      .status(StatusCodes.OK)
+      .json({ contributions: contributions, totalPages, currentPage: page });
   } catch (error) {
     console.error("Error fetching user contributions:", error);
     res
