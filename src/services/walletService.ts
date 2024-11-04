@@ -192,20 +192,24 @@ export const chargeCardService = async (
   email: string,
   amount: number
 ) => {
-  const charge = await axios.post(
-    `${PAYSTACK_BASE_URL}/transaction/charge_authorization`,
-    {
-      authorization_code: authCode,
-      //@ts-ignore
-      email: email,
-      amount: amount * 100,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+  try {
+    const charge = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/charge_authorization`,
+      {
+        authorization_code: authCode,
+        //@ts-ignore
+        email: email,
+        amount: amount * 100,
       },
-    }
-  );
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
 
-  return charge;
+    return charge;
+  } catch (error) {
+    return error;
+  }
 };

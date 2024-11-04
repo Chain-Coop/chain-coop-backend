@@ -1,22 +1,22 @@
 import { Router, Request, Response } from "express";
 import {
   createContribution,
-  getContributionHistory,
   withdrawContribution,
   deleteAllContributions,
   getTotalBalance,
   verifyContribution,
   getContributionsById,
   chargeCardforContribution,
+  newgetContributionHistory,
+  getUserContributions,
 } from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
-import ContributionModel from "../models/contribution";
-import HistoryModel from "../models/contributionHistory";
 
 const router = Router();
 
 router.post("/contribute", authorize, createContribution);
-router.get("/history", authorize, getContributionHistory);
+router.get("/contribute", authorize, getUserContributions);
+router.get("/history", authorize, newgetContributionHistory);
 router.get("/balance", authorize, getTotalBalance);
 router.post("/withdraw", authorize, withdrawContribution);
 router.get("/verify-contribution", verifyContribution);
