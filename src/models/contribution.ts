@@ -11,6 +11,7 @@ export interface ContributionDocument extends Document {
   balance: number; 
   nextContributionDate?: Date;
   lastContributionDate?: Date;
+  withdrawalDate?: Date; 
   status: string;
   paymentReference?: string;
 }
@@ -59,6 +60,9 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     lastContributionDate: {
       type: Date,
+    },
+    withdrawalDate: { 
+      type: Date 
     },
     status: {
       type: String,
