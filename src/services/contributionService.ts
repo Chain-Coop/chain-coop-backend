@@ -341,8 +341,16 @@ export const findContributionService = async (payload: any) => {
   return await Contribution.findOne(payload).populate("user");
 };
 
-export const getAllUserContributionsService = async (userId: ObjectId) => {
-  return await Contribution.find({ user: userId });
+export const getAllUserContributionsService = async (
+  userId: ObjectId,
+  limit = 0,
+  skip = 0
+) => {
+  return await Contribution.find({ user: userId }).limit(limit).skip(skip);
+};
+
+export const getUserContributionsLengthService = async (userId: ObjectId) => {
+  return await Contribution.countDocuments({ user: userId });
 };
 
 export const getUserContributionStrictFieldsService = async (
