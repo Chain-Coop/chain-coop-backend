@@ -386,7 +386,6 @@ export const chargeCardforContribution = async (
     message: "Payment successful. Contribution has been made.",
   });
 };
-
 export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore

@@ -111,8 +111,8 @@ export const verifyContributionPayment = async (reference: string) => {
     const response: any = await axios.get(
       `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
       {
-        headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        headers: {  
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, 
         },
       }
     );
