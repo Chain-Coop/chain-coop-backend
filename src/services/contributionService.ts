@@ -116,6 +116,7 @@ export const verifyContributionPayment = async (reference: string) => {
         },
       }
     );
+    console.log("Payment verification response:", response.data.data);
 
     const paymentData = response.data.data;
 
@@ -344,8 +345,27 @@ export const getAllUserContributionsService = async (userId: ObjectId) => {
   return await Contribution.find({ user: userId });
 };
 
-export const getContributionHistoryService = async (
-  contributionId: ObjectId
+export const getUserContributionStrictFieldsService = async (
+  userId: string,
+  fields: string[]
 ) => {
-  return await ContributionHistory.find({ contribution: contributionId });
+  return await Contribution.find({ user: userId })
+    .select(fields.join(" "))
+    .lean();
+};
+
+export const getContributionHistoryService = async (
+  contributionId: string,
+  limit: number,
+  skip: number
+) => {
+  return await ContributionHistory.find({ contribution: contributionId })
+    .limit(limit)
+    .skip(skip);
+};
+
+export const getHistoryLengthService = async (contributionId: string) => {
+  return await ContributionHistory.countDocuments({
+    contribution: contributionId,
+  });
 };

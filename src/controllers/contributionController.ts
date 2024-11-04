@@ -7,6 +7,9 @@ import {
   findContributionService,
   getAllUserContributionsService,
   findContributionHistoryService,
+  getUserContributionStrictFieldsService,
+  getHistoryLengthService,
+  getContributionHistoryService,
 } from "../services/contributionService";
 import {
   chargeCardService,
@@ -116,7 +119,9 @@ export const getTotalBalance = async (req: Request, res: Response) => {
     //@ts-ignore
     const userId = req.user.userId;
 
-    const contributions = await getAllUserContributionsService(userId);
+    const contributions = await getUserContributionStrictFieldsService(userId, [
+      "balance",
+    ]);
 
     const totalBalance = contributions.reduce(
       (sum, contribution) => sum + (contribution.balance as number),
@@ -209,17 +214,46 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   }
 };
 
+export const newgetContributionHistory = async (
+  req: Request,
+  res: Response
+) => {
+  const { page = 1, limit = 5, contributionId } = req.query;
+  if (!contributionId) {
+    throw new BadRequestError("Contribution ID is required");
+  }
+  const historyLength = await getHistoryLengthService(contributionId as string);
+
+  if (typeof limit !== "number") {
+    throw new BadRequestError("Limit must be a number");
+  }
+  const skip = (Number(page) - 1) * limit;
+
+  const history = await getContributionHistoryService(
+    contributionId as string,
+    limit,
+    skip
+  );
+
+  const totalPages = Math.ceil(historyLength / limit);
+
+  res.status(StatusCodes.OK).json({
+    history,
+    totalPages,
+    currentPage: page,
+  });
+};
+
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
   const wallet = await findWalletService({ user: req.user.userId });
+  const { amount, contributionId } = req.body;
   //@ts-ignore
-  const contribution = await findContributionService({ user: req.user.userId });
+  const contribution = await findContributionService({ _id: contributionId });
 
   if (!wallet || !contribution) {
     throw new NotFoundError("Wallet not found");
   }
-
-  const { amount } = req.body;
 
   if (contribution.balance < amount || amount <= 0) {
     throw new BadRequestError("Insufficient funds in wallet");
@@ -238,6 +272,15 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   };
 
   await createWalletHistoryService(historyPayload);
+  await createContributionHistoryService({
+    contribution: contributionId,
+    user: contribution.user,
+    amount,
+    Date: new Date(),
+    type: "debit",
+    balance: contribution.balance,
+    status: "success",
+  });
 
   await contribution.save();
   await wallet.save();
@@ -274,23 +317,7 @@ export const getContributionsById = async (req: Request, res: Response) => {
 
     const response = {
       statusCode: StatusCodes.OK,
-      contribution: {
-        _id: contribution._id,
-        user: contribution.user,
-        contributionPlan: contribution.contributionPlan,
-        savingsCategory: contribution.savingsCategory,
-        startDate: contribution.startDate,
-        endDate: contribution.endDate,
-        status: contribution.status,
-        balance: contribution.balance,
-        nextContributionDate: contribution.nextContributionDate,
-        lastContributionDate: contribution.lastContributionDate,
-        //@ts-ignore
-        createdAt: contribution.createdAt,
-        //@ts-ignore
-        updatedAt: contribution.updatedAt,
-        amount: contribution.amount,
-      },
+      contribution: contribution,
     };
 
     return res.status(StatusCodes.OK).json(response);
@@ -341,23 +368,15 @@ export const chargeCardforContribution = async (
   );
   contribution.balance += contribution.amount;
 
-  await createContributionHistoryService(
-    //@ts-ignore
-    contribution._id,
-    //@ts-ignore
-    contribution.user,
-    contribution.amount,
-    contribution.contributionPlan,
-    contribution.savingsCategory,
-    contribution.contributionPlan,
-    contribution.status,
-    contribution.startDate,
-    contribution.endDate,
-    contribution.nextContributionDate,
-    contribution.endDate,
-    contribution.balance,
-    contribution.categoryBalances
-  );
+  await createContributionHistoryService({
+    contribution: contributionId,
+    user: contribution.user,
+    amount: contribution.amount,
+    Date: new Date(),
+    type: "credit",
+    balance: contribution.balance,
+    status: "success",
+  });
 
   await contribution.save();
 
@@ -365,4 +384,20 @@ export const chargeCardforContribution = async (
     statusCode: StatusCodes.OK,
     message: "Payment successful. Contribution has been made.",
   });
+};
+
+export const getUserContributions = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    const contributions = await getAllUserContributionsService(userId);
+
+    res.status(StatusCodes.OK).json({ contributions });
+  } catch (error) {
+    console.error("Error fetching user contributions:", error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Error fetching user contributions" });
+  }
 };
