@@ -40,6 +40,7 @@ export interface iContributionHistory {
   type: string;
   balance: number;
   status: string;
+  withdrawalDate?: Date; 
 }
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
@@ -60,6 +61,10 @@ export const createContributionService = async (data: {
       data.contributionPlan
     );
 
+        // the withdrawal date (1 day after the end date)
+        const withdrawalDate = new Date(data.endDate);
+        withdrawalDate.setDate(withdrawalDate.getDate() + 1);
+
     const contribution = await Contribution.create({
       user: data.user,
       contributionPlan: data.contributionPlan,
@@ -69,6 +74,7 @@ export const createContributionService = async (data: {
       endDate: new Date(data.endDate),
       nextContributionDate,
       lastContributionDate: new Date(data.endDate),
+      withdrawalDate, 
       balance: 0,
       status: "Pending",
     });
@@ -97,6 +103,7 @@ export const createContributionService = async (data: {
       paymentUrl: response.data.data.authorization_url,
       reference: response.data.data.reference,
       contributionId: contribution._id,
+      withdrawalDate,
     };
   } catch (error: any) {
     console.error("Error creating contribution and initiating payment:", error);
@@ -286,7 +293,16 @@ export const createContributionHistoryService = async (
   payload: iContributionHistory
 ) => {
   try {
-    const contributionHistory = await ContributionHistory.create(payload);
+
+    const contribution = await Contribution.findById(payload.contribution);
+    if (!contribution) {
+      throw new Error("Contribution not found");
+    }
+
+    const contributionHistory = await ContributionHistory.create({
+      ...payload,
+      withdrawalDate: contribution.withdrawalDate,
+    });
 
     return contributionHistory;
   } catch (error) {
@@ -294,6 +310,7 @@ export const createContributionHistoryService = async (
     throw new Error("Failed to create contribution history");
   }
 };
+
 
 export const findContributionHistoryService = async (
   contributionId: string
