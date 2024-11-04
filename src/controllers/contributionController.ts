@@ -2,23 +2,20 @@ import { Request, Response } from "express";
 import {
   createContributionService,
   createContributionHistoryService,
-  findContributionHistoryService,
   calculateNextContributionDate,
-  processRecurringContributions,
   verifyContributionPayment,
   findContributionService,
+  getAllUserContributionsService,
+  findContributionHistoryService,
 } from "../services/contributionService";
 import {
   chargeCardService,
   createWalletHistoryService,
   findWalletService,
   iWalletHistory,
-  updateWalletService,
-  validateWalletPin,
 } from "../services/walletService";
 import { BadRequestError, NotFoundError } from "../errors";
 import { StatusCodes } from "http-status-codes";
-import { validateCreateContribution } from "../utils/requestValidator";
 import { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
@@ -114,23 +111,15 @@ export const verifyContribution = async (req: Request, res: Response) => {
   }
 };
 
-export const handleRecurringContributions = async () => {
-  try {
-    await processRecurringContributions();
-  } catch (error) {
-    console.error("Error processing recurring contributions:", error);
-  }
-};
-
 export const getTotalBalance = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
 
-    const history = await ContributionHistory.find({ user: userId });
+    const contributions = await getAllUserContributionsService(userId);
 
-    const totalBalance = history.reduce(
-      (sum, contribution) => sum + contribution.amount,
+    const totalBalance = contributions.reduce(
+      (sum, contribution) => sum + (contribution.balance as number),
       0
     );
 
@@ -164,9 +153,17 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 1, limit = 5, contributionId } = req.query;
 
-    const allHistory = await ContributionHistory.find({ user: userId });
+    if (!contributionId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Contribution ID is required.",
+      });
+    }
+
+    const allHistory = await findContributionHistoryService(
+      contributionId as string
+    );
 
     // calculate the total balance based on all contributions
     const totalBalance = allHistory.reduce(
@@ -186,19 +183,11 @@ export const getContributionHistory = async (req: Request, res: Response) => {
       historyEntryId: contribution._id,
       contributionId: contribution.contribution,
       user: contribution.user,
-      contributionPlan: contribution.contributionPlan,
-      savingsCategory: contribution.savingsCategory,
       amount: contribution.amount,
-      startDate: contribution.startDate,
-      endDate: contribution.endDate,
+      Date: contribution.Date,
+      type: contribution.type,
+      balance: contribution.balance,
       status: contribution.status,
-      balance: contribution.totalBalance,
-      nextContributionDate: contribution.nextContributionDate,
-      lastContributionDate: contribution.lastContributionDate,
-      //@ts-ignore
-      createdAt: contribution.createdAt,
-      //@ts-ignore
-      updatedAt: contribution.updatedAt,
     }));
 
     // Construct the response object
