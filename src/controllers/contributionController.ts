@@ -251,47 +251,40 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
   const contribution = await findContributionService({ _id: contributionId });
 
-  // Ensure wallet and contribution exist
   if (!wallet || !contribution) {
     throw new NotFoundError("Wallet or Contribution not found");
   }
 
-  // Check for minimum withdrawal amount
   if (amount < 2000) {
     throw new BadRequestError("Minimum withdrawal amount is 2000 Naira");
   }
 
-  // Ensure endDate is defined
-  if (!contribution.endDate) {
+  if (!contribution.withdrawalDate) {
     throw new BadRequestError("Contribution end date is not defined");
   }
 
   const currentDate = new Date();
-  const endDate = new Date(contribution.endDate); // Now we can safely create the Date object
+  const endDate = new Date(contribution.withdrawalDate); 
 
   let totalAmountToWithdraw = amount;
 
   if (currentDate < endDate) {
-    totalAmountToWithdraw += 2000; // Add penalty for early withdrawal
+    totalAmountToWithdraw += 2000; 
   }
 
-  // Check if sufficient balance is available
   if (contribution.balance < totalAmountToWithdraw) {
     throw new BadRequestError("Insufficient funds in contribution balance");
   }
 
-  // Deduct the withdrawal fee
-  totalAmountToWithdraw += 50; // Add withdrawal fee
+  totalAmountToWithdraw += 50; 
 
-  // Deduct membership fee for first withdrawal
-  const hasWithdrawnBefore = contribution.balance > 0; // Assuming first withdrawal means balance is 0
+  const hasWithdrawnBefore = contribution.balance > 0; 
   if (!hasWithdrawnBefore) {
-    totalAmountToWithdraw += 1000; // Add membership fee
+    totalAmountToWithdraw += 1000; 
   }
 
-  // Update contribution and wallet balances
   contribution.balance -= totalAmountToWithdraw;
-  wallet.balance += amount; // Credit user's wallet with requested withdrawal amount
+  wallet.balance += amount; 
 
   const historyPayload: iWalletHistory = {
     amount,
@@ -306,7 +299,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   await createContributionHistoryService({
     contribution: contributionId,
     user: contribution.user,
-    amount: totalAmountToWithdraw, // Log total amount deducted from contribution
+    amount: totalAmountToWithdraw, 
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
@@ -324,7 +317,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
 
 export const getContributionsById = async (req: Request, res: Response) => {
-  const { id } = req.params; // Change category to id
+  const { id } = req.params; 
 
   try {
     //@ts-ignore
