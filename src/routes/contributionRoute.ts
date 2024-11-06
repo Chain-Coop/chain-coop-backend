@@ -8,7 +8,7 @@ import {
   getContributionsById,
   chargeCardforContribution,
   newgetContributionHistory,
-  getUserContributions,
+  getUserContributions
 } from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
 
@@ -21,9 +21,6 @@ router.get("/balance", authorize, getTotalBalance);
 router.post("/withdraw", authorize, withdrawContribution);
 router.get("/verify-contribution", verifyContribution);
 router.get("/category/:id", authorize, getContributionsById);
-
 router.delete("/delete", deleteAllContributions);
-
 router.route("/pay-contribution").post(authorize, chargeCardforContribution);
-
 export default router;
