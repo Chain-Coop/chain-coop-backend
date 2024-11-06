@@ -214,35 +214,59 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   }
 };
 
-export const newgetContributionHistory = async (
-  req: Request,
-  res: Response
-) => {
+export const newgetContributionHistory = async (req: Request, res: Response) => {
   const { page = 1, limit = 5, contributionId } = req.query;
+
   if (!contributionId) {
     throw new BadRequestError("Contribution ID is required");
   }
-  const historyLength = await getHistoryLengthService(contributionId as string);
 
-  if (typeof limit !== "number") {
-    throw new BadRequestError("Limit must be a number");
+  try {
+    // Get contribution details using contributionId
+    const contribution = await findContributionService({ _id: contributionId as string });
+    if (!contribution) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Contribution not found",
+      });
+    }
+
+    // Get the overall balance, next contribution date, and withdrawal date from the contribution
+    const { balance, startDate, nextContributionDate, withdrawalDate } = contribution;
+
+    // Fetch the total history length and validate limit type
+    const historyLength = await getHistoryLengthService(contributionId as string);
+    if (typeof limit !== "number") {
+      throw new BadRequestError("Limit must be a number");
+    }
+    const skip = (Number(page) - 1) * limit;
+
+    // Fetch paginated history entries
+    const history = await getContributionHistoryService(
+      contributionId as string,
+      limit,
+      skip
+    );
+
+    // Calculate total pages for pagination
+    const totalPages = Math.ceil(historyLength / limit);
+
+    res.status(StatusCodes.OK).json({
+      balance,           
+      startDate,  
+      nextContributionDate,   
+      withdrawalDate,   
+      history,
+      totalPages,
+      currentPage: page,
+    });
+  } catch (error) {
+    console.error("Error fetching contribution history:", error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An unexpected error occurred while fetching contribution history.",
+    });
   }
-  const skip = (Number(page) - 1) * limit;
-
-  const history = await getContributionHistoryService(
-    contributionId as string,
-    limit,
-    skip
-  );
-
-  const totalPages = Math.ceil(historyLength / limit);
-
-  res.status(StatusCodes.OK).json({
-    history,
-    totalPages,
-    currentPage: page,
-  });
 };
+
 
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
@@ -437,3 +461,4 @@ export const getUserContributions = async (req: Request, res: Response) => {
       .json({ message: "Error fetching user contributions" });
   }
 };
+
