@@ -277,10 +277,16 @@ export const collectBankDetailsHandler = async (
 export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
   try {
     const { accountNumber, bankCode } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId; // Get the userId from the request
+
+    // Pass userId along with accountNumber and bankCode to the service
     const verificationResult = await verifyBankDetailsService(
       accountNumber,
-      bankCode
+      bankCode,
+      userId 
     );
+
     res
       .status(StatusCodes.OK)
       .json({ msg: "Bank details verified", result: verificationResult });

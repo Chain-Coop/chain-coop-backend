@@ -1,5 +1,6 @@
 import Withdrawal from '../models/withdrawal';
-import { BadRequestError } from '../errors';
+import Wallet from '../models/wallet';
+import { BadRequestError, NotFoundError } from '../errors';
 
 export const createWithdrawalRequest = async (userId: string, amount: number, bankDetails: { accountNumber: string, bankCode: string }) => {
     if (amount <= 0) {
@@ -34,4 +35,16 @@ export const findWithdrawalRequests = async (userId: string) => {
     return await Withdrawal.find({ user: userId }).sort({ createdAt: -1 });
 };
 
-// will add more functions for processing withdrawals
+export const getUserBankAccounts = async (userId: string) => {
+  // Find the wallet of the user
+  const wallet = await Wallet.findOne({ user: userId });
+
+  if (!wallet) {
+    throw new NotFoundError("Wallet not found");
+  }
+
+  // Return the bank accounts (which are now stored in bankAccounts array)
+  return {
+    bankAccounts: wallet.bankAccounts, 
+  };
+};

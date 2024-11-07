@@ -83,19 +83,42 @@ export const findSingleWalletHistoryService = async (payload: any) =>
 
 export const verifyBankDetailsService = async (
   accountNumber: string,
-  bankCode: string
+  bankCode: string,
+  userId: string
 ) => {
   try {
+    // Make the API call to verify bank details
     const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
       params: {
         account_number: accountNumber,
         bank_code: bankCode,
       },
       headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
       },
     });
-    return response.data;
+
+    // Extract necessary details from the response
+    const { account_name, bank_id } = response.data.data;
+
+    // Find the wallet associated with the user
+    const wallet = await Wallet.findOne({ user: userId });
+    if (!wallet) {
+      throw new BadRequestError("Wallet not found");
+    }
+
+    // Add the new bank account to the bankAccounts array
+    wallet.bankAccounts.push({
+      accountNumber,
+      bankCode,
+      accountName: account_name,
+      bankId: bank_id,
+    });
+
+    // Save the updated wallet with the new bank account
+    await wallet.save();
+
+    return response.data; // Return the full verification response from Paystack
   } catch (error: any) {
     console.error(error);
     throw new BadRequestError("Bank verification failed");
