@@ -56,14 +56,12 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    const nextContributionDate = calculateNextContributionDate(
-      data.startDate,
-      data.contributionPlan
-    );
+    // Set nextContributionDate as startDate directly
+    const nextContributionDate = new Date(data.startDate);
 
-        // the withdrawal date (1 day after the end date)
-        const withdrawalDate = new Date(data.endDate);
-        withdrawalDate.setDate(withdrawalDate.getDate() + 1);
+    // Set withdrawal date to 1 day after endDate
+    const withdrawalDate = new Date(data.endDate);
+    withdrawalDate.setDate(withdrawalDate.getDate() + 1);
 
     const contribution = await Contribution.create({
       user: data.user,
@@ -73,20 +71,20 @@ export const createContributionService = async (data: {
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       nextContributionDate,
-      lastContributionDate: new Date(),
-      withdrawalDate, 
+      lastContributionDate: new Date(), 
+      withdrawalDate,
       balance: 0,
       status: "Pending",
     });
 
     console.log("Created Contribution ID:", contribution._id);
 
-    // Initialize the payment
+    // Initialize payment on Paystack
     const response: any = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
         email: data.email,
-        amount: data.amount * 100, // Amount in kobo
+        amount: data.amount * 100, // Convert amount to kobo
         callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
         metadata: {
           contributionId: contribution._id,
@@ -112,6 +110,7 @@ export const createContributionService = async (data: {
     );
   }
 };
+
 
 export const verifyContributionPayment = async (reference: string) => {
   try {
