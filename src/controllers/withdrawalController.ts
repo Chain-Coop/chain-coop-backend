@@ -4,6 +4,7 @@ import {
 	updateWithdrawalStatus,
 	findWithdrawalById,
 	getAllWithdrawals,
+	getUserBankAccounts,
 } from "../services/withdrawalService";
 import { BadRequestError, ForbiddenError } from "../errors";
 import { StatusCodes } from "http-status-codes";
@@ -96,7 +97,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 
 		// Respond with the created status
 		return res.status(StatusCodes.CREATED).json({
-			status: StatusCodes.CREATED, // HTTP status code in the response body
+			status: StatusCodes.CREATED, 
 			message: "Withdrawal request created successfully",
 			withdrawal,
 		});
@@ -141,13 +142,13 @@ export const updateWithdrawalStatusController = async (req: Request, res: Respon
 		const updatedWithdrawal = await updateWithdrawalStatus(withdrawalId, status);
 
 		return res.status(StatusCodes.OK).json({
-			status: StatusCodes.OK, // HTTP status code in the response body
+			status: StatusCodes.OK, 
 			message: "Withdrawal status updated successfully",
 			updatedWithdrawal,
 		});
 	} catch (error) {
 		return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-			status: StatusCodes.INTERNAL_SERVER_ERROR, // HTTP status code in the response body
+			status: StatusCodes.INTERNAL_SERVER_ERROR, 
 			error: error instanceof Error ? error.message : "An error occurred",
 		});
 	}
@@ -164,8 +165,28 @@ export const listAllWithdrawals = async (req: Request, res: Response) => {
 		});
 	} catch (error) {
 		return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-			status: StatusCodes.INTERNAL_SERVER_ERROR, // HTTP status code in the response body
+			status: StatusCodes.INTERNAL_SERVER_ERROR,
 			error: error instanceof Error ? error.message : "An error occurred",
 		});
 	}
+};
+
+export const getUserBankAccountsController = async (req: Request, res: Response) => {
+    try {
+        //@ts-ignore
+        const userId = req.user.userId;
+
+        const bankAccounts = await getUserBankAccounts(userId);
+
+        return res.status(StatusCodes.OK).json({
+            status: StatusCodes.OK,
+            message: "Bank accounts retrieved successfully",
+            bankAccounts,
+        });
+    } catch (error) {
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            status: StatusCodes.INTERNAL_SERVER_ERROR,
+            error: error instanceof Error ? error.message : "An error occurred",
+        });
+    }
 };

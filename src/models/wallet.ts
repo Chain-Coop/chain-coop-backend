@@ -1,16 +1,17 @@
 import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
-import { all } from "axios";
 
 export interface WalletDocument extends Document {
   balance: number;
   pin: string;
   user: Schema.Types.ObjectId;
   isPinCreated: boolean;
-  bankDetails?: {
+  bankAccounts: Array<{
     accountNumber: string;
     bankCode: string;
-  };
+    accountName: string;
+    bankId: number;
+  }>;
   fundedProjects: Array<fundedProject>;
   allCards?: Array<{
     number: string;
@@ -37,10 +38,15 @@ const WalletSchema = new Schema<WalletDocument>(
       type: Boolean,
       default: false,
     },
-    bankDetails: {
-      accountNumber: String,
-      bankCode: String,
-    },
+    // Modified to bankAccounts (array of bank details)
+    bankAccounts: [
+      {
+        accountNumber: String,
+        bankCode: String,
+        accountName: String,
+        bankId: Number,
+      },
+    ],
     fundedProjects: [
       {
         amount: {
