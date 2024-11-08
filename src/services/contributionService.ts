@@ -73,7 +73,7 @@ export const createContributionService = async (data: {
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       nextContributionDate,
-      lastContributionDate: new Date(data.endDate),
+      lastContributionDate: new Date(),
       withdrawalDate, 
       balance: 0,
       status: "Pending",
