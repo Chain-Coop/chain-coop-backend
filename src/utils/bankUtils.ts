@@ -40,7 +40,18 @@ export const collectBankDetails = async (userId: string, accountNumber: string, 
     }
 };
 
-
+export const verifyBankDetails = async (accountNumber: string, bankCode: string, userId: string) => {
+    try {
+        const verificationResult = await verifyBankDetailsService(accountNumber, bankCode, userId);
+        return verificationResult;
+    } catch (error) {
+        if (error instanceof Error) {
+            throw new BadRequestError(error.message);
+        } else {
+            throw new BadRequestError('An unexpected error occurred');
+        }
+    }
+};
 
 
 const linkBankDetailsToContributionFund = async (userId: string, accountNumber: string, bankCode: string) => {
