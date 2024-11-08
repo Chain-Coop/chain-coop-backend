@@ -85,7 +85,7 @@ export const createContributionService = async (data: {
       {
         email: data.email,
         amount: data.amount * 100, // Convert amount to kobo
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`,
         metadata: {
           contributionId: contribution._id,
         },
