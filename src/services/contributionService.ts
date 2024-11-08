@@ -76,7 +76,6 @@ export const createContributionService = async (data: {
       balance: 0,
       status: "Pending",
     });
-
     console.log("Created Contribution ID:", contribution._id);
 
     // Initialize payment on Paystack
