@@ -56,8 +56,11 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    // Set nextContributionDate as startDate directly
-    const nextContributionDate = new Date(data.startDate);
+    // Set nextContributionDate 
+    const nextContributionDate = calculateNextContributionDate(
+      data.startDate,
+      data.contributionPlan
+    );
 
     // Set withdrawal date to 1 day after endDate
     const withdrawalDate = new Date(data.endDate);
