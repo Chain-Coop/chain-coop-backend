@@ -24,6 +24,7 @@ import { StatusCodes } from "http-status-codes";
 import { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
+import membership from "../models/membership";
 
 export interface iContribution {
   endDate: any | Date | undefined;
@@ -293,8 +294,13 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
   const wallet = await findWalletService({ user: req.user.userId });
   const { amount, contributionId } = req.body;
+  const pay = req.body.pay === "active";
   //@ts-ignore
-  const contribution = await findContributionService({ _id: contributionId });
+  const contribution = await findContributionService({
+    _id: contributionId,
+    //@ts-ignore
+    user: req.user.userId,
+  });
 
   if (!wallet || !contribution) {
     throw new NotFoundError("Wallet or Contribution not found");
@@ -306,6 +312,19 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   if (!contribution.withdrawalDate) {
     throw new BadRequestError("Contribution end date is not defined");
+  }
+
+  if (!pay) {
+    const membershipfee = wallet.hasWithdrawnBefore ? 0 : 1000;
+    const deadline =
+      contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
+    const charges = 50;
+    return res.status(StatusCodes.OK).json({
+      membership: membershipfee,
+      deadline: deadline,
+      charges: charges,
+      totalToPay: membershipfee + deadline + charges + amount,
+    });
   }
 
   const currentDate = new Date();
@@ -323,9 +342,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   totalAmountToWithdraw += 50;
 
-  const hasWithdrawnBefore = contribution.balance > 0;
-  if (!hasWithdrawnBefore) {
+  if (!wallet.hasWithdrawnBefore) {
     totalAmountToWithdraw += 1000;
+    wallet.hasWithdrawnBefore = true;
   }
 
   contribution.balance -= totalAmountToWithdraw;
