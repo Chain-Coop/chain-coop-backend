@@ -58,7 +58,7 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    // Set nextContributionDate 
+    // Set nextContributionDate
     const nextContributionDate = calculateNextContributionDate(
       data.startDate,
       data.contributionPlan
@@ -453,5 +453,16 @@ export const getContributionHistoryService = async (
 export const getHistoryLengthService = async (contributionId: string) => {
   return await ContributionHistory.countDocuments({
     contribution: contributionId,
+  });
+};
+
+export const getPendingContributionsService = async (userId: String) => {
+  return await Contribution.find({ status: "Pending", user: userId });
+};
+
+export const clearAllPendingContributionsService = async () => {
+  return await Contribution.deleteMany({
+    status: "Pending",
+    createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   });
 };

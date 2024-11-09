@@ -8,7 +8,10 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
-import { tryRecurringContributions } from "./services/contributionService";
+import {
+  clearAllPendingContributionsService,
+  tryRecurringContributions,
+} from "./services/contributionService";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -19,19 +22,21 @@ cloudinary.v2.config({
 });
 
 // Schedule the recurring contributions check every hour
-// cron.schedule("0 * * * *", () => {
-//   console.log("Running recurring contributions check...");
-//   processRecurringContributions()
-//     .then(() => console.log("Processed recurring contributions."))
-//     .catch((err) => console.error("Error processing contributions:", err));
-// });
-
-// Schedule the recurring contributions check every hour
 cron.schedule("0 * * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
     .catch((err) => console.error("Error processing contributions:", err));
+});
+
+// Clear pending contributions every day at 12:00 AM
+cron.schedule("0 0 * * *", () => {
+  console.log("Clearing pending contributions...");
+  clearAllPendingContributionsService()
+    .then(() => console.log("Cleared pending contributions."))
+    .catch((err) =>
+      console.error("Error clearing pending contributions:", err)
+    );
 });
 
 // Routers

@@ -12,6 +12,7 @@ import {
   getContributionHistoryService,
   getUserContributionsLengthService,
   initializeContributionPayment,
+  getPendingContributionsService,
 } from "../services/contributionService";
 import {
   chargeCardService,
@@ -149,6 +150,22 @@ export const getTotalBalance = async (req: Request, res: Response) => {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: "Error fetching total contribution balance" });
+  }
+};
+
+export const getPendingContributions = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    const contributions = await getPendingContributionsService(userId);
+
+    res.status(StatusCodes.OK).json({ contributions });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Error fetching pending contributions" });
   }
 };
 
