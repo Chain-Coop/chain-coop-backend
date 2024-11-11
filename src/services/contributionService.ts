@@ -265,7 +265,6 @@ export const tryRecurringContributions = async () => {
     nextContributionDate: { $lt: new Date() },
   }).populate("user");
 
-  console.log("Contributions to process:", contributions);
   for (let contribution of contributions) {
     const user = contribution.user;
 
