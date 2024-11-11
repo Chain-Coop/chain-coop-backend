@@ -278,6 +278,7 @@ export const tryRecurringContributions = async () => {
 
     //@ts-ignore
     const wallet = await findWalletService({ user: user._id });
+    console.log("Wallet found:", wallet);
 
     if (wallet?.allCards?.length) {
       const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
