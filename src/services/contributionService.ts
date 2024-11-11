@@ -118,12 +118,19 @@ export const verifyContributionPayment = async (reference: string) => {
     const response: any = await axios.get(
       `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
       {
-        headers: {  
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, 
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         },
       }
     );
-    console.log("Payment verification response:", response.data.data);
+
+    // Log the entire response to see its structure
+    console.log("Payment verification response:", response);
+
+    // Check if the response and its data are defined before accessing 'data'
+    if (!response || !response.data) {
+      throw new BadRequestError("Invalid response from Paystack");
+    }
 
     const paymentData = response.data.data;
 
@@ -185,6 +192,7 @@ export const verifyContributionPayment = async (reference: string) => {
     );
   }
 };
+
 
 export const tryRecurringContributions = async () => {
   const contributions = await Contribution.find({
