@@ -98,7 +98,6 @@ export const createContributionService = async (data: {
         },
       }
     );
-
     return {
       paymentUrl: response.data.data.authorization_url,
       reference: response.data.data.reference,
