@@ -236,7 +236,7 @@ export const chargeCardService = async (
     return charge.data;
   } catch (error) {
     //@ts-ignore
-    console.log(error?.message);
+    console.log(error);
     return error;
   }
 };
