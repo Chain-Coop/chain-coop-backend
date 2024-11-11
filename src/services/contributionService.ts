@@ -159,8 +159,7 @@ export const verifyContributionPayment = async (reference: string) => {
       contribution.status = "Completed";
       contribution.balance += amount / 100;
       contribution.categoryBalances[contribution.savingsCategory] =
-        (contribution.categoryBalances[contribution.savingsCategory] || 0) +
-        amount / 100;
+        (contribution.categoryBalances[contribution.savingsCategory] || 0) + amount / 100;
 
       await contribution.save();
 
