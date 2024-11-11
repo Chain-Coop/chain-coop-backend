@@ -87,7 +87,7 @@ export const createContributionService = async (data: {
       {
         email: data.email,
         amount: data.amount * 100, 
-        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`,
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
         metadata: {
           contributionId: contribution._id,
         },
@@ -124,15 +124,16 @@ export const verifyContributionPayment = async (reference: string) => {
       }
     );
 
-    // Log the entire response to see its structure
-    console.log("Payment verification response:", response);
 
-    if (!response || !response.data) {
+  
+
+    if (!response || !response?.data) {
       throw new BadRequestError("Invalid response from Paystack");
     }
 
-    const paymentData = response.data.data;
-
+    const paymentData = response?.data?.data;
+    console.log("Payment verification response:", response);
+    
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
 
