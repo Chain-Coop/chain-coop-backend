@@ -197,6 +197,13 @@ export const tryRecurringContributions = async () => {
 
   for (let contribution of contributions) {
     const user = contribution.user;
+    
+    // Check if the user is present; skip iteration if user is null
+    if (!user) {
+      console.warn(`Skipping contribution ${contribution._id} as user ${contribution.user} is null`);
+      continue;
+    }
+
     //@ts-ignore
     const wallet = await findWalletService({ user: user._id });
 
@@ -215,18 +222,16 @@ export const tryRecurringContributions = async () => {
       )) as {
         data: any;
       };
-      //@ts-ignore
+
       if (charge.data.data.status === "success") {
         contribution.lastContributionDate = new Date();
-
         contribution.nextContributionDate = calculateNextContributionDate(
           new Date(),
           contribution.contributionPlan
         );
-
         contribution.balance += contribution.amount;
 
-        //Create contribution history
+        // Create contribution history
         await createContributionHistoryService({
           contribution: contribution._id as ObjectId,
           //@ts-ignore
@@ -240,7 +245,7 @@ export const tryRecurringContributions = async () => {
 
         await contribution.save();
       } else {
-        //Increment used card failed count
+        // Increment failed attempts count on card
         usableCard.failedAttempts
           ? usableCard.failedAttempts++
           : (usableCard.failedAttempts = 1);
@@ -251,6 +256,7 @@ export const tryRecurringContributions = async () => {
     }
   }
 };
+
 
 export const updateContributionService = async (
   id: ObjectId,
