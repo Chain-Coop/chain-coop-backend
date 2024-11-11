@@ -86,15 +86,15 @@ export const createContributionService = async (data: {
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
         email: data.email,
-        amount: data.amount * 100, // Convert amount to kobo
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        amount: data.amount * 100, 
+        callback_url: `http://localhost:3000/api/v1/contribution/verify-contribution`,
         metadata: {
           contributionId: contribution._id,
         },
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         },
       }
     );
@@ -127,7 +127,6 @@ export const verifyContributionPayment = async (reference: string) => {
     // Log the entire response to see its structure
     console.log("Payment verification response:", response);
 
-    // Check if the response and its data are defined before accessing 'data'
     if (!response || !response.data) {
       throw new BadRequestError("Invalid response from Paystack");
     }
