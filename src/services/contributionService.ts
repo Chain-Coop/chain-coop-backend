@@ -294,7 +294,7 @@ export const tryRecurringContributions = async () => {
       )) as {
         data: any;
       };
-
+       console.log(charge.data)
       if (charge.data.status === "success") {
         contribution.lastContributionDate = new Date();
         contribution.nextContributionDate = calculateNextContributionDate(
