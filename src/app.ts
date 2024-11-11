@@ -22,7 +22,15 @@ cloudinary.v2.config({
 });
 
 // Schedule the recurring contributions check every hour
-cron.schedule("0 * * * *", () => {
+// cron.schedule("0 * * * *", () => {
+//   console.log("Running recurring contributions check...");
+//   processRecurringContributions()
+//     .then(() => console.log("Processed recurring contributions."))
+//     .catch((err) => console.error("Error processing contributions:", err));
+// });
+
+// Schedule the recurring contributions check every hour
+cron.schedule("3/* * * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
@@ -52,6 +60,7 @@ import {
   profilePictureRouter,
   membershipRouter,
   withdrawalRoutes,
+  notificationRouter,
 } from "./routes";
 
 // Middleware
@@ -83,6 +92,7 @@ app.use("/api/v1/contribution", contributionRouter);
 app.use("/api/v1/profile", profilePictureRouter);
 app.use("/api/v1/membership", membershipRouter);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
+app.use("/api/v1/notification", notificationRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

@@ -83,7 +83,30 @@ export const createContributionService = async (data: {
     });
     console.log("Created Contribution ID:", contribution._id);
 
-    return contribution;
+
+    // Initialize payment on Paystack
+    const response: any = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        email: data.email,
+        amount: data.amount * 100, 
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        metadata: {
+          contributionId: contribution._id,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+    return {
+      paymentUrl: response.data.data.authorization_url,
+      reference: response.data.data.reference,
+      contributionId: contribution._id,
+      withdrawalDate,
+    };
   } catch (error: any) {
     console.error("Error creating contribution:", error);
     throw new BadRequestError(
@@ -172,8 +195,16 @@ export const verifyContributionPayment = async (
       }
     );
 
-    const paymentData = response.data.data;
 
+  
+
+    if (!response || !response?.data) {
+      throw new BadRequestError("Invalid response from Paystack");
+    }
+
+    const paymentData = response?.data?.data;
+    console.log("Payment verification response:", response);
+    
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
 
@@ -214,8 +245,7 @@ export const verifyContributionPayment = async (
       contribution.status = "Completed";
       contribution.balance += amount / 100;
       contribution.categoryBalances[contribution.savingsCategory] =
-        (contribution.categoryBalances[contribution.savingsCategory] || 0) +
-        amount / 100;
+        (contribution.categoryBalances[contribution.savingsCategory] || 0) + amount / 100;
 
       await contribution.save();
 
@@ -249,6 +279,7 @@ export const verifyContributionPayment = async (
   }
 };
 
+
 export const tryRecurringContributions = async () => {
   const contributions = await Contribution.find({
     status: "Completed",
@@ -259,6 +290,13 @@ export const tryRecurringContributions = async () => {
 
   for (let contribution of contributions) {
     const user = contribution.user;
+    
+    // Check if the user is present; skip iteration if user is null
+    if (!user) {
+      console.warn(`Skipping contribution ${contribution._id} as user ${contribution.user} is null`);
+      continue;
+    }
+
     //@ts-ignore
     const wallet = await findWalletService({ user: user._id });
 
@@ -277,18 +315,16 @@ export const tryRecurringContributions = async () => {
       )) as {
         data: any;
       };
-      //@ts-ignore
+
       if (charge.data.data.status === "success") {
         contribution.lastContributionDate = new Date();
-
         contribution.nextContributionDate = calculateNextContributionDate(
           new Date(),
           contribution.contributionPlan
         );
-
         contribution.balance += contribution.amount;
 
-        //Create contribution history
+        // Create contribution history
         await createContributionHistoryService({
           contribution: contribution._id as ObjectId,
           //@ts-ignore
@@ -302,7 +338,7 @@ export const tryRecurringContributions = async () => {
 
         await contribution.save();
       } else {
-        //Increment used card failed count
+        // Increment failed attempts count on card
         usableCard.failedAttempts
           ? usableCard.failedAttempts++
           : (usableCard.failedAttempts = 1);
@@ -313,6 +349,7 @@ export const tryRecurringContributions = async () => {
     }
   }
 };
+
 
 export const updateContributionService = async (
   id: ObjectId,
