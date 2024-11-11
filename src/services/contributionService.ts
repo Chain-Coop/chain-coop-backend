@@ -280,7 +280,7 @@ export const tryRecurringContributions = async () => {
     const wallet = await findWalletService({ user: user._id });
     console.log("Wallet found:", wallet);
 
-    if (wallet?.allCards?.length) {
+    if (wallet?.allCards?.length && wallet?.allCards[0]?.authCode) {
       const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
       const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
       if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
