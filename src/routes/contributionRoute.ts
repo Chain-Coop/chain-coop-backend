@@ -8,7 +8,9 @@ import {
   getContributionsById,
   chargeCardforContribution,
   newgetContributionHistory,
-  getUserContributions
+  getUserContributions,
+  attemptPayment,
+  getPendingContributions,
 } from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
 
@@ -23,4 +25,7 @@ router.get("/verify-contribution", verifyContribution);
 router.get("/category/:id", authorize, getContributionsById);
 router.delete("/delete", deleteAllContributions);
 router.route("/pay-contribution").post(authorize, chargeCardforContribution);
+router.route("/pending").get(authorize, getPendingContributions);
+
+router.route("/pay").post(authorize, attemptPayment);
 export default router;

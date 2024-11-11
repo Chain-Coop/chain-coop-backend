@@ -11,6 +11,7 @@ import {
   chargeCardService,
   findWalletService,
 } from "./walletService";
+import { stat } from "fs";
 
 dotenv.config();
 
@@ -40,7 +41,8 @@ export interface iContributionHistory {
   type: string;
   balance: number;
   status: string;
-  withdrawalDate?: Date; 
+  withdrawalDate?: Date;
+  reference?: string;
 }
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
@@ -56,7 +58,7 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    // Set nextContributionDate 
+    // Set nextContributionDate
     const nextContributionDate = calculateNextContributionDate(
       data.startDate,
       data.contributionPlan
@@ -74,12 +76,13 @@ export const createContributionService = async (data: {
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       nextContributionDate,
-      lastContributionDate: new Date(), 
+      lastContributionDate: new Date(),
       withdrawalDate,
       balance: 0,
       status: "Pending",
     });
     console.log("Created Contribution ID:", contribution._id);
+
 
     // Initialize payment on Paystack
     const response: any = await axios.post(
@@ -105,16 +108,84 @@ export const createContributionService = async (data: {
       withdrawalDate,
     };
   } catch (error: any) {
-    console.error("Error creating contribution and initiating payment:", error);
+    console.error("Error creating contribution:", error);
     throw new BadRequestError(
       error.response ? error.response.data : error.message
     );
   }
 };
 
-
-export const verifyContributionPayment = async (reference: string) => {
+export const initializeContributionPayment = async (
+  contributionId: string,
+  paymentType: string,
+  userId: string,
+  cardData?: string
+) => {
   try {
+    const contribution = await Contribution.findById(contributionId);
+    const user = await findUser("id", userId);
+    if (!contribution || !user) {
+      throw new BadRequestError("Contribution not found");
+    }
+
+    let response: any;
+    if (paymentType === "paystack") {
+      response = await axios.post(
+        `${PAYSTACK_BASE_URL}/transaction/initialize`,
+        {
+          email: user.email,
+          amount: contribution.amount * 100,
+          callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+          metadata: {
+            contributionId: contribution._id,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          },
+        }
+      );
+    } else if (paymentType === "card" && cardData) {
+      response = await chargeCardService(
+        cardData,
+        user.email,
+        contribution.amount,
+        {
+          contributionId: contribution._id,
+        }
+      );
+      return {
+        reference: response.data.reference,
+        status: response.data.status,
+        type: "card",
+      };
+    } else {
+      throw new BadRequestError("Invalid payment type");
+    }
+
+    return { info: response.data, type: "paystack" };
+  } catch (error: any) {
+    console.error("Error initializing payment:", error);
+    throw new BadRequestError(
+      error.response ? error.response.data.data : error.message
+    );
+  }
+};
+
+export const verifyContributionPayment = async (
+  reference: string,
+  isAddCard?: Boolean
+) => {
+  try {
+    const referenceExists = await ContributionHistory.countDocuments({
+      reference: reference,
+    });
+
+    if (referenceExists) {
+      throw new BadRequestError("Payment already verified");
+    }
+
     const response: any = await axios.get(
       `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
       {
@@ -142,18 +213,33 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("User not found");
       }
 
-      await addCardService(user._id as string, {
-        number: paymentData.authorization.last4,
-        authCode: paymentData.authorization.authorization_code,
-      });
+      if (isAddCard) {
+        await addCardService(user._id as string, {
+          number: paymentData.authorization.last4,
+          authCode: paymentData.authorization.authorization_code,
+        });
+      }
 
       const contribution = await Contribution.findOne({
         _id: paymentData.metadata.contributionId,
-        status: "Pending",
       });
 
       if (!contribution) {
         throw new BadRequestError("Contribution not found");
+      }
+
+      contribution.lastContributionDate = new Date();
+      //@ts-ignore
+      if (contribution.startDate > new Date()) {
+        contribution.nextContributionDate = calculateNextContributionDate(
+          contribution.startDate || new Date(),
+          contribution.contributionPlan
+        );
+      } else {
+        contribution.nextContributionDate = calculateNextContributionDate(
+          new Date(),
+          contribution.contributionPlan
+        );
       }
 
       contribution.status = "Completed";
@@ -171,6 +257,7 @@ export const verifyContributionPayment = async (reference: string) => {
         balance: contribution.balance,
         status: "Completed",
         Date: new Date(),
+        reference: reference,
       });
 
       return {
@@ -306,7 +393,6 @@ export const createContributionHistoryService = async (
   payload: iContributionHistory
 ) => {
   try {
-
     const contribution = await Contribution.findById(payload.contribution);
     if (!contribution) {
       throw new Error("Contribution not found");
@@ -323,7 +409,6 @@ export const createContributionHistoryService = async (
     throw new Error("Failed to create contribution history");
   }
 };
-
 
 export const findContributionHistoryService = async (
   contributionId: string
@@ -405,5 +490,16 @@ export const getContributionHistoryService = async (
 export const getHistoryLengthService = async (contributionId: string) => {
   return await ContributionHistory.countDocuments({
     contribution: contributionId,
+  });
+};
+
+export const getPendingContributionsService = async (userId: String) => {
+  return await Contribution.find({ status: "Pending", user: userId });
+};
+
+export const clearAllPendingContributionsService = async () => {
+  return await Contribution.deleteMany({
+    status: "Pending",
+    createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   });
 };

@@ -19,6 +19,7 @@ export interface WalletDocument extends Document {
     isPreferred?: boolean;
     failedAttempts?: number;
   }>;
+  hasWithdrawnBefore: boolean;
 }
 
 export type fundedProject = {
@@ -78,6 +79,10 @@ const WalletSchema = new Schema<WalletDocument>(
         },
       },
     ],
+    hasWithdrawnBefore: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

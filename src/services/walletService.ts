@@ -213,7 +213,8 @@ export const setPreferredCardService = async (
 export const chargeCardService = async (
   authCode: string,
   email: string,
-  amount: number
+  amount: number,
+  metadata?: any
 ) => {
   try {
     const charge = await axios.post(
@@ -223,6 +224,7 @@ export const chargeCardService = async (
         //@ts-ignore
         email: email,
         amount: amount * 100,
+        metadata,
       },
       {
         headers: {
@@ -231,7 +233,7 @@ export const chargeCardService = async (
       }
     );
 
-    return charge;
+    return charge.data;
   } catch (error) {
     return error;
   }

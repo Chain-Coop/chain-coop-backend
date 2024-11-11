@@ -11,6 +11,8 @@ import {
   getHistoryLengthService,
   getContributionHistoryService,
   getUserContributionsLengthService,
+  initializeContributionPayment,
+  getPendingContributionsService,
 } from "../services/contributionService";
 import {
   chargeCardService,
@@ -23,6 +25,7 @@ import { StatusCodes } from "http-status-codes";
 import { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
+import membership from "../models/membership";
 
 export interface iContribution {
   endDate: any | Date | undefined;
@@ -44,8 +47,15 @@ export interface iContribution {
 }
 
 export const createContribution = async (req: Request, res: Response) => {
-  const { amount, contributionPlan, savingsCategory, startDate, endDate } =
-    req.body;
+  const {
+    amount,
+    contributionPlan,
+    savingsCategory,
+    startDate,
+    endDate,
+    paymentType,
+    cardData,
+  } = req.body;
   //@ts-ignore
   const email = req.user.email;
   //@ts-ignore
@@ -63,7 +73,7 @@ export const createContribution = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await createContributionService({
+    const result = (await createContributionService({
       amount,
       contributionPlan,
       savingsCategory,
@@ -71,20 +81,9 @@ export const createContribution = async (req: Request, res: Response) => {
       endDate,
       email,
       user: userId,
-    });
+    })) as Object;
 
-    console.log("Payload:", {
-      amount,
-      contributionPlan,
-      savingsCategory,
-      startDate,
-      endDate,
-      email,
-      user: userId,
-    });
-    console.log("Response:", result);
-
-    res.status(StatusCodes.OK).json(result);
+    res.status(StatusCodes.OK).json({ result });
   } catch (error: any) {
     console.error("Error in createContribution:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -94,15 +93,31 @@ export const createContribution = async (req: Request, res: Response) => {
   }
 };
 
+export const attemptPayment = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { contributionId, paymentType, cardData } = req.body;
+
+  const payment = await initializeContributionPayment(
+    contributionId,
+    paymentType,
+    userId,
+    cardData
+  );
+
+  res.status(StatusCodes.OK).json({ payment });
+};
+
 export const verifyContribution = async (req: Request, res: Response) => {
   const reference = req.query.reference as string;
+  const isAddCard = req.query.addCard === "true";
 
   if (!reference) {
     throw new BadRequestError("Payment reference is required");
   }
 
   try {
-    await verifyContributionPayment(reference);
+    await verifyContributionPayment(reference, isAddCard);
     res.status(StatusCodes.OK).json({
       message: "Payment successful. Contribution has been made.",
     });
@@ -135,6 +150,22 @@ export const getTotalBalance = async (req: Request, res: Response) => {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: "Error fetching total contribution balance" });
+  }
+};
+
+export const getPendingContributions = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    const contributions = await getPendingContributionsService(userId);
+
+    res.status(StatusCodes.OK).json({ contributions });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Error fetching pending contributions" });
   }
 };
 
@@ -214,7 +245,10 @@ export const getContributionHistory = async (req: Request, res: Response) => {
   }
 };
 
-export const newgetContributionHistory = async (req: Request, res: Response) => {
+export const newgetContributionHistory = async (
+  req: Request,
+  res: Response
+) => {
   const { page = 1, limit = 5, contributionId } = req.query;
 
   if (!contributionId) {
@@ -223,7 +257,9 @@ export const newgetContributionHistory = async (req: Request, res: Response) => 
 
   try {
     // Get contribution details using contributionId
-    const contribution = await findContributionService({ _id: contributionId as string });
+    const contribution = await findContributionService({
+      _id: contributionId as string,
+    });
     if (!contribution) {
       return res.status(StatusCodes.NOT_FOUND).json({
         message: "Contribution not found",
@@ -231,10 +267,13 @@ export const newgetContributionHistory = async (req: Request, res: Response) => 
     }
 
     // Get the overall balance, next contribution date, and withdrawal date from the contribution
-    const { balance, startDate, nextContributionDate, withdrawalDate } = contribution;
+    const { balance, startDate, nextContributionDate, withdrawalDate } =
+      contribution;
 
     // Fetch the total history length and validate limit type
-    const historyLength = await getHistoryLengthService(contributionId as string);
+    const historyLength = await getHistoryLengthService(
+      contributionId as string
+    );
     if (typeof limit !== "number") {
       throw new BadRequestError("Limit must be a number");
     }
@@ -251,10 +290,10 @@ export const newgetContributionHistory = async (req: Request, res: Response) => 
     const totalPages = Math.ceil(historyLength / limit);
 
     res.status(StatusCodes.OK).json({
-      balance,           
-      startDate,  
-      nextContributionDate,   
-      withdrawalDate,   
+      balance,
+      startDate,
+      nextContributionDate,
+      withdrawalDate,
       history,
       totalPages,
       currentPage: page,
@@ -262,18 +301,23 @@ export const newgetContributionHistory = async (req: Request, res: Response) => 
   } catch (error) {
     console.error("Error fetching contribution history:", error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: "An unexpected error occurred while fetching contribution history.",
+      error:
+        "An unexpected error occurred while fetching contribution history.",
     });
   }
 };
-
 
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
   const wallet = await findWalletService({ user: req.user.userId });
   const { amount, contributionId } = req.body;
+  const pay = req.body.pay === "active";
   //@ts-ignore
-  const contribution = await findContributionService({ _id: contributionId });
+  const contribution = await findContributionService({
+    _id: contributionId,
+    //@ts-ignore
+    user: req.user.userId,
+  });
 
   if (!wallet || !contribution) {
     throw new NotFoundError("Wallet or Contribution not found");
@@ -287,28 +331,41 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     throw new BadRequestError("Contribution end date is not defined");
   }
 
+  if (!pay) {
+    const membershipfee = wallet.hasWithdrawnBefore ? 0 : 1000;
+    const deadline =
+      contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
+    const charges = 50;
+    return res.status(StatusCodes.OK).json({
+      membership: membershipfee,
+      deadline: deadline,
+      charges: charges,
+      totalToPay: membershipfee + deadline + charges + amount,
+    });
+  }
+
   const currentDate = new Date();
-  const endDate = new Date(contribution.withdrawalDate); 
+  const endDate = new Date(contribution.withdrawalDate);
 
   let totalAmountToWithdraw = amount;
 
   if (currentDate < endDate) {
-    totalAmountToWithdraw += 2000; 
+    totalAmountToWithdraw += 2000;
   }
 
   if (contribution.balance < totalAmountToWithdraw) {
     throw new BadRequestError("Insufficient funds in contribution balance");
   }
 
-  totalAmountToWithdraw += 50; 
+  totalAmountToWithdraw += 50;
 
-  const hasWithdrawnBefore = contribution.balance > 0; 
-  if (!hasWithdrawnBefore) {
-    totalAmountToWithdraw += 1000; 
+  if (!wallet.hasWithdrawnBefore) {
+    totalAmountToWithdraw += 1000;
+    wallet.hasWithdrawnBefore = true;
   }
 
   contribution.balance -= totalAmountToWithdraw;
-  wallet.balance += amount; 
+  wallet.balance += amount;
 
   const historyPayload: iWalletHistory = {
     amount,
@@ -323,25 +380,25 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   await createContributionHistoryService({
     contribution: contributionId,
     user: contribution.user,
-    amount: totalAmountToWithdraw, 
+    amount: totalAmountToWithdraw,
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
     status: "success",
-    withdrawalDate: currentDate 
+    withdrawalDate: currentDate,
   });
 
   await contribution.save();
   await wallet.save();
 
   res.status(StatusCodes.OK).json({
-    message: "Transfer successful. Proceed to your wallet to complete the withdrawal process.",
+    message:
+      "Transfer successful. Proceed to your wallet to complete the withdrawal process.",
   });
 };
 
-
 export const getContributionsById = async (req: Request, res: Response) => {
-  const { id } = req.params; 
+  const { id } = req.params;
 
   try {
     //@ts-ignore
@@ -461,4 +518,3 @@ export const getUserContributions = async (req: Request, res: Response) => {
       .json({ message: "Error fetching user contributions" });
   }
 };
-
