@@ -117,15 +117,21 @@ export const verifyContribution = async (req: Request, res: Response) => {
   }
 
   try {
-    await verifyContributionPayment(reference, isAddCard);
+    const result = await verifyContributionPayment(reference, isAddCard);
+
     res.status(StatusCodes.OK).json({
-      message: "Payment successful. Contribution has been made.",
+      statusCode: StatusCodes.OK,
+      data: result,
     });
   } catch (error: any) {
     console.error("Error in verifyContribution:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+
+    const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
+
+    res.status(statusCode).json({
       message: "Failed to verify contribution payment",
       error: error.message,
+      statusCode: statusCode,
     });
   }
 };
