@@ -439,8 +439,11 @@ export const getAllUserContributionsService = async (
   limit = 0,
   skip = 0
 ) => {
-  return await Contribution.find({ user: userId }).limit(limit).skip(skip);
+  return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
+    .limit(limit)
+    .skip(skip);
 };
+
 
 export const getUserContributionsLengthService = async (userId: ObjectId) => {
   return await Contribution.countDocuments({ user: userId });

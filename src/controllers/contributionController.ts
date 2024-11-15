@@ -273,7 +273,7 @@ export const newgetContributionHistory = async (
     }
 
     // Get the overall balance, next contribution date, and withdrawal date from the contribution
-    const { balance, startDate, nextContributionDate, withdrawalDate } =
+    const { balance, startDate, nextContributionDate, withdrawalDate, savingsCategory } =
       contribution;
 
     // Fetch the total history length and validate limit type
@@ -297,6 +297,7 @@ export const newgetContributionHistory = async (
 
     res.status(StatusCodes.OK).json({
       balance,
+      savingsCategory,
       startDate,
       nextContributionDate,
       withdrawalDate,
@@ -501,26 +502,38 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 1, limit = 5, sort = "desc" } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
     const conLength = await getUserContributionsLengthService(userId);
 
-    const contributions = await getAllUserContributionsService(
+    // Fetch contributions and await the result
+    let contributions = await getAllUserContributionsService(
       userId,
       Number(limit),
       skip
     );
 
+    // Sort after fetching if necessary
+    const sortOrder = sort === "asc" ? 1 : -1;
+    contributions = contributions.sort((a: any, b: any) =>
+      sortOrder === 1
+        ? a.createdAt - b.createdAt
+        : b.createdAt - a.createdAt
+    );
+
     const totalPages = Math.ceil(conLength / Number(limit));
 
-    res
-      .status(StatusCodes.OK)
-      .json({ contributions: contributions, totalPages, currentPage: page });
+    res.status(StatusCodes.OK).json({
+      contributions: contributions,
+      totalPages,
+      currentPage: page,
+    });
   } catch (error) {
     console.error("Error fetching user contributions:", error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Error fetching user contributions" });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Error fetching user contributions",
+    });
   }
 };
+
