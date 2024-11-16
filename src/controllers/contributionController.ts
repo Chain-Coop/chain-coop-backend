@@ -357,13 +357,14 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   }
 
   if (!pay) {
+    const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
     const membershipFee = wallet.hasWithdrawnBefore ? 0 : 1000;
     const deadline =
       contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
     const charges = 50;
 
     // total penalties and amount remaining after deductions
-    const totalPenalties = membershipFee + deadline + charges;
+    const totalPenalties = membershipFee + deadline + charges + debtfee;
     const totalToPay = amount - totalPenalties;
 
     if (totalToPay <= 0) {
@@ -380,6 +381,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
       charges: charges,
       totalPenalties: totalPenalties,
       totalToPay: totalToPay,
+      debtfee: debtfee,
       statusCode: StatusCodes.OK,
     });
   }
