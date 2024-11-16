@@ -249,7 +249,7 @@ export const chargeUnpaidContributions = async (
 
 export const verifyUnpaidContributionPayment = async (
   reference: string,
-  isAddCard?: Boolean
+  isAddCard?: boolean
 ) => {
   try {
     const referenceExists = await ContributionHistory.countDocuments({
@@ -315,6 +315,17 @@ export const verifyUnpaidContributionPayment = async (
       await updateContributionStatusService(contribution._id as string, "Paid");
 
       await contribution.save();
+
+      return {
+        message: "Payment verified successfully",
+        data: {
+          contributionId: contribution._id,
+          amount: contribution.amount,
+          balance: contribution.balance,
+        },
+      };
+    } else {
+      throw new BadRequestError("Payment verification failed");
     }
   } catch (error: any) {
     console.error("Error verifying payment:", error);
@@ -545,9 +556,11 @@ export const calculateTotalDebt = async (contributionId: string) => {
     ["amount"]
   );
 
-  return unpaidContributions.reduce((acc, contribution) => {
+  const totalDebt = unpaidContributions.reduce((acc, contribution) => {
     return acc + contribution.amount;
   }, 0);
+
+  return totalDebt;
 };
 
 export const updateContributionStatusService = async (
