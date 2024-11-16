@@ -30,7 +30,7 @@ cloudinary.v2.config({
 // });
 
 // Schedule the recurring contributions check every hour
-cron.schedule("0 * * * *", () => {
+cron.schedule("*/20 * * * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))

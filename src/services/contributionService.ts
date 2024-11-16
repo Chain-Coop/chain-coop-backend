@@ -135,6 +135,23 @@ export const initializeContributionPayment = async (
           contributionId: contribution._id,
         }
       );
+      if (response.data.status !== "success") {
+        throw new BadRequestError(response.data.message);
+      }
+
+      // Reset failed attempts count on card
+      const wallet = await findWalletService({ user: userId });
+      if (wallet) {
+        const usableCard = wallet?.allCards?.find(
+          (card: any) => card.authCode === cardData
+        );
+        if (usableCard) {
+          usableCard.failedAttempts = 0;
+          wallet.markModified("allCards");
+          await wallet.save();
+        }
+      }
+
       return {
         reference: response.data.reference,
         status: response.data.status,
@@ -283,6 +300,7 @@ export const tryRecurringContributions = async () => {
       const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
       const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
       if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
+        await paymentforContribution(contribution);
         continue;
       }
 
@@ -325,8 +343,67 @@ export const tryRecurringContributions = async () => {
 
         await wallet.save();
       }
+    } else {
+      await paymentforContribution(contribution);
     }
   }
+};
+
+export const paymentforContribution = async (contribution: any) => {
+  //Logic to add unpaid contribution history and update next contribution date
+  contribution.lastContributionDate = new Date();
+  contribution.nextContributionDate = calculateNextContributionDate(
+    new Date(),
+    contribution.contributionPlan
+  );
+
+  // Create contribution history
+  await createContributionHistoryService({
+    contribution: contribution._id as ObjectId,
+    //@ts-ignore
+    user: contribution.user._id as ObjectId,
+    amount: contribution.amount,
+    type: "Credit",
+    balance: contribution.balance,
+    status: "Unpaid",
+    Date: new Date(),
+  });
+
+  await contribution.save();
+};
+
+export const getUnpaidContributionHistory = async (
+  contributionId: string,
+  attToGet: Array<string>
+) => {
+  return await ContributionHistory.find(
+    {
+      contribution: contributionId,
+      status: "Unpaid",
+    },
+    attToGet.join(" ")
+  );
+};
+
+export const calculateTotalDebt = async (contributionId: string) => {
+  const unpaidContributions = await getUnpaidContributionHistory(
+    contributionId,
+    ["amount"]
+  );
+
+  return unpaidContributions.reduce((acc, contribution) => {
+    return acc + contribution.amount;
+  }, 0);
+};
+
+export const updateContributionStatusService = async (
+  id: ObjectId | string,
+  status: string
+) => {
+  return await ContributionHistory.updateMany(
+    { contribution: id, status: "Unpaid" },
+    { status }
+  );
 };
 
 export const updateContributionService = async (
@@ -443,7 +520,6 @@ export const getAllUserContributionsService = async (
     .limit(limit)
     .skip(skip);
 };
-
 
 export const getUserContributionsLengthService = async (userId: ObjectId) => {
   return await Contribution.countDocuments({ user: userId });
