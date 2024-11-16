@@ -102,6 +102,11 @@ export const initializeContributionPayment = async (
   cardData?: string
 ) => {
   try {
+    const debt = await calculateTotalDebt(contributionId);
+    if (debt >= 0) {
+      throw new BadRequestError("Pay Outstanding Debt First");
+    }
+
     const contribution = await Contribution.findById(contributionId);
     const user = await findUser("id", userId);
     if (!contribution || !user) {
