@@ -319,6 +319,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   const wallet = await findWalletService({ user: req.user.userId });
   const { amount, contributionId } = req.body;
   const pay = req.body.pay === "active";
+
   //@ts-ignore
   const contribution = await findContributionService({
     _id: contributionId,
@@ -327,55 +328,93 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   });
 
   if (!wallet || !contribution) {
-    throw new NotFoundError("Wallet or Contribution not found");
+    return res.status(StatusCodes.NOT_FOUND).json({
+      message: "Wallet or Contribution not found",
+      statusCode: StatusCodes.NOT_FOUND,
+    });
   }
 
   if (amount < 2000) {
-    throw new BadRequestError("Minimum withdrawal amount is 2000 Naira");
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "Minimum withdrawal amount is 2000 Naira",
+      statusCode: StatusCodes.BAD_REQUEST,
+    });
   }
 
   if (!contribution.withdrawalDate) {
-    throw new BadRequestError("Contribution end date is not defined");
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "Contribution end date is not defined",
+      statusCode: StatusCodes.BAD_REQUEST,
+    });
   }
 
   if (!pay) {
-    const membershipfee = wallet.hasWithdrawnBefore ? 0 : 1000;
+    const membershipFee = wallet.hasWithdrawnBefore ? 0 : 1000;
     const deadline =
       contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
     const charges = 50;
+
+    // total penalties and amount remaining after deductions
+    const totalPenalties = membershipFee + deadline + charges;
+    const totalToPay = amount - totalPenalties;
+
+    if (totalToPay <= 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message:
+          "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+
     return res.status(StatusCodes.OK).json({
-      membership: membershipfee,
+      membership: membershipFee,
       deadline: deadline,
       charges: charges,
-      totalToPay: membershipfee + deadline + charges + amount,
+      totalPenalties: totalPenalties,
+      totalToPay: totalToPay,
+      statusCode: StatusCodes.OK,
     });
   }
 
   const currentDate = new Date();
   const endDate = new Date(contribution.withdrawalDate);
 
-  let totalAmountToWithdraw = amount;
+  let penalties = 0;
 
   if (currentDate < endDate) {
-    totalAmountToWithdraw += 2000;
+    penalties += 2000; // penalty for early withdrawal
   }
 
-  if (contribution.balance < totalAmountToWithdraw) {
-    throw new BadRequestError("Insufficient funds in contribution balance");
-  }
-
-  totalAmountToWithdraw += 50;
+  penalties += 50; // standard withdrawal fee
 
   if (!wallet.hasWithdrawnBefore) {
-    totalAmountToWithdraw += 1000;
+    penalties += 1000; // membership fee
     wallet.hasWithdrawnBefore = true;
   }
 
-  contribution.balance -= totalAmountToWithdraw;
-  wallet.balance += amount;
+  const totalPenalties = penalties;
+  const totalToPay = amount - totalPenalties;
+
+  if (totalToPay <= 0) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message:
+        "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
+      statusCode: StatusCodes.BAD_REQUEST,
+    });
+  }
+
+  if (contribution.balance < amount) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "Insufficient funds in contribution balance",
+      statusCode: StatusCodes.BAD_REQUEST,
+    });
+  }
+
+  contribution.balance -= amount;
+  wallet.balance += totalToPay;
 
   const historyPayload: iWalletHistory = {
-    amount,
+    amount: totalToPay,
     label: "Withdrawal from Contribution",
     type: "credit",
     ref: "Self",
@@ -387,7 +426,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   await createContributionHistoryService({
     contribution: contributionId,
     user: contribution.user,
-    amount: totalAmountToWithdraw,
+    amount: amount,
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
@@ -400,9 +439,13 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   res.status(StatusCodes.OK).json({
     message:
-      "Transfer successful. Proceed to your wallet to complete the withdrawal process.",
+      "Transfer successful. Penalties have been deducted. Proceed to your wallet to complete the withdrawal process.",
+    totalPenalties: totalPenalties,
+    totalToPay: totalToPay,
+    statusCode: StatusCodes.OK,
   });
 };
+
 
 export const getContributionsById = async (req: Request, res: Response) => {
   const { id } = req.params;
