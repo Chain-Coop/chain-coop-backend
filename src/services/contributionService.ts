@@ -170,6 +170,160 @@ export const initializeContributionPayment = async (
   }
 };
 
+//Service to charge unpaid contributions
+export const chargeUnpaidContributions = async (
+  contributionId: string,
+  paymentType: string,
+  cardData?: string
+) => {
+  const amount = await calculateTotalDebt(contributionId);
+  const contribution = await Contribution.findById(contributionId).populate(
+    "user"
+  );
+
+  if (!amount || amount <= 0) {
+    throw new BadRequestError("No unpaid contributions found");
+  }
+
+  if (!contribution) {
+    throw new BadRequestError("Contribution not found");
+  }
+
+  if (paymentType === "paystack") {
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        //@ts-ignore
+        email: contribution.user.email,
+        amount: amount * 100,
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        metadata: {
+          contributionId: contributionId,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    return { info: response.data, type: "paystack" };
+  } else if (paymentType === "card" && cardData) {
+    const response = (await chargeCardService(
+      cardData,
+      //@ts-ignore
+      contribution.user.email,
+      amount,
+      {
+        contributionId: contributionId,
+      }
+    )) as any;
+
+    if (response.data.status !== "success") {
+      throw new BadRequestError(response.data.message);
+    }
+
+    // Reset failed attempts count on card
+    const wallet = await findWalletService({ user: contribution.user });
+    if (wallet) {
+      const usableCard = wallet?.allCards?.find(
+        (card: any) => card.authCode === cardData
+      );
+      if (usableCard) {
+        usableCard.failedAttempts = 0;
+        wallet.markModified("allCards");
+        await wallet.save();
+      }
+    }
+
+    return {
+      reference: response.data.reference,
+      status: response.data.status,
+      type: "card",
+    };
+  } else {
+    throw new BadRequestError("Invalid payment type");
+  }
+};
+
+export const verifyUnpaidContributionPayment = async (
+  reference: string,
+  isAddCard?: Boolean
+) => {
+  try {
+    const referenceExists = await ContributionHistory.countDocuments({
+      reference: reference,
+    });
+
+    if (referenceExists) {
+      throw new BadRequestError("Payment already verified");
+    }
+
+    const response: any = await axios.get(
+      `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    if (!response || !response?.data) {
+      throw new BadRequestError("Invalid response from Paystack");
+    }
+
+    const paymentData = response?.data?.data;
+    console.log("Payment verification response:", response);
+
+    if (paymentData.status === "success") {
+      const { amount, customer } = paymentData;
+
+      const user = await findUser("email", customer.email);
+      if (!user) {
+        throw new BadRequestError("User not found");
+      }
+
+      if (isAddCard) {
+        await addCardService(user._id as string, {
+          number: paymentData.authorization.last4,
+          authCode: paymentData.authorization.authorization_code,
+        });
+      }
+
+      const contribution = await Contribution.findOne({
+        _id: paymentData.metadata.contributionId,
+      });
+
+      if (!contribution) {
+        throw new BadRequestError("Contribution not found");
+      }
+
+      contribution.balance += amount / 100;
+
+      await createContributionHistoryService({
+        contribution: contribution._id as ObjectId,
+        user: user._id as ObjectId,
+        amount: contribution.amount,
+        type: "Credit",
+        balance: contribution.balance,
+        status: "Completed",
+        Date: new Date(),
+        reference: reference,
+      });
+
+      await updateContributionStatusService(contribution._id as string, "Paid");
+
+      await contribution.save();
+    }
+  } catch (error: any) {
+    console.error("Error verifying payment:", error);
+    throw new BadRequestError(
+      error.response ? error.response.data : error.message
+    );
+  }
+};
+
 export const verifyContributionPayment = async (
   reference: string,
   isAddCard?: Boolean
