@@ -307,12 +307,15 @@ export const verifyUnpaidContributionPayment = async (
         amount: contribution.amount,
         type: "Credit",
         balance: contribution.balance,
-        status: "Completed",
+        status: "Paid",
         Date: new Date(),
         reference: reference,
       });
 
-      await updateContributionStatusService(contribution._id as string, "Paid");
+      await updateContributionStatusService(
+        contribution._id as string,
+        "Completed"
+      );
 
       await contribution.save();
 
@@ -635,7 +638,10 @@ export const createContributionHistoryService = async (
 export const findContributionHistoryService = async (
   contributionId: string
 ) => {
-  return await ContributionHistory.find({ contribution: contributionId }).sort({
+  return await ContributionHistory.find({
+    contribution: contributionId,
+    status: { $in: ["Completed", "Unpaid"] },
+  }).sort({
     createdAt: -1,
   });
 };
