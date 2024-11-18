@@ -334,9 +334,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     });
   }
 
-  if (amount < 2000) {
+  if (amount < 100) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Minimum withdrawal amount is 2000 Naira",
+      message: "Minimum withdrawal amount is 100 Naira",
       statusCode: StatusCodes.BAD_REQUEST,
     });
   }
@@ -356,7 +356,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
     // total penalties and amount remaining after deductions
     const totalPenalties = membershipFee + deadline + charges;
-    const totalToPay = amount - totalPenalties;
+    const totalToPay = amount - totalPenalties - charges;
 
     if (totalToPay <= 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
