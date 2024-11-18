@@ -30,7 +30,7 @@ cloudinary.v2.config({
 //     .catch((err) => console.error("Error processing contributions:", err));
 // });
 
-// Schedule the recurring contributions check every hour
+// Schedule the recurring contributions check at 12:00 AM
 cron.schedule("0 0 * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
