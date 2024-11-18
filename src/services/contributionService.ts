@@ -5,13 +5,11 @@ import { BadRequestError } from "../errors";
 import axios from "axios";
 import dotenv from "dotenv";
 import { findUser } from "./authService";
-import { EmailOptions, sendEmail } from "../utils/sendEmail";
 import {
   addCardService,
   chargeCardService,
   findWalletService,
 } from "./walletService";
-import { stat } from "fs";
 
 dotenv.config();
 
@@ -519,6 +517,22 @@ export const tryRecurringContributions = async () => {
     } else {
       await paymentforContribution(contribution);
     }
+  }
+};
+
+//Update all missed contributions by creating a contribution history and updating the next contribution date
+export const updateMissedContributions = async () => {
+  const contributions = await Contribution.find({
+    status: "Completed",
+    nextContributionDate: {
+      $lt: new Date(new Date().getTime() - 60 * 60 * 1000),
+    },
+    endDate: { $gte: new Date() },
+    startDate: { $lte: new Date() },
+  }).populate("user");
+
+  for (let contribution of contributions) {
+    await paymentforContribution(contribution);
   }
 };
 

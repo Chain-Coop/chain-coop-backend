@@ -11,6 +11,7 @@ import fileUpload from "express-fileupload";
 import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
+  updateMissedContributions,
 } from "./services/contributionService";
 
 dotenv.config();
@@ -29,8 +30,8 @@ cloudinary.v2.config({
 //     .catch((err) => console.error("Error processing contributions:", err));
 // });
 
-// Schedule the recurring contributions check every hour
-cron.schedule("0 * * * *", () => {
+// Schedule the recurring contributions check at 12:00 AM
+cron.schedule("0 0 * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
@@ -45,6 +46,13 @@ cron.schedule("0 0 * * *", () => {
     .catch((err) =>
       console.error("Error clearing pending contributions:", err)
     );
+});
+
+cron.schedule("0 1 * * *", () => {
+  console.log("Add missing contributions...");
+  updateMissedContributions()
+    .then(() => console.log("Added missing contributions."))
+    .catch((err) => console.error("Error adding missing contributions:", err));
 });
 
 // Routers
