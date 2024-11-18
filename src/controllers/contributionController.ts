@@ -342,9 +342,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     });
   }
 
-  if (amount < 2000) {
+  if (amount < 100) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Minimum withdrawal amount is 2000 Naira",
+      message: "Minimum withdrawal amount is 100 Naira",
       statusCode: StatusCodes.BAD_REQUEST,
     });
   }
