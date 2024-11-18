@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/src/app.js",
-    "dev": "nodemon src/app.ts --exec 'ts-node' --ignore 'dist/'",
+    "dev": "nodemon src/app.ts --exec ts-node --ignore 'dist/'",
     "build": "tsc"
   },
   "keywords": [],
@@ -30,6 +30,7 @@
   "dependencies": {
     "@types/axios": "^0.9.36",
     "axios": "^1.7.7",
+    "backend-ts": "file:",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "chalk": "^5.3.0",

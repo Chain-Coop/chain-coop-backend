@@ -11,6 +11,9 @@ import {
   getUserContributions,
   attemptPayment,
   getPendingContributions,
+  getUnpaidContributions,
+  chargeforUnpaidContributions,
+  verifyUnpaidPayment,
 } from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
 
@@ -28,4 +31,10 @@ router.route("/pay-contribution").post(authorize, chargeCardforContribution);
 router.route("/pending").get(authorize, getPendingContributions);
 
 router.route("/pay").post(authorize, attemptPayment);
+
+//Unpaid contributions
+router.route("/unpaid").get(authorize, getUnpaidContributions);
+router.route("/charge-unpaid").post(authorize, chargeforUnpaidContributions);
+router.route("/verify-unpaid").get(authorize, verifyUnpaidPayment);
+
 export default router;

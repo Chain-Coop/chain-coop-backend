@@ -102,6 +102,11 @@ export const initializeContributionPayment = async (
   cardData?: string
 ) => {
   try {
+    const debt = await calculateTotalDebt(contributionId);
+    if (debt >= 0) {
+      throw new BadRequestError("Pay Outstanding Debt First");
+    }
+
     const contribution = await Contribution.findById(contributionId);
     const user = await findUser("id", userId);
     if (!contribution || !user) {
@@ -135,6 +140,23 @@ export const initializeContributionPayment = async (
           contributionId: contribution._id,
         }
       );
+      if (response.data.status !== "success") {
+        throw new BadRequestError(response.data.message);
+      }
+
+      // Reset failed attempts count on card
+      const wallet = await findWalletService({ user: userId });
+      if (wallet) {
+        const usableCard = wallet?.allCards?.find(
+          (card: any) => card.authCode === cardData
+        );
+        if (usableCard) {
+          usableCard.failedAttempts = 0;
+          wallet.markModified("allCards");
+          await wallet.save();
+        }
+      }
+
       return {
         reference: response.data.reference,
         status: response.data.status,
@@ -149,6 +171,174 @@ export const initializeContributionPayment = async (
     console.error("Error initializing payment:", error);
     throw new BadRequestError(
       error.response ? error.response.data.data : error.message
+    );
+  }
+};
+
+//Service to charge unpaid contributions
+export const chargeUnpaidContributions = async (
+  contributionId: string,
+  paymentType: string,
+  cardData?: string
+) => {
+  const amount = await calculateTotalDebt(contributionId);
+  const contribution = await Contribution.findById(contributionId).populate(
+    "user"
+  );
+
+  if (!amount || amount <= 0) {
+    throw new BadRequestError("No unpaid contributions found");
+  }
+
+  if (!contribution) {
+    throw new BadRequestError("Contribution not found");
+  }
+
+  if (paymentType === "paystack") {
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        //@ts-ignore
+        email: contribution.user.email,
+        amount: amount * 100,
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        metadata: {
+          contributionId: contributionId,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    return { info: response.data, type: "paystack" };
+  } else if (paymentType === "card" && cardData) {
+    const response = (await chargeCardService(
+      cardData,
+      //@ts-ignore
+      contribution.user.email,
+      amount,
+      {
+        contributionId: contributionId,
+      }
+    )) as any;
+
+    if (response.data.status !== "success") {
+      throw new BadRequestError(response.data.message);
+    }
+
+    // Reset failed attempts count on card
+    const wallet = await findWalletService({ user: contribution.user });
+    if (wallet) {
+      const usableCard = wallet?.allCards?.find(
+        (card: any) => card.authCode === cardData
+      );
+      if (usableCard) {
+        usableCard.failedAttempts = 0;
+        wallet.markModified("allCards");
+        await wallet.save();
+      }
+    }
+
+    return {
+      reference: response.data.reference,
+      status: response.data.status,
+      type: "card",
+    };
+  } else {
+    throw new BadRequestError("Invalid payment type");
+  }
+};
+
+export const verifyUnpaidContributionPayment = async (
+  reference: string,
+  isAddCard?: boolean
+) => {
+  try {
+    const referenceExists = await ContributionHistory.countDocuments({
+      reference: reference,
+    });
+
+    if (referenceExists) {
+      throw new BadRequestError("Payment already verified");
+    }
+
+    const response: any = await axios.get(
+      `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    if (!response || !response?.data) {
+      throw new BadRequestError("Invalid response from Paystack");
+    }
+
+    const paymentData = response?.data?.data;
+    console.log("Payment verification response:", response);
+
+    if (paymentData.status === "success") {
+      const { amount, customer } = paymentData;
+
+      const user = await findUser("email", customer.email);
+      if (!user) {
+        throw new BadRequestError("User not found");
+      }
+
+      if (isAddCard) {
+        await addCardService(user._id as string, {
+          number: paymentData.authorization.last4,
+          authCode: paymentData.authorization.authorization_code,
+        });
+      }
+
+      const contribution = await Contribution.findOne({
+        _id: paymentData.metadata.contributionId,
+      });
+
+      if (!contribution) {
+        throw new BadRequestError("Contribution not found");
+      }
+
+      contribution.balance += amount / 100;
+
+      await createContributionHistoryService({
+        contribution: contribution._id as ObjectId,
+        user: user._id as ObjectId,
+        amount: contribution.amount,
+        type: "Credit",
+        balance: contribution.balance,
+        status: "Paid",
+        Date: new Date(),
+        reference: reference,
+      });
+
+      await updateContributionStatusService(
+        contribution._id as string,
+        "Completed"
+      );
+
+      await contribution.save();
+
+      return {
+        message: "Payment verified successfully",
+        data: {
+          contributionId: contribution._id,
+          amount: contribution.amount,
+          balance: contribution.balance,
+        },
+      };
+    } else {
+      throw new BadRequestError("Payment verification failed");
+    }
+  } catch (error: any) {
+    console.error("Error verifying payment:", error);
+    throw new BadRequestError(
+      error.response ? error.response.data : error.message
     );
   }
 };
@@ -283,6 +473,7 @@ export const tryRecurringContributions = async () => {
       const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
       const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
       if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
+        await paymentforContribution(contribution);
         continue;
       }
 
@@ -325,8 +516,69 @@ export const tryRecurringContributions = async () => {
 
         await wallet.save();
       }
+    } else {
+      await paymentforContribution(contribution);
     }
   }
+};
+
+export const paymentforContribution = async (contribution: any) => {
+  //Logic to add unpaid contribution history and update next contribution date
+  contribution.lastContributionDate = new Date();
+  contribution.nextContributionDate = calculateNextContributionDate(
+    new Date(),
+    contribution.contributionPlan
+  );
+
+  // Create contribution history
+  await createContributionHistoryService({
+    contribution: contribution._id as ObjectId,
+    //@ts-ignore
+    user: contribution.user._id as ObjectId,
+    amount: contribution.amount,
+    type: "Credit",
+    balance: contribution.balance,
+    status: "Unpaid",
+    Date: new Date(),
+  });
+
+  await contribution.save();
+};
+
+export const getUnpaidContributionHistory = async (
+  contributionId: string,
+  attToGet: Array<string>
+) => {
+  return await ContributionHistory.find(
+    {
+      contribution: contributionId,
+      status: "Unpaid",
+    },
+    attToGet.join(" ")
+  );
+};
+
+export const calculateTotalDebt = async (contributionId: string) => {
+  const unpaidContributions = await getUnpaidContributionHistory(
+    contributionId,
+    ["amount"]
+  );
+
+  const totalDebt = unpaidContributions.reduce((acc, contribution) => {
+    return acc + contribution.amount;
+  }, 0);
+
+  return totalDebt;
+};
+
+export const updateContributionStatusService = async (
+  id: ObjectId | string,
+  status: string
+) => {
+  return await ContributionHistory.updateMany(
+    { contribution: id, status: "Unpaid" },
+    { status }
+  );
 };
 
 export const updateContributionService = async (
@@ -391,7 +643,10 @@ export const createContributionHistoryService = async (
 export const findContributionHistoryService = async (
   contributionId: string
 ) => {
-  return await ContributionHistory.find({ contribution: contributionId }).sort({
+  return await ContributionHistory.find({
+    contribution: contributionId,
+    status: { $in: ["Completed", "Unpaid"] },
+  }).sort({
     createdAt: -1,
   });
 };
@@ -443,7 +698,6 @@ export const getAllUserContributionsService = async (
     .limit(limit)
     .skip(skip);
 };
-
 
 export const getUserContributionsLengthService = async (userId: ObjectId) => {
   return await Contribution.countDocuments({ user: userId });

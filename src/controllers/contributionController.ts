@@ -13,6 +13,9 @@ import {
   getUserContributionsLengthService,
   initializeContributionPayment,
   getPendingContributionsService,
+  calculateTotalDebt,
+  chargeUnpaidContributions,
+  verifyUnpaidContributionPayment,
 } from "../services/contributionService";
 import {
   chargeCardService,
@@ -273,8 +276,13 @@ export const newgetContributionHistory = async (
     }
 
     // Get the overall balance, next contribution date, and withdrawal date from the contribution
-    const { balance, startDate, nextContributionDate, withdrawalDate, savingsCategory } =
-      contribution;
+    const {
+      balance,
+      startDate,
+      nextContributionDate,
+      withdrawalDate,
+      savingsCategory,
+    } = contribution;
 
     // Fetch the total history length and validate limit type
     const historyLength = await getHistoryLengthService(
@@ -349,13 +357,14 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   }
 
   if (!pay) {
+    const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
     const membershipFee = wallet.hasWithdrawnBefore ? 0 : 1000;
     const deadline =
       contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
     const charges = 50;
 
     // total penalties and amount remaining after deductions
-    const totalPenalties = membershipFee + deadline + charges;
+    const totalPenalties = membershipFee + deadline + charges + debtfee;
     const totalToPay = amount - totalPenalties;
 
     if (totalToPay <= 0) {
@@ -372,6 +381,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
       charges: charges,
       totalPenalties: totalPenalties,
       totalToPay: totalToPay,
+      debtfee: debtfee,
       statusCode: StatusCodes.OK,
     });
   }
@@ -445,7 +455,6 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
   });
 };
-
 
 export const getContributionsById = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -560,9 +569,7 @@ export const getUserContributions = async (req: Request, res: Response) => {
     // Sort after fetching if necessary
     const sortOrder = sort === "asc" ? 1 : -1;
     contributions = contributions.sort((a: any, b: any) =>
-      sortOrder === 1
-        ? a.createdAt - b.createdAt
-        : b.createdAt - a.createdAt
+      sortOrder === 1 ? a.createdAt - b.createdAt : b.createdAt - a.createdAt
     );
 
     const totalPages = Math.ceil(conLength / Number(limit));
@@ -580,3 +587,46 @@ export const getUserContributions = async (req: Request, res: Response) => {
   }
 };
 
+export const getUnpaidContributions = async (req: Request, res: Response) => {
+  const { contributionId } = req.query;
+
+  if (!contributionId) {
+    throw new BadRequestError("Contribution ID is required");
+  }
+
+  const totalAmount = await calculateTotalDebt(contributionId as string);
+  console.log("Total amount:", totalAmount);
+
+  res.status(StatusCodes.OK).json({ totalAmount });
+};
+
+export const chargeforUnpaidContributions = async (
+  req: Request,
+  res: Response
+) => {
+  const { contributionId, cardAuthCode, paymentType } = req.body;
+  if (!contributionId) {
+    throw new BadRequestError("Contribution ID is required");
+  }
+
+  const charge = await chargeUnpaidContributions(
+    contributionId,
+    paymentType,
+    cardAuthCode
+  );
+
+  res.status(StatusCodes.OK).json({ charge });
+};
+
+export const verifyUnpaidPayment = async (req: Request, res: Response) => {
+  const { reference } = req.query;
+  const isAddCard = req.query.addCard === "true";
+
+  if (!reference || typeof reference !== "string") {
+    throw new BadRequestError("Payment reference is required");
+  }
+
+  const result = await verifyUnpaidContributionPayment(reference, isAddCard);
+
+  res.status(StatusCodes.OK).json({ result });
+};
