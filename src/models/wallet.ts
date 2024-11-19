@@ -88,8 +88,8 @@ const WalletSchema = new Schema<WalletDocument>(
 );
 
 WalletSchema.pre("save", async function (next) {
-  if (this.pin === undefined) {
-    return;
+  if (!this.isModified("pin")) {
+    return next();
   }
   const salt = await bcrypt.genSaltSync(10);
   const pinHash = await bcrypt.hashSync(this.pin!, salt);
