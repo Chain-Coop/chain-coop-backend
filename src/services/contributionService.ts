@@ -482,7 +482,7 @@ export const tryRecurringContributions = async () => {
         );
         const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
         if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
-          console.log("Payment failed 3 times");
+          console.log("Payment failed 3 times for card:", usableCard);
           await paymentforContribution(contribution);
           continue;
         }
@@ -567,6 +567,7 @@ export const updateMissedContributions = async () => {
 
 export const paymentforContribution = async (contribution: any) => {
   //Logic to add unpaid contribution history and update next contribution date
+  console.log("Payment for contribution:", contribution._id);
   const session = await mongoose.startSession();
   while (contribution.nextContributionDate < new Date()) {
     try {
@@ -589,6 +590,10 @@ export const paymentforContribution = async (contribution: any) => {
         status: "Unpaid",
         Date: contribution.lastContributionDate,
       });
+      console.log(
+        "Contribution history created",
+        contribution.lastContributionDate
+      );
 
       await contribution.save();
       await session.commitTransaction();
