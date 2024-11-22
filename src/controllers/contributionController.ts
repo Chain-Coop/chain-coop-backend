@@ -604,7 +604,7 @@ export const chargeforUnpaidContributions = async (
   req: Request,
   res: Response
 ) => {
-  const { contributionId, cardAuthCode, paymentType } = req.body;
+  const { contributionId, cardData, paymentType } = req.body;
   if (!contributionId) {
     throw new BadRequestError("Contribution ID is required");
   }
@@ -612,7 +612,7 @@ export const chargeforUnpaidContributions = async (
   const charge = await chargeUnpaidContributions(
     contributionId,
     paymentType,
-    cardAuthCode
+    cardData
   );
 
   res.status(StatusCodes.OK).json({ charge });

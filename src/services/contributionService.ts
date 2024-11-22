@@ -101,7 +101,8 @@ export const initializeContributionPayment = async (
 ) => {
   try {
     const debt = await calculateTotalDebt(contributionId);
-    if (debt >= 0) {
+    console.log("Debt:", debt);
+    if (debt > 0) {
       throw new BadRequestError("Pay Outstanding Debt First");
     }
 
@@ -138,7 +139,8 @@ export const initializeContributionPayment = async (
           contributionId: contribution._id,
         }
       );
-      if (response.data.status !== "success") {
+      console.log("Card charge response:", response);
+      if (!response.data.status && response.data.status !== "success") {
         throw new BadRequestError(response.data.message);
       }
 
