@@ -22,16 +22,11 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-// Schedule the recurring contributions check every hour
-// cron.schedule("0 * * * *", () => {
-//   console.log("Running recurring contributions check...");
-//   processRecurringContributions()
-//     .then(() => console.log("Processed recurring contributions."))
-//     .catch((err) => console.error("Error processing contributions:", err));
-// });
+//Check if app is in development or live and generates cron string
+const cronString =
+  process.env.NODE_ENV === "development" ? "*/3 * * * *" : "0 * * * *";
 
-// Schedule the recurring contributions check at 12:00 AM
-cron.schedule("0 0 * * *", () => {
+cron.schedule(cronString, () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
@@ -47,14 +42,6 @@ cron.schedule("0 0 * * *", () => {
       console.error("Error clearing pending contributions:", err)
     );
 });
-
-cron.schedule("0 1 * * *", () => {
-  console.log("Add missing contributions...");
-  updateMissedContributions()
-    .then(() => console.log("Added missing contributions."))
-    .catch((err) => console.error("Error adding missing contributions:", err));
-});
-
 // Routers
 import {
   authRouter,

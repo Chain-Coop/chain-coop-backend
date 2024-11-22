@@ -1,4 +1,4 @@
-import { ObjectId } from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import Contribution, { ContributionDocument } from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
 import { BadRequestError } from "../errors";
@@ -451,71 +451,98 @@ export const tryRecurringContributions = async () => {
     endDate: { $gte: new Date() },
     startDate: { $lte: new Date() },
     nextContributionDate: { $lt: new Date() },
+    lastChargeDate: {
+      $lt: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+    },
   }).populate("user");
 
   for (let contribution of contributions) {
-    const user = contribution.user;
+    const session = await mongoose.startSession();
 
-    // Check if the user is present; skip iteration if user is null
-    if (!user) {
-      console.warn(
-        `Skipping contribution ${contribution._id} as user ${contribution.user} is null`
-      );
-      continue;
-    }
+    try {
+      contribution.lastChargeDate = new Date();
+      const user = contribution.user;
 
-    //@ts-ignore
-    const wallet = await findWalletService({ user: user._id });
-
-    if (wallet?.allCards?.length && wallet?.allCards[0]?.authCode) {
-      const Preferred = wallet.allCards.filter((card: any) => card.isPreferred);
-      const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
-      if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
-        await paymentforContribution(contribution);
+      // Check if the user is present; skip iteration if user is null
+      if (!user) {
+        console.warn(
+          `Skipping contribution ${contribution._id} as user ${contribution.user} is null`
+        );
         continue;
       }
 
-      const charge = (await chargeCardService(
-        usableCard.authCode,
-        //@ts-ignore
-        user.email,
-        contribution.amount
-      )) as {
-        data: any;
-      };
+      //@ts-ignore
+      const wallet = await findWalletService({ user: user._id });
 
-      if (charge.data && charge.data.status === "success") {
-        contribution.lastContributionDate = new Date();
-        contribution.nextContributionDate = calculateNextContributionDate(
-          new Date(),
-          contribution.contributionPlan
+      if (wallet?.allCards?.length && wallet?.allCards[0]?.authCode) {
+        const Preferred = wallet.allCards.filter(
+          (card: any) => card.isPreferred
         );
-        contribution.balance += contribution.amount;
+        const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
+        if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
+          console.log("Payment failed 3 times");
+          await paymentforContribution(contribution);
+          continue;
+        }
 
-        // Create contribution history
-        await createContributionHistoryService({
-          contribution: contribution._id as ObjectId,
-          //@ts-ignore
-          user: user._id as ObjectId,
-          amount: contribution.amount,
-          type: "Credit",
-          balance: contribution.balance,
-          status: "Completed",
-          Date: new Date(),
-        });
+        while (contribution.nextContributionDate! < new Date()) {
+          const charge = (await chargeCardService(
+            usableCard.authCode,
+            //@ts-ignore
+            user.email,
+            contribution.amount
+          )) as {
+            data: any;
+          };
 
-        await contribution.save();
+          if (charge.data && charge.data.status === "success") {
+            session.startTransaction();
+            try {
+              contribution.lastContributionDate =
+                contribution.nextContributionDate;
+              contribution.nextContributionDate = calculateNextContributionDate(
+                contribution.nextContributionDate!,
+                contribution.contributionPlan
+              );
+              contribution.balance += contribution.amount;
+
+              // Create contribution history
+              await createContributionHistoryService({
+                contribution: contribution._id as ObjectId,
+                //@ts-ignore
+                user: user._id as ObjectId,
+                amount: contribution.amount,
+                type: "Credit",
+                balance: contribution.balance,
+                status: "Completed",
+                Date: contribution.lastContributionDate!,
+              });
+
+              await contribution.save();
+              await session.commitTransaction();
+            } catch (err) {
+              console.log(err);
+              await session.abortTransaction();
+            }
+            session.endSession();
+          } else {
+            // Increment failed attempts count on card
+            usableCard.failedAttempts
+              ? usableCard.failedAttempts++
+              : (usableCard.failedAttempts = 1);
+            wallet.markModified("allCards");
+
+            await wallet.save();
+
+            break;
+          }
+        }
       } else {
-        // Increment failed attempts count on card
-        usableCard.failedAttempts
-          ? usableCard.failedAttempts++
-          : (usableCard.failedAttempts = 1);
-        wallet.markModified("allCards");
-
-        await wallet.save();
+        console.log("No card found");
+        await paymentforContribution(contribution);
       }
-    } else {
-      await paymentforContribution(contribution);
+    } catch (err) {
+      console.log(err);
     }
   }
 };
@@ -538,25 +565,38 @@ export const updateMissedContributions = async () => {
 
 export const paymentforContribution = async (contribution: any) => {
   //Logic to add unpaid contribution history and update next contribution date
-  contribution.lastContributionDate = new Date();
-  contribution.nextContributionDate = calculateNextContributionDate(
-    new Date(),
-    contribution.contributionPlan
-  );
+  const session = await mongoose.startSession();
+  while (contribution.nextContributionDate < new Date()) {
+    try {
+      session.startTransaction();
+      let nextContributionDate = contribution.nextContributionDate;
+      contribution.lastContributionDate = contribution.nextContributionDate;
+      contribution.nextContributionDate = calculateNextContributionDate(
+        nextContributionDate,
+        contribution.contributionPlan
+      );
 
-  // Create contribution history
-  await createContributionHistoryService({
-    contribution: contribution._id as ObjectId,
-    //@ts-ignore
-    user: contribution.user._id as ObjectId,
-    amount: contribution.amount,
-    type: "Credit",
-    balance: contribution.balance,
-    status: "Unpaid",
-    Date: new Date(),
-  });
+      // Create contribution history
+      await createContributionHistoryService({
+        contribution: contribution._id as ObjectId,
+        //@ts-ignore
+        user: contribution.user._id as ObjectId,
+        amount: contribution.amount,
+        type: "Credit",
+        balance: contribution.balance,
+        status: "Unpaid",
+        Date: contribution.lastContributionDate,
+      });
 
-  await contribution.save();
+      await contribution.save();
+      await session.commitTransaction();
+    } catch (err) {
+      console.log(err);
+      await session.abortTransaction();
+    }
+
+    session.endSession();
+  }
 };
 
 export const getUnpaidContributionHistory = async (

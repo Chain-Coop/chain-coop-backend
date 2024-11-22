@@ -2,18 +2,19 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string; 
-  savingsCategory: string; 
+  contributionPlan: string;
+  savingsCategory: string;
   amount: number;
   startDate?: Date;
   endDate?: Date;
-  categoryBalances: Record<string, number>; 
-  balance: number; 
+  categoryBalances: Record<string, number>;
+  balance: number;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
-  withdrawalDate?: Date; 
+  withdrawalDate?: Date;
   status: string;
   paymentReference?: string;
+  lastChargeDate?: Date;
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -29,8 +30,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
       required: true,
     },
     savingsCategory: {
-      type: String, 
-      required: true,
+      type: String,
     },
     amount: {
       type: Number,
@@ -40,7 +40,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
       type: Map,
       of: Number,
       required: true,
-      default: {}
+      default: {},
     },
     balance: {
       type: Number,
@@ -49,11 +49,9 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     startDate: {
       type: Date,
-      required: true,
     },
     endDate: {
       type: Date,
-      required: false,
     },
     nextContributionDate: {
       type: Date,
@@ -61,8 +59,8 @@ const ContributionSchema = new Schema<ContributionDocument>(
     lastContributionDate: {
       type: Date,
     },
-    withdrawalDate: { 
-      type: Date 
+    withdrawalDate: {
+      type: Date,
     },
     status: {
       type: String,
@@ -70,6 +68,10 @@ const ContributionSchema = new Schema<ContributionDocument>(
       default: "Pending",
     },
     paymentReference: { type: String },
+    lastChargeDate: {
+      type: Date,
+      default: Date.now(),
+    },
   },
   { timestamps: true }
 );

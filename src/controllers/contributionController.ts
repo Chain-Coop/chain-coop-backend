@@ -440,7 +440,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
-    status: "success",
+    status: "Completed",
     withdrawalDate: currentDate,
   });
 
