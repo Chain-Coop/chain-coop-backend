@@ -201,7 +201,7 @@ export const chargeUnpaidContributions = async (
         //@ts-ignore
         email: contribution.user.email,
         amount: amount * 100,
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_unpaid_transaction`,
         metadata: {
           contributionId: contributionId,
         },

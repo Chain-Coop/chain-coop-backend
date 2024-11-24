@@ -19,7 +19,7 @@ const plans: Record<MembershipType, string> = {
   Voyager: process.env.PAYSTACK_VOYAGER_PLAN_ID || "",
 };
 
-// Function to create a customer on Paystack
+// Function to create a customer on Paystacks
 export const createCustomer = async (email: string) => {
   console.log("Creating customer with email:", email); // Logging input
   if (!PAYSTACK_SECRET_KEY) {
