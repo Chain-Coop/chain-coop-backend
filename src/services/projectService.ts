@@ -4,158 +4,165 @@ import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import deleteDocument from "../utils/deleteDocument";
 import { extractPublicId } from "../utils/extractPublicId";
 import uploadDocument from "../utils/uploadDocument";
-import { ForbiddenError, NotFoundError } from "../errors"; 
+import { ForbiddenError, NotFoundError } from "../errors";
 import uploadImageFile from "../utils/imageUploader";
+import { createWalletHistoryService } from "./walletService";
 
 // Create a new project service
 export const createProjectService = async (
-    payload: any,
-    file: any
+  payload: any,
+  file: any
 ): Promise<ProjectDocument> => {
-    let documentUrl = "";
-    if (file) {
-        // Upload the document to Cloudinary and get the secure URL
-        documentUrl = await uploadDocument(file, "projects");
-    }
+  let documentUrl = "";
+  if (file) {
+    // Upload the document to Cloudinary and get the secure URL
+    documentUrl = await uploadDocument(file, "projects");
+  }
 
-    return await Project.create({ ...payload, documentUrl });
+  return await Project.create({ ...payload, documentUrl });
 };
 
-// Get all projects for a specific user 
+// Get all projects for a specific user
 export const getUserProjectsService = async (
-    userId: string
+  userId: string
 ): Promise<ProjectDocument[]> => {
-    return await Project.find({ author: userId }).populate(
-        "author",
-        "username email"
-    );
+  return await Project.find({ author: userId }).populate(
+    "author",
+    "username email"
+  );
 };
 
 // Get all projects (admin only)
 export const getAllProjectsService = async (): Promise<ProjectDocument[]> => {
-    return await Project.find().populate("author", "username email");
+  return await Project.find().populate("author", "username email");
 };
 
-// Get a specific project by id 
+// Get a specific project by id
 export const getProjectByIdService = async (
-    id: string
+  id: string
 ): Promise<ProjectDocument | null> => {
-    return await Project.findById(id).populate("author", "username email");
+  return await Project.findById(id).populate("author", "username email");
 };
 
-// Update a specific project by id 
+// Update a specific project by id
 export const updateProjectByIdService = async (
-    id: string,
-    payload: any,
-    file?: any
+  id: string,
+  payload: any,
+  file?: any
 ): Promise<ProjectDocument | null> => {
-    if (file) {
-        const project = await Project.findById(id);
-        if (project && project.documentUrl) {
-            const publicId = extractPublicId(project.documentUrl);
-            if (publicId) {
-                // Delete the old document from Cloudinary
-                await deleteDocument(publicId);
-            }
-        }
-
-        // Upload the new document to Cloudinary
-        const result: UploadApiResponse = await cloudinary.uploader.upload(
-            file.tempFilePath,
-            {
-                folder: "projects",
-            }
-        );
-        payload.documentUrl = result.secure_url;
+  if (file) {
+    const project = await Project.findById(id);
+    if (project && project.documentUrl) {
+      const publicId = extractPublicId(project.documentUrl);
+      if (publicId) {
+        // Delete the old document from Cloudinary
+        await deleteDocument(publicId);
+      }
     }
 
-    return await Project.findByIdAndUpdate(id, payload, {
-        new: true,
-        runValidators: true,
-    });
+    // Upload the new document to Cloudinary
+    const result: UploadApiResponse = await cloudinary.uploader.upload(
+      file.tempFilePath,
+      {
+        folder: "projects",
+      }
+    );
+    payload.documentUrl = result.secure_url;
+  }
+
+  return await Project.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
 };
 
-// Delete a specific project by id 
+// Delete a specific project by id
 export const deleteProjectByIdService = async (id: string): Promise<void> => {
-    const project = await Project.findById(id);
-    if (project?.documentUrl) {
-        // Delete the existing document from Cloudinary
-        const publicId = extractPublicId(project.documentUrl);
-        if (publicId) {
-            await deleteDocument(publicId);
-        }
+  const project = await Project.findById(id);
+  if (project?.documentUrl) {
+    // Delete the existing document from Cloudinary
+    const publicId = extractPublicId(project.documentUrl);
+    if (publicId) {
+      await deleteDocument(publicId);
     }
+  }
 
-    await Project.findByIdAndDelete(id);
+  await Project.findByIdAndDelete(id);
 };
 
 export const fundProjectService = async (
-    userId: string,
-    projectId: string,
-    amount: number
+  userId: string,
+  projectId: string,
+  amount: number
 ): Promise<ProjectDocument | null> => {
-    const project = await Project.findById(projectId);
-    if (!project) {
-        throw new NotFoundError("Project not found");
-    }
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new NotFoundError("Project not found");
+  }
 
-    const wallet = await Wallet.findOne({ user: userId });
-    if (!wallet) {
-        throw new NotFoundError("Wallet not found");
-    }
+  const wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new NotFoundError("Wallet not found");
+  }
 
-    if (wallet.balance < amount) {
-        throw new ForbiddenError("Insufficient balance in wallet");
-    }
+  if (wallet.balance < amount) {
+    throw new ForbiddenError("Insufficient balance in wallet");
+  }
 
-    // Deduct the amount from the user's wallet
-    wallet.balance -= amount;
-    await wallet.save();
+  // Deduct the amount from the user's wallet
+  wallet.balance -= amount;
+  await wallet.save();
 
-    //Add amount to funded projects
-    const fundedProject = wallet.fundedProjects.find(
-        (project) => project.projectId == projectId
-    );
-    if (fundedProject) {
-        fundedProject.amount += amount;
-    } else {
-        wallet.fundedProjects.push({ projectId, amount });
-    }
+  //Add amount to funded projects
+  const fundedProject = wallet.fundedProjects.find(
+    (project) => project.projectId == projectId
+  );
+  if (fundedProject) {
+    fundedProject.amount += amount;
+  } else {
+    wallet.fundedProjects.push({ projectId, amount });
+  }
 
-    await wallet.save();
+  await createWalletHistoryService({
+    user: userId,
+    type: "debit",
+    amount,
+    label: `Funded project: ${project.title}`,
+    ref: `${projectId}`,
+  });
 
-    // Add the amount to the project's fund balance
-    project.fundBalance += amount;
-    await project.save();
+  await wallet.save();
 
-    return project;
+  // Add the amount to the project's fund balance
+  project.fundBalance += amount;
+  await project.save();
+
+  return project;
 };
 
 export const updateProjectDetailsService = async (
-    id: string,
-    userId: string,
-    updates: any,
-    file: any
+  id: string,
+  userId: string,
+  updates: any,
+  file: any
 ): Promise<ProjectDocument | null> => {
-    // Fetch the project by its ID
-    const project = await getProjectByIdService(id);
+  // Fetch the project by its ID
+  const project = await getProjectByIdService(id);
 
-    // Check if the project is null and throw an appropriate error
-    if (!project) {
-        throw new NotFoundError("Project not found");
-    }
+  // Check if the project is null and throw an appropriate error
+  if (!project) {
+    throw new NotFoundError("Project not found");
+  }
 
- 
+  // Handle file upload if provided
+  if (file) {
+    const uploadedImage = await uploadImageFile(file, "document", "image");
+    updates.documentUrl = uploadedImage.secure_url; // Update the document URL with the uploaded image
+  }
 
-    // Handle file upload if provided
-    if (file) {
-        const uploadedImage = await uploadImageFile(file, 'document', 'image');
-        updates.documentUrl = uploadedImage.secure_url; // Update the document URL with the uploaded image
-    }
-
-    // Update the project details
-    return await Project.findByIdAndUpdate(id, updates, {
-        new: true,
-        runValidators: true,
-    });
+  // Update the project details
+  return await Project.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
 };
