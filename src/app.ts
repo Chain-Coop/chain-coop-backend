@@ -96,6 +96,11 @@ app.all("/", (req: Request, res: Response) => {
   res.send("Chain Coop Backend");
 });
 
+app.get("/webhook", (req: Request, res: Response) => {
+  console.log("Webhook called");
+  res.send("Webhook called");
+});
+
 // Error handling middlewares
 app.use(notFound);
 app.use(errorHandlerMiddleware);

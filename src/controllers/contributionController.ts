@@ -25,10 +25,11 @@ import {
 } from "../services/walletService";
 import { BadRequestError, NotFoundError } from "../errors";
 import { StatusCodes } from "http-status-codes";
-import { ObjectId } from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import Contribution from "../models/contribution";
 import ContributionHistory from "../models/contributionHistory";
 import membership from "../models/membership";
+import { findUser } from "../services/authService";
 
 export interface iContribution {
   endDate: any | Date | undefined;
@@ -335,7 +336,10 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     user: req.user.userId,
   });
 
-  if (!wallet || !contribution) {
+  //@ts-ignore
+  const user = await findUser("id", req.user.userId);
+
+  if (!wallet || !contribution || !user) {
     return res.status(StatusCodes.NOT_FOUND).json({
       message: "Wallet or Contribution not found",
       statusCode: StatusCodes.NOT_FOUND,
@@ -358,7 +362,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   if (!pay) {
     const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
-    const membershipFee = wallet.hasWithdrawnBefore ? 0 : 1000;
+    const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
     const deadline =
       contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
     const charges = 50;
@@ -397,9 +401,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   penalties += 50; // standard withdrawal fee
 
-  if (!wallet.hasWithdrawnBefore) {
+  if (user.membershipStatus !== "active") {
     penalties += 1000; // membership fee
-    wallet.hasWithdrawnBefore = true;
+    user.membershipStatus = "active";
   }
 
   const totalPenalties = penalties;
@@ -446,6 +450,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   await contribution.save();
   await wallet.save();
+  await user.save();
 
   res.status(StatusCodes.OK).json({
     message:
@@ -519,7 +524,7 @@ export const chargeCardforContribution = async (
   );
 
   //@ts-ignore
-  if (charge.data.data.status !== "success") {
+  if (charge.data.status !== "success") {
     return res.status(StatusCodes.BAD_REQUEST).json({
       statusCode: StatusCodes.BAD_REQUEST,
       message: "Payment verification failed.",
