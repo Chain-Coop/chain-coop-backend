@@ -151,15 +151,17 @@ export const fundProject = async (req: Request, res: Response) => {
     console.error(error);
 
     await logUserOperation(userId, req, "FUND_PROJECT", "Failure");
-    // @ts-ignore
-    return res
-      .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({
+    return (
+      res
         // @ts-ignore
-        statusCode: error?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
-        // @ts-ignore
-        error: error?.message,
-      });
+        .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({
+          // @ts-ignore
+          statusCode: error?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+          // @ts-ignore
+          error: error?.message,
+        })
+    );
   }
 };
 
