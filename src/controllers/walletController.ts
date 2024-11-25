@@ -217,8 +217,6 @@ const setWalletPin = async (req: Request, res: Response) => {
     throw new BadRequestError("You have created a pin already");
   }
 
-  // Hash the pin before saving it
-  const salt = await bcrypt.genSalt(10);
   const hashedPin = await req.body.pin;
 
   await createPin(userWallet._id, { pin: hashedPin }); // Save hashed pin
@@ -284,7 +282,7 @@ export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
     const verificationResult = await verifyBankDetailsService(
       accountNumber,
       bankCode,
-      userId 
+      userId
     );
 
     res

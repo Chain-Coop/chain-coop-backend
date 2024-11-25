@@ -22,6 +22,16 @@ if (!PAYSTACK_SECRET_KEY || !ADMIN_EMAIL) {
   throw new Error("Required environment variables are not defined.");
 }
 
+interface iPaystackBankVerificationResponse {
+  status: boolean;
+  message: string;
+  data: {
+    account_number: string;
+    account_name: string;
+    bank_id: string;
+  };
+}
+
 // Request Withdrawal
 export const requestWithdrawal = async (req: Request, res: Response) => {
   let userId = null;
@@ -32,12 +42,10 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 
     // Validate input
     if (!amount || !accountNumber || !bankCode || !pin) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({
-          status: StatusCodes.BAD_REQUEST,
-          error: "Amount, account number, bank code, and pin are required",
-        });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "Amount, account number, bank code, and pin are required",
+      });
     }
 
     // Validate the wallet
@@ -49,29 +57,24 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
     }
 
     if (!userWallet.isPinCreated) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({
-          status: StatusCodes.BAD_REQUEST,
-          error: "Pin not set for the wallet",
-        });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "Pin not set for the wallet",
+      });
     }
 
     // Validate wallet pin
     const isPinValid = await validateWalletPin(userId, pin);
     if (!isPinValid) {
-      return res
-        .status(StatusCodes.UNAUTHORIZED)
-        .json({
-          status: StatusCodes.UNAUTHORIZED,
-          error: "Invalid wallet pin",
-        });
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
+        error: "Invalid wallet pin",
+      });
     }
 
     // Verify the bank account details using Paystack
-    const verifyResponse = await axios.get(
-      "https://api.paystack.co/bank/resolve",
-      {
+    const verifyResponse: iPaystackBankVerificationResponse = (
+      (await axios.get("https://api.paystack.co/bank/resolve", {
         params: {
           account_number: accountNumber,
           bank_code: bankCode,
@@ -79,24 +82,30 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
         headers: {
           Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         },
-      }
-    );
+      })) as any
+    ).data;
     //@ts-ignore
-    const accountDetails = verifyResponse.data.data;
+
+    const accountDetails = {
+      accountName: verifyResponse.data.account_name,
+      bankCode: verifyResponse.data.bank_id,
+      accountNumber: verifyResponse.data.account_number,
+    };
+
+    console.log(verifyResponse.data);
     if (!accountDetails) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({
-          status: StatusCodes.BAD_REQUEST,
-          error: "Invalid bank account details",
-        });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "Invalid bank account details",
+      });
     }
 
     // Create withdrawal request
-    const withdrawal = await createWithdrawalRequest(userId, amount, {
-      accountNumber,
-      bankCode,
-    });
+    const withdrawal = await createWithdrawalRequest(
+      userId,
+      amount,
+      accountDetails
+    );
 
     // Send email notification to admin
     const emailOptions: EmailOptions = {
@@ -150,24 +159,20 @@ export const updateWithdrawalStatusController = async (
     // Validate the status input
     const validStatuses = ["pending", "completed", "failed"];
     if (!validStatuses.includes(status)) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({
-          status: StatusCodes.BAD_REQUEST,
-          error:
-            "Invalid status. Status must be one of: pending, completed, failed",
-        });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error:
+          "Invalid status. Status must be one of: pending, completed, failed",
+      });
     }
 
     // Find the withdrawal by its ID
     const withdrawal = await findWithdrawalById(withdrawalId);
     if (!withdrawal) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({
-          status: StatusCodes.NOT_FOUND,
-          error: "Withdrawal request not found",
-        });
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: StatusCodes.NOT_FOUND,
+        error: "Withdrawal request not found",
+      });
     }
 
     // Update the withdrawal status
