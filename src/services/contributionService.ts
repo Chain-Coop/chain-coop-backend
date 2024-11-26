@@ -101,7 +101,6 @@ export const initializeContributionPayment = async (
 ) => {
   try {
     const debt = await calculateTotalDebt(contributionId);
-    console.log("Debt:", debt);
     if (debt > 0) {
       throw new BadRequestError("Pay Outstanding Debt First");
     }
@@ -138,9 +137,9 @@ export const initializeContributionPayment = async (
         contribution.amount,
         {
           contributionId: contribution._id,
+          type: "conpayment",
         }
       );
-      console.log("Card charge response:", response);
       if (!response.data.status && response.data.status !== "success") {
         throw new BadRequestError(response.data.message);
       }
@@ -371,7 +370,6 @@ export const verifyContributionPayment = async (
     }
 
     const paymentData = response?.data?.data;
-    console.log("Payment verification response:", response);
 
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
