@@ -98,7 +98,10 @@ app.all("/", (req: Request, res: Response) => {
 
 app.get("/webhook", (req: Request, res: Response) => {
   console.log("Webhook called");
-  res.send("Webhook called");
+  res.send({
+    message: "Webhook called",
+    data: req.body,
+  });
 });
 
 // Error handling middlewares
