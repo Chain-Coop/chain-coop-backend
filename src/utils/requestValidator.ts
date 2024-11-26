@@ -74,7 +74,7 @@ export const createProjectValidator = (req: Request) => {
     throw new BadRequestError("Description is required");
   }
 
-  if (!projectPrice) {
+  if (!projectPrice || typeof projectPrice !== "number") {
     throw new BadRequestError("Project price is required");
   }
 };
