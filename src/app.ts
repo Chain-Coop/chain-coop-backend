@@ -96,12 +96,10 @@ app.all("/", (req: Request, res: Response) => {
   res.send("Chain Coop Backend");
 });
 
-app.get("/webhook", (req: Request, res: Response) => {
+app.all("/webhook", (req: Request, res: Response) => {
   console.log("Webhook called");
-  res.send({
-    message: "Webhook called",
-    data: req.body,
-  });
+  console.log(req.body);
+  res.send(200);
 });
 
 // Error handling middlewares
