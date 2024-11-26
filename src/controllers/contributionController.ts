@@ -51,15 +51,8 @@ export interface iContribution {
 }
 
 export const createContribution = async (req: Request, res: Response) => {
-  const {
-    amount,
-    contributionPlan,
-    savingsCategory,
-    startDate,
-    endDate,
-    paymentType,
-    cardData,
-  } = req.body;
+  const { amount, contributionPlan, savingsCategory, startDate, endDate } =
+    req.body;
   //@ts-ignore
   const email = req.user.email;
   //@ts-ignore

@@ -13,6 +13,7 @@ import {
   tryRecurringContributions,
   updateMissedContributions,
   verifyContributionPayment,
+  verifyUnpaidContributionPayment,
 } from "./services/contributionService";
 
 dotenv.config();
@@ -110,7 +111,12 @@ app.all("/webhook", async (req: Request, res: Response) => {
     data.data.status === "success" &&
     data.data.metadata.type === "conpayment"
   ) {
-    await verifyContributionPayment(data.data.reference);
+    verifyContributionPayment(data.data.reference);
+  } else if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "conunpaid"
+  ) {
+    verifyUnpaidContributionPayment(data.data.reference);
   }
 });
 

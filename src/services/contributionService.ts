@@ -204,6 +204,7 @@ export const chargeUnpaidContributions = async (
         callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_unpaid_transaction`,
         metadata: {
           contributionId: contributionId,
+          type: "conunpaid",
         },
       },
       {
@@ -222,6 +223,7 @@ export const chargeUnpaidContributions = async (
       amount,
       {
         contributionId: contributionId,
+        type: "conunpaid",
       }
     )) as any;
 
