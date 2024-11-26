@@ -12,6 +12,7 @@ import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
   updateMissedContributions,
+  verifyContributionPayment,
 } from "./services/contributionService";
 
 dotenv.config();
@@ -96,10 +97,22 @@ app.all("/", (req: Request, res: Response) => {
   res.send("Chain Coop Backend");
 });
 
-app.all("/webhook", (req: Request, res: Response) => {
+app.all("/webhook", async (req: Request, res: Response) => {
   console.log("Webhook called");
-  console.log(req.body);
-  res.send(200);
+
+  const data = req.body;
+  if (data.event !== "charge.success") {
+    return res.status(200);
+  }
+
+  res.status(200).json({ message: "Webhook received" });
+
+  if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "conpayment"
+  ) {
+    await verifyContributionPayment(data.data.reference);
+  }
 });
 
 // Error handling middlewares

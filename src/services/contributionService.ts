@@ -122,6 +122,7 @@ export const initializeContributionPayment = async (
           callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
           metadata: {
             contributionId: contribution._id,
+            type: "conpayment",
           },
         },
         {
