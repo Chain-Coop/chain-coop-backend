@@ -361,6 +361,7 @@ export const ChangePin = async (req: Request, res: Response) => {
   }
 
   wallet.pin = newpin;
+  wallet.isPinCreated = true;
   await wallet.save();
 
   res.status(StatusCodes.OK).json({
