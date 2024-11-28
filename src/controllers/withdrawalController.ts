@@ -11,6 +11,7 @@ import { StatusCodes } from "http-status-codes";
 import axios from "axios";
 import { sendEmail, EmailOptions } from "../utils/sendEmail";
 import {
+  createWalletHistoryService,
   findWalletService,
   validateWalletPin,
 } from "../services/walletService";
@@ -116,6 +117,14 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 
     userWallet.balance -= amount;
     await userWallet.save();
+
+    await createWalletHistoryService({
+      user: userId,
+      amount: amount,
+      type: "debit",
+      label: "Withdrawal request",
+      ref: withdrawal._id.toString(),
+    });
 
     // Send email notification to admin
     const emailOptions: EmailOptions = {
