@@ -56,6 +56,13 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
         .json({ status: StatusCodes.NOT_FOUND, error: "Wallet not found" });
     }
 
+    if (userWallet.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "Insufficient balance",
+      });
+    }
+
     if (!userWallet.isPinCreated) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: StatusCodes.BAD_REQUEST,
@@ -106,6 +113,9 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
       amount,
       accountDetails
     );
+
+    userWallet.balance -= amount;
+    await userWallet.save();
 
     // Send email notification to admin
     const emailOptions: EmailOptions = {
