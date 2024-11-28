@@ -200,6 +200,26 @@ export const updateWithdrawalStatusController = async (
       status
     );
 
+    if (status === "failed") {
+      const userWallet = await findWalletService({ user: withdrawal.user });
+      if (!userWallet) {
+        return res
+          .status(StatusCodes.NOT_FOUND)
+          .json({ status: StatusCodes.NOT_FOUND, error: "Wallet not found" });
+      }
+
+      userWallet.balance += withdrawal.amount;
+      await userWallet.save();
+
+      await createWalletHistoryService({
+        user: withdrawal.user.toString(),
+        amount: withdrawal.amount,
+        type: "credit",
+        label: "Withdrawal failed",
+        ref: withdrawal._id.toString(),
+      });
+    }
+
     return res.status(StatusCodes.OK).json({
       status: StatusCodes.OK,
       message: "Withdrawal status updated successfully",
