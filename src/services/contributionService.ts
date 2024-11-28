@@ -779,7 +779,10 @@ export const getContributionHistoryService = async (
   limit: number,
   skip: number
 ) => {
-  return await ContributionHistory.find({ contribution: contributionId })
+  return await ContributionHistory.find({
+    contribution: contributionId,
+    status: { $ne: "Paid" },
+  })
     .limit(limit)
     .skip(skip);
 };
