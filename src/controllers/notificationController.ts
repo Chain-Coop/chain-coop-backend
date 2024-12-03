@@ -14,9 +14,21 @@ export const createNotification = async (req: Request, res: Response) => {
 export const findNotifications = async (req: Request, res: Response) => {
     //@ts-ignore
     const userId = req.user.userId;
-    const notifications = await getUserNotifications(userId);
+
+    // Extract filters from query parameters
+    const { searchString, startDate, endDate, isRead } = req.query;
+
+    const notifications = await getUserNotifications(userId, {
+        searchString,
+        startDate,
+        endDate,
+        isRead,
+    });
+
     res.status(StatusCodes.OK).json(notifications);
 };
+
+  
 
 export const markNotificationAsRead = async (req: Request, res: Response) => {
     const { notificationId } = req.params;
