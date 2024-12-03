@@ -87,51 +87,46 @@ export const verifyBankDetailsService = async (
 	bankCode: string,
 	userId: string
 ) => {
-	try {
-		// Make the API call to verify bank details
-		const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
-			params: {
-				account_number: accountNumber,
-				bank_code: bankCode,
-			},
-			headers: {
-				Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-			},
-		});
+	const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
+		params: {
+			account_number: accountNumber,
+			bank_code: bankCode,
+		},
+		headers: {
+			Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+		},
+	});
 
-		// Extract necessary details from the response
-		const { account_name, bank_id } = response.data.data;
-
-		// Find the wallet associated with the user
-		const wallet = await Wallet.findOne({ user: userId });
-		if (!wallet) {
-			throw new BadRequestError("Wallet not found");
-		}
-
-		const isAccountExisting = wallet.bankAccounts.some(
-			(account: any) => account.accountNumber === accountNumber
-		);
-
-		if (isAccountExisting) {
-			throw new BadRequestError("Account already exists");
-		}
-
-		// Add the new bank account to the bankAccounts array
-		wallet.bankAccounts.push({
-			accountNumber,
-			bankCode,
-			accountName: account_name,
-			bankId: bank_id,
-		});
-
-		// Save the updated wallet with the new bank account
-		await wallet.save();
-
-		return response.data; // Return the full verification response from Paystack
-	} catch (error: any) {
-		console.error(error);
+	if (!response.data.data) {
 		throw new BadRequestError("Bank verification failed");
 	}
+
+	const { account_name, bank_id } = response.data.data;
+
+	// Find the wallet associated with the user
+	const wallet = await Wallet.findOne({ user: userId });
+	if (!wallet) {
+		throw new BadRequestError("Wallet not found");
+	}
+
+	const isAccountExisting = wallet.bankAccounts.some(
+		(account: any) => account.accountNumber === accountNumber
+	);
+
+	if (isAccountExisting) {
+		throw new BadRequestError("Account already exists");
+	}
+
+	// Add the new bank account to the bankAccounts array
+	wallet.bankAccounts.push({
+		accountNumber,
+		bankCode,
+		accountName: account_name,
+		bankId: bank_id,
+	});
+	// Save the updated wallet with the new bank account
+	await wallet.save();
+	return response.data; // Return the full verification response from Paystack
 };
 
 export const verifyAccountDetailsService = async (
