@@ -108,6 +108,14 @@ export const verifyBankDetailsService = async (
 			throw new BadRequestError("Wallet not found");
 		}
 
+		const isAccountExisting = wallet.bankAccounts.some(
+			(account: any) => account.accountNumber === accountNumber
+		);
+
+		if (isAccountExisting) {
+			throw new BadRequestError("Account already exists");
+		}
+
 		// Add the new bank account to the bankAccounts array
 		wallet.bankAccounts.push({
 			accountNumber,
