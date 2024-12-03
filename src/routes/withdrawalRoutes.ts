@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requestWithdrawal, updateWithdrawalStatusController, listAllWithdrawals } from "../controllers/withdrawalController";
+import { requestWithdrawal, updateWithdrawalStatusController, listAllWithdrawals, getUserBankAccountsController } from "../controllers/withdrawalController";
 import { collectBankDetails, verifyBankDetails } from "../controllers/walletController";
 import { getAllBanks } from "../controllers/bankController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
@@ -22,6 +22,8 @@ router.post("/verify-bank-account", authorize, verifyBankDetails);
 router.patch('/update-status/:withdrawalId', authorize, authorizePermissions("admin"), updateWithdrawalStatusController);
 
 router.get('/requests', authorize,  listAllWithdrawals);
+
+router.get('/user-bank-accounts', authorize, getUserBankAccountsController);
 
 
 export default router;

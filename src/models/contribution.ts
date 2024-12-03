@@ -2,16 +2,19 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string;  
-  savingsCategory: string;   
-  frequency: string;        
+  contributionPlan: string;
+  savingsCategory: string;
   amount: number;
-  startDate?: Date;         
-  endDate?: Date;  
-  balance: number; 
-  nextContributionDate?: Date; 
-  lastContributionDate?: Date; 
+  startDate?: Date;
+  endDate?: Date;
+  categoryBalances: Record<string, number>;
+  balance: number;
+  nextContributionDate?: Date;
+  lastContributionDate?: Date;
+  withdrawalDate?: Date;
   status: string;
+  paymentReference?: string;
+  lastChargeDate?: Date;
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -26,43 +29,48 @@ const ContributionSchema = new Schema<ContributionDocument>(
       enum: ["Daily", "Weekly", "Monthly", "Yearly"],
       required: true,
     },
-    savingsCategory: {        // New field for savings category
+    savingsCategory: {
       type: String,
-      enum: ["House Rent", "School Fees", "Food", "Personal Need", "Car", "Others"],
-      required: true,
-    },
-    frequency: {              // New field for savings frequency
-      type: String,
-      enum: ["Daily", "Weekly", "Monthly"],
-      required: true,
     },
     amount: {
       type: Number,
       required: true,
     },
-    balance: { 
-      type: Number, 
-      required: true, 
-      default: 0 
-    },
-    startDate: {              // Start date for the contribution
-      type: Date,
+    categoryBalances: {
+      type: Map,
+      of: Number,
       required: true,
+      default: {},
     },
-    endDate: {                // End date for the contribution
+    balance: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    startDate: {
       type: Date,
-      required: false,
     },
-    nextContributionDate: { 
-      type: Date 
+    endDate: {
+      type: Date,
+    },
+    nextContributionDate: {
+      type: Date,
     },
     lastContributionDate: {
-      type: Date 
+      type: Date,
+    },
+    withdrawalDate: {
+      type: Date,
     },
     status: {
       type: String,
       enum: ["Pending", "Completed"],
       default: "Pending",
+    },
+    paymentReference: { type: String },
+    lastChargeDate: {
+      type: Date,
+      default: Date.now(),
     },
   },
   { timestamps: true }

@@ -40,9 +40,9 @@ export const collectBankDetails = async (userId: string, accountNumber: string, 
     }
 };
 
-export const verifyBankDetails = async (accountNumber: string, bankCode: string) => {
+export const verifyBankDetails = async (accountNumber: string, bankCode: string, userId: string) => {
     try {
-        const verificationResult = await verifyBankDetailsService(accountNumber, bankCode);
+        const verificationResult = await verifyBankDetailsService(accountNumber, bankCode, userId);
         return verificationResult;
     } catch (error) {
         if (error instanceof Error) {

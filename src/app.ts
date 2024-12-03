@@ -8,59 +8,75 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
-import { processRecurringContributions } from "./services/contributionService";
-import { loggerMiddleware } from "./middlewares/logging";
+import {
+  clearAllPendingContributionsService,
+  tryRecurringContributions,
+  updateMissedContributions,
+  verifyContributionPayment,
+  verifyUnpaidContributionPayment,
+} from "./services/contributionService";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
 cloudinary.v2.config({
-	cloud_name: process.env.CLOUD_NAME,
-	api_key: process.env.CLOUD_API_KEY,
-	api_secret: process.env.CLOUD_API_SECRET,
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
 });
 
-// Schedule the recurring contributions check every hour
-cron.schedule("0 * * * *", () => {
-	console.log("Running recurring contributions check...");
-	processRecurringContributions()
-	  .then(() => console.log("Processed recurring contributions."))
-	  .catch((err) => console.error("Error processing contributions:", err));
-  });
+//Check if app is in development or live and generates cron string
+const cronString =
+  process.env.NODE_ENV === "development" ? "*/3 * * * *" : "0 * * * *";
 
+cron.schedule(cronString, () => {
+  console.log("Running recurring contributions check...");
+  tryRecurringContributions()
+    .then(() => console.log("Processed recurring contributions."))
+    .catch((err) => console.error("Error processing contributions:", err));
+});
+
+// Clear pending contributions every day at 12:00 AM
+cron.schedule("0 0 * * *", () => {
+  console.log("Clearing pending contributions...");
+  clearAllPendingContributionsService()
+    .then(() => console.log("Cleared pending contributions."))
+    .catch((err) =>
+      console.error("Error clearing pending contributions:", err)
+    );
+});
 // Routers
 import {
-	authRouter,
-	newsLetterRouter,
-	walletRouter,
-	proposalRouter,
-	contactRouter,
-	portfolioRouter,
-	projectRouter,
-	contributionRouter,
-	profilePictureRouter,
-	membershipRouter,
-	withdrawalRoutes,
+  authRouter,
+  newsLetterRouter,
+  walletRouter,
+  proposalRouter,
+  contactRouter,
+  portfolioRouter,
+  projectRouter,
+  contributionRouter,
+  profilePictureRouter,
+  membershipRouter,
+  withdrawalRoutes,
+  notificationRouter,
 } from "./routes";
+import { verifyPayment } from "./services/paystackService";
 
 // Middleware
 const app = express();
 const corsOptions = {
-	origin: "*",
-	credentials: true,
-	optionSuccessStatus: 200,
+  origin: "*",
+  credentials: true,
+  optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 app.use(
-	fileUpload({
-		useTempFiles: true,
-		tempFileDir: "/tmp",
-	})
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: "/tmp",
+  })
 );
-app.use(loggerMiddleware);
-
-
 
 // Routes
 app.use("/api/v1/auth", authRouter);
@@ -74,21 +90,48 @@ app.use("/api/v1/contribution", contributionRouter);
 app.use("/api/v1/profile", profilePictureRouter);
 app.use("/api/v1/membership", membershipRouter);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
-
+app.use("/api/v1/notification", notificationRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
 
-app.get("/", (req: Request, res: Response) => {
-	res.send("Chain Co-op Backend");
+app.all("/", (req: Request, res: Response) => {
+  res.send("Chain Coop Backend");
+});
+
+app.all("/webhook", async (req: Request, res: Response) => {
+  console.log("Webhook called");
+  res.sendStatus(200);
+
+  const data = req.body;
+  if (data.event !== "charge.success") {
+    return;
+  }
+
+  if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "conpayment"
+  ) {
+    verifyContributionPayment(data.data.reference);
+  } else if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "conunpaid"
+  ) {
+    verifyUnpaidContributionPayment(data.data.reference);
+  } else if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "wallet_funding"
+  ) {
+    verifyPayment(data.data.reference);
+  }
 });
 
 // Error handling middlewares
 app.use(notFound);
 app.use(errorHandlerMiddleware);
 const start = async () => {
-	await ConnectDB(mongoUrl);
-	app.listen(port, () => console.log(`App listening on port ${port}!`));
+  await ConnectDB(mongoUrl);
+  app.listen(port, () => console.log(`App listening on port ${port}!`));
 };
 
 start();

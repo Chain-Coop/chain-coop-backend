@@ -1,12 +1,40 @@
-// src/routes/contributionRoutes.ts
-import { Router } from "express";
-import { createContribution, getContributionHistory, getContributionDetails } from "../controllers/contributionController";
+import { Router, Request, Response } from "express";
+import {
+  createContribution,
+  withdrawContribution,
+  deleteAllContributions,
+  getTotalBalance,
+  verifyContribution,
+  getContributionsById,
+  chargeCardforContribution,
+  newgetContributionHistory,
+  getUserContributions,
+  attemptPayment,
+  getPendingContributions,
+  getUnpaidContributions,
+  chargeforUnpaidContributions,
+  verifyUnpaidPayment,
+} from "../controllers/contributionController";
 import { authorize } from "../middlewares/authorization";
 
 const router = Router();
 
 router.post("/contribute", authorize, createContribution);
-router.get("/history", authorize, getContributionHistory);
-router.get("/balance", authorize, getContributionDetails);
+router.get("/contribute", authorize, getUserContributions);
+router.get("/history", authorize, newgetContributionHistory);
+router.get("/balance", authorize, getTotalBalance);
+router.post("/withdraw", authorize, withdrawContribution);
+router.get("/verify-contribution", verifyContribution);
+router.get("/category/:id", authorize, getContributionsById);
+router.delete("/delete", deleteAllContributions);
+router.route("/pay-contribution").post(authorize, chargeCardforContribution);
+router.route("/pending").get(authorize, getPendingContributions);
+
+router.route("/pay").post(authorize, attemptPayment);
+
+//Unpaid contributions
+router.route("/unpaid").get(authorize, getUnpaidContributions);
+router.route("/charge-unpaid").post(authorize, chargeforUnpaidContributions);
+router.route("/verify-unpaid").get(authorize, verifyUnpaidPayment);
 
 export default router;

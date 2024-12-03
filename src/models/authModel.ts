@@ -1,4 +1,4 @@
-import { Document, Schema, model } from "mongoose";
+import { CallbackError, Document, Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -15,11 +15,9 @@ export interface UserDocument extends Document {
 	username: String;
 	phoneNumber: String;
 	membershipType: string;
-	membershipStatus: 'active' | 'pending' | 'inactive';
-    membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
+	membershipStatus: "active" | "pending" | "inactive";
+	membershipPaymentStatus: "paid" | "in-progress" | "not_started";
 }
-
-
 
 const UserSchema = new Schema({
 	email: {
@@ -63,27 +61,27 @@ const UserSchema = new Schema({
 		imageId: String,
 	},
 	membershipStatus: {
-        type: String,
-        enum: ['active', 'pending', 'inactive'],
-        default: 'inactive',
-    },
-    membershipPaymentStatus: {
-        type: String,
-        enum: ['paid', 'in-progress', 'not_started'],
-        default: 'not_started',
-    },
+		type: String,
+		enum: ["active", "pending", "inactive"],
+		default: "inactive",
+	},
+	membershipPaymentStatus: {
+		type: String,
+		enum: ["paid", "in-progress", "not_started"],
+		default: "not_started",
+	},
 });
 
-
-
 UserSchema.pre("save", async function (next) {
-	if (this.password === undefined) {
-		return;
+	if (!this.isModified("password")) return next();
+
+	try {
+		const salt = await bcrypt.genSalt(10);
+		this.password = await bcrypt.hash(this.password, salt);
+		next();
+	} catch (error) {
+		return next(error as CallbackError);
 	}
-	const salt = await bcrypt.genSaltSync(10);
-	const passHash = await bcrypt.hashSync(this.password, salt);
-	this.password = passHash;
-	next();
 });
 
 UserSchema.methods.createJWT = function () {
