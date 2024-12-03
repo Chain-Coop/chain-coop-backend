@@ -101,7 +101,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 			bankName,
 		};
 
-		console.log(verifyResponse.data);
+		// console.log(verifyResponse.data);
 		if (!accountDetails) {
 			return res.status(StatusCodes.BAD_REQUEST).json({
 				status: StatusCodes.BAD_REQUEST,

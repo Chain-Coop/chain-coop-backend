@@ -126,6 +126,28 @@ export const verifyBankDetailsService = async (
 	}
 };
 
+export const verifyAccountDetailsService = async (
+	accountNumber: string,
+	bankCode: string
+) => {
+	try {
+		const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
+			params: {
+				account_number: accountNumber,
+				bank_code: bankCode,
+			},
+			headers: {
+				Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+			},
+		});
+
+		return response.data;
+	} catch (error: any) {
+		console.error(error);
+		throw new BadRequestError("Bank verification failed");
+	}
+};
+
 // Function to validate wallet pin
 export const validateWalletPin = async (userId: string, pin: string) => {
 	try {

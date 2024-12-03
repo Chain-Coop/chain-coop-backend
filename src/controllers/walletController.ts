@@ -11,6 +11,7 @@ import {
 	findSingleWalletHistoryService,
 	deleteCardService,
 	setPreferredCardService,
+	verifyAccountDetailsService,
 } from "../services/walletService";
 import { Request, Response } from "express";
 import { BadRequestError } from "../errors";
@@ -291,6 +292,25 @@ export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
 		res
 			.status(StatusCodes.OK)
 			.json({ msg: "Bank details verified", result: verificationResult });
+	} catch (error) {
+		//@ts-ignore
+		res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+	}
+};
+
+export const verifyAccountDetailsHandler = async (
+	req: Request,
+	res: Response
+) => {
+	try {
+		const { accountNumber, bankCode } = req.body;
+		const verificationResult = await verifyAccountDetailsService(
+			accountNumber,
+			bankCode
+		);
+		res
+			.status(StatusCodes.OK)
+			.json({ msg: "Account details verified", result: verificationResult });
 	} catch (error) {
 		//@ts-ignore
 		res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
