@@ -59,6 +59,7 @@ import {
   withdrawalRoutes,
   notificationRouter,
 } from "./routes";
+import { verifyPayment } from "./services/paystackService";
 
 // Middleware
 const app = express();
@@ -117,6 +118,11 @@ app.all("/webhook", async (req: Request, res: Response) => {
     data.data.metadata.type === "conunpaid"
   ) {
     verifyUnpaidContributionPayment(data.data.reference);
+  } else if (
+    data.data.status === "success" &&
+    data.data.metadata.type === "wallet_funding"
+  ) {
+    verifyPayment(data.data.reference);
   }
 });
 

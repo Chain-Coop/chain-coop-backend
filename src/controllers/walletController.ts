@@ -101,6 +101,9 @@ const initiatePayment = async (req: Request, res: Response) => {
         amount,
         callback_url:
           "http://localhost:5173/dashboard/wallet/fund_wallet/verify_transaction",
+        metadata: {
+          type: "wallet_funding",
+        },
       },
       {
         headers: {
