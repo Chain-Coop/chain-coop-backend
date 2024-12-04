@@ -85,7 +85,8 @@ export const findSingleWalletHistoryService = async (payload: any) =>
 export const verifyBankDetailsService = async (
 	accountNumber: string,
 	bankCode: string,
-	userId: string
+	userId: string,
+	bankName: string
 ) => {
 	const response: any = await axios.get(PAYSTACK_BANK_VERIFICATION_URL, {
 		params: {
@@ -103,7 +104,6 @@ export const verifyBankDetailsService = async (
 
 	const { account_name, bank_id } = response.data.data;
 
-	// Find the wallet associated with the user
 	const wallet = await Wallet.findOne({ user: userId });
 	if (!wallet) {
 		throw new BadRequestError("Wallet not found");
@@ -123,6 +123,7 @@ export const verifyBankDetailsService = async (
 		bankCode,
 		accountName: account_name,
 		bankId: bank_id,
+		bankName,
 	});
 	// Save the updated wallet with the new bank account
 	await wallet.save();

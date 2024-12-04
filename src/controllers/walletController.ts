@@ -278,7 +278,7 @@ export const collectBankDetailsHandler = async (
 
 export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
 	try {
-		const { accountNumber, bankCode } = req.body;
+		const { accountNumber, bankCode, bankName } = req.body;
 		//@ts-ignore
 		const userId = req.user.userId; // Get the userId from the request
 
@@ -286,7 +286,8 @@ export const verifyBankDetailsHandler = async (req: Request, res: Response) => {
 		const verificationResult = await verifyBankDetailsService(
 			accountNumber,
 			bankCode,
-			userId
+			userId,
+			bankName
 		);
 
 		res
