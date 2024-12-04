@@ -51,13 +51,15 @@ export const collectBankDetails = async (
 export const verifyBankDetails = async (
 	accountNumber: string,
 	bankCode: string,
-	userId: string
+	userId: string,
+	bankName: string
 ) => {
 	try {
 		const verificationResult = await verifyBankDetailsService(
 			accountNumber,
 			bankCode,
-			userId
+			userId,
+			bankName
 		);
 		return verificationResult;
 	} catch (error) {
