@@ -35,19 +35,45 @@ const createUserNotification = async (
 };
 
 // Get notifications for a specific user
-const getUserNotifications = async (userId: string) => {
-    const notifications = await notificationModel.find({
-        $or: [{ audience: 'All' }, { audience: 'User', userId }],
-    });
+const getUserNotifications = async (userId: string, filters: any) => {
+  const { searchString, startDate, endDate, isRead } = filters;
 
-    const readStatuses = await userNotificationStatusModel.find({ userId });
+  // Base query to include both 'All' and user-specific notifications
+  let query: any = {
+      $or: [{ audience: 'All' }, { audience: 'User', userId }],
+  };
 
-    return notifications.map(notification => ({
-        ...notification.toObject(),
-        isRead: readStatuses.some(rs => rs.notificationId.toString() === notification.id.toString()),
-    }));
+  // Add searchString filter
+  if (searchString) {
+      query.$or.push({
+          $or: [
+              { title: { $regex: searchString, $options: 'i' } },
+              { message: { $regex: searchString, $options: 'i' } },
+          ],
+      });
+  }
 
+  // Add date range filter
+  if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+  }
+
+  // Fetch notifications
+  const notifications = await notificationModel.find(query);
+
+  // Fetch read statuses for the user
+  const readStatuses = await userNotificationStatusModel.find({ userId });
+
+  // Map and append the isRead field
+  return notifications.map(notification => ({
+      ...notification.toObject(),
+      isRead: readStatuses.some(rs => rs.notificationId.toString() === notification.id.toString()),
+  }));
 };
+
+
 
 // Mark a notification as read by a user
 const markAsRead = async (
