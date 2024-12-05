@@ -11,6 +11,7 @@ export interface WalletDocument extends Document {
     bankCode: string;
     accountName: string;
     bankId: number;
+    bankName: string;
   }>;
   fundedProjects: Array<fundedProject>;
   Card?: {
@@ -44,6 +45,7 @@ const WalletSchema = new Schema<WalletDocument>(
         bankCode: String,
         accountName: String,
         bankId: Number,
+        bankName: String,
       },
     ],
     fundedProjects: [
