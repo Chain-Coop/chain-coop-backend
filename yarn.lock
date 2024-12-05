@@ -319,6 +319,8 @@ axios@^1.7.7:
     nodemailer-smtp-transport "^2.7.4"
     nodemon "^3.0.2"
     otp-generator "^4.0.1"
+    pino "^9.5.0"
+    pino-pretty "^13.0.0"
     rate-limiter "^0.2.0"
     ts-node "^10.9.2"
 
