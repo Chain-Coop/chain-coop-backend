@@ -248,72 +248,80 @@ export const getContributionHistory = async (req: Request, res: Response) => {
 };
 
 export const newgetContributionHistory = async (
-  req: Request,
-  res: Response
+    req: Request,
+    res: Response
 ) => {
-  const { page = 1, limit = 5, contributionId } = req.query;
+    const { page = "1", limit = "5", contributionId } = req.query;
 
-  if (!contributionId) {
-    throw new BadRequestError("Contribution ID is required");
-  }
-
-  try {
-    // Get contribution details using contributionId
-    const contribution = await findContributionService({
-      _id: contributionId as string,
-    });
-    if (!contribution) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        message: "Contribution not found",
-      });
+    if (!contributionId) {
+        throw new BadRequestError("Contribution ID is required");
     }
 
-    // Get the overall balance, next contribution date, and withdrawal date from the contribution
-    const {
-      balance,
-      startDate,
-      nextContributionDate,
-      withdrawalDate,
-      savingsCategory,
-    } = contribution;
+    // Convert to numbers
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
-    // Fetch the total history length and validate limit type
-    const historyLength = await getHistoryLengthService(
-      contributionId as string
-    );
-    if (typeof limit !== "number") {
-      throw new BadRequestError("Limit must be a number");
+    // Validate that page and limit are numbers
+    if (isNaN(pageNumber) || isNaN(limitNumber)) {
+        throw new BadRequestError("Page and limit must be numbers");
     }
-    const skip = (Number(page) - 1) * limit;
 
-    // Fetch paginated history entries
-    const history = await getContributionHistoryService(
-      contributionId as string,
-      limit,
-      skip
-    );
+    try {
+        // Get contribution details using contributionId
+        const contribution = await findContributionService({
+            _id: contributionId as string,
+        });
+        if (!contribution) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                message: "Contribution not found",
+            });
+        }
 
-    // Calculate total pages for pagination
-    const totalPages = Math.ceil(historyLength / limit);
+        // Get the overall balance, next contribution date, and withdrawal date from the contribution
+        const {
+            balance,
+            startDate,
+            nextContributionDate,
+            withdrawalDate,
+            savingsCategory,
+        } = contribution;
 
-    res.status(StatusCodes.OK).json({
-      balance,
-      savingsCategory,
-      startDate,
-      nextContributionDate,
-      withdrawalDate,
-      history,
-      totalPages,
-      currentPage: page,
-    });
-  } catch (error) {
-    console.error("Error fetching contribution history:", error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error:
-        "An unexpected error occurred while fetching contribution history.",
-    });
-  }
+        // Fetch the total history length
+        const historyLength = await getHistoryLengthService(
+            contributionId as string
+        );
+
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Fetch paginated history entries
+        const history = await getContributionHistoryService(
+            contributionId as string,
+            limitNumber,
+            skip
+        );
+
+        // Calculate total pages for pagination
+        const totalPages = Math.ceil(historyLength / limitNumber);
+
+        res.status(StatusCodes.OK).json({
+            balance,
+            savingsCategory,
+            startDate,
+            nextContributionDate,
+            withdrawalDate,
+            history,
+            totalPages,
+            currentPage: pageNumber,
+        });
+    } catch (error) {
+        console.error("Error fetching contribution history:", error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error:
+                "An unexpected error occurred while fetching contribution history.",
+        });
+    }
 };
+
 
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
