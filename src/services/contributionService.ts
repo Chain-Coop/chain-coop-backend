@@ -115,7 +115,7 @@ export const initializeContributionPayment = async (
         {
           email: user.email,
           amount: contribution.amount * 100,
-          callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_transaction`,
+          callback_url: `http://localhost:5173/dashboard/contribution`,
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
@@ -196,7 +196,7 @@ export const chargeUnpaidContributions = async (
         //@ts-ignore
         email: contribution.user.email,
         amount: amount * 100,
-        callback_url: `http://localhost:5173/dashboard/contribution/fund_contribution/verify_unpaid_transaction`,
+        callback_url: `http://localhost:5173/dashboard/contribution`,
         metadata: {
           contributionId: contributionId,
           type: "conunpaid",
