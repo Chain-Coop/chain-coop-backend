@@ -1,4 +1,5 @@
 import {
+<<<<<<< HEAD
 	createPin,
 	findWalletService,
 	updateWalletService,
@@ -12,6 +13,19 @@ import {
 	deleteCardService,
 	setPreferredCardService,
 	verifyAccountDetailsService,
+=======
+  createPin,
+  findWalletService,
+  updateWalletService,
+  createWalletService,
+  createWalletHistoryService,
+  WebHookDataProps,
+  iWalletHistory,
+  verifyBankDetailsService,
+  findWalletHistoryService,
+  findSingleWalletHistoryService,
+  setPreferredCardService,
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 } from "../services/walletService";
 import { Request, Response } from "express";
 import { BadRequestError } from "../errors";
@@ -19,10 +33,10 @@ import { StatusCodes } from "http-status-codes";
 import uploadImageFile from "../utils/imageUploader";
 import { findUser, getUserDetails } from "../services/authService";
 import { createHmac } from "crypto";
-import bcrypt from "bcryptjs";
 import axios from "axios";
 import { generateAndSendOtp } from "../utils/sendOtp";
 import { findOtp } from "../services/otpService";
+import { deleteCard, getCustomer } from "../services/paystackService";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -393,6 +407,7 @@ export const ChangePin = async (req: Request, res: Response) => {
 	});
 };
 
+<<<<<<< HEAD
 export const DeleteCard = async (req: Request, res: Response) => {
 	const { cardId } = req.body;
 
@@ -404,6 +419,36 @@ export const DeleteCard = async (req: Request, res: Response) => {
 	res.status(StatusCodes.OK).json({
 		msg: "Card Successfully Deleted",
 	});
+=======
+export const GetCards = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const id = req.user.userId;
+
+  const user = await getUserDetails(id);
+  const cards = (await getCustomer(user!.email)) as {
+    data: { authorizations: any[] };
+  };
+
+  res.status(StatusCodes.OK).json({
+    cards: cards.data.authorizations,
+  });
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
+};
+
+export const DeleteCard = async (req: Request, res: Response) => {
+  const { cardId } = req.body;
+
+  deleteCard(cardId)
+    .then((_response) => {
+      res.status(StatusCodes.OK).json({
+        msg: "Card Successfully Deleted",
+      });
+    })
+    .catch((error) => {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        error: error.message,
+      });
+    });
 };
 
 export const setPreferredCard = async (req: Request, res: Response) => {

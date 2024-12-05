@@ -60,6 +60,7 @@ import {
   notificationRouter,
 } from "./routes";
 import { verifyPayment } from "./services/paystackService";
+import logger from "./utils/logger";
 
 // Middleware
 const app = express();
@@ -77,6 +78,11 @@ app.use(
     tempFileDir: "/tmp",
   })
 );
+
+app.use((req, _res, next) => {
+  logger.info({ req }, "Incoming request");
+  next();
+});
 
 // Routes
 app.use("/api/v1/auth", authRouter);

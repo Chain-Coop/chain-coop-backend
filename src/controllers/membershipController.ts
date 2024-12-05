@@ -14,7 +14,6 @@ import {
 } from "../services/paystackService";
 import { updateUserProfile } from "../services/userService";
 import { logUserOperation } from "../middlewares/logging";
-import { addCardService } from "../services/walletService";
 
 // Membership amounts for each type
 const membershipAmounts: Record<string, number> = {
@@ -122,11 +121,6 @@ export const verifyPaymentCallback = async (req: Request, res: Response) => {
         paymentDetails.authorization.authorization_code
       ) {
         const userId = paymentDetails.metadata.userId;
-
-        await addCardService(userId, {
-          authCode: paymentDetails.authorization.authorization_code,
-          number: paymentDetails.authorization.last4,
-        });
       }
 
       // Check if the user already has an active membership

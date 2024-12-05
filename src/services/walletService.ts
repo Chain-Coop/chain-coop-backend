@@ -3,6 +3,7 @@ import { BadRequestError, NotFoundError } from "../errors";
 import Wallet from "../models/wallet";
 import WalletHistory from "../models/walletHistory";
 import bcrypt from "bcryptjs";
+import logger from "../utils/logger";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BANK_VERIFICATION_URL = "https://api.paystack.co/bank/resolve";
@@ -193,6 +194,7 @@ export const getUserFundedProjectsService = async (userId: string) => {
 	return wallet;
 };
 
+<<<<<<< HEAD
 //Add New Card
 export const addCardService = async (userId: string, card: any) => {
 	const wallet = await Wallet.findOne({ user: userId });
@@ -220,11 +222,14 @@ export const deleteCardService = async (userId: string, authCode: string) => {
 	return wallet;
 };
 
+=======
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 //Set Preferred Card
 export const setPreferredCardService = async (
 	userId: string,
 	authCode: string
 ) => {
+<<<<<<< HEAD
 	const wallet = await Wallet.findOne({ user: userId });
 	if (!wallet) {
 		throw new NotFoundError("Wallet not found");
@@ -234,6 +239,18 @@ export const setPreferredCardService = async (
 	});
 	await wallet.save();
 	return wallet;
+=======
+  const wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new NotFoundError("Wallet not found");
+  }
+  wallet.Card = {
+    data: authCode,
+    failedAttempts: 0,
+  };
+  await wallet.save();
+  return wallet;
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 };
 
 //Charge Card

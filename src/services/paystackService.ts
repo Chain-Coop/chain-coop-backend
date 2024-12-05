@@ -1,6 +1,7 @@
-import axios from "axios";
+import axios, { get } from "axios";
 import dotenv from "dotenv";
 import { BadRequestError, InternalServerError } from "../errors";
+import logger from "../utils/logger";
 
 dotenv.config();
 
@@ -53,6 +54,43 @@ export const createCustomer = async (email: string) => {
       );
     }
   }
+};
+
+export const getCustomer = async (email: string) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  try {
+    const response = await axios.get(
+      `https://api.paystack.co/customer/${email}`,
+      {
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+        },
+      }
+    );
+
+    console.log(response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
+};
+
+export const deleteCard = async (authorizationCode: string) => {
+  const response = await axios.post(
+    "https://api.paystack.co/customer/deactivate_authorization",
+    {
+      authorization_code: authorizationCode,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
+
+  logger.info("Card deactivated:", response.data);
 };
 
 // Function to create a payment link

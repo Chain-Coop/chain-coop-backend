@@ -106,15 +106,24 @@ export const attemptPayment = async (req: Request, res: Response) => {
 };
 
 export const verifyContribution = async (req: Request, res: Response) => {
+<<<<<<< HEAD
 	const reference = req.query.reference as string;
 	const isAddCard = req.query.addCard === "true";
+=======
+  const reference = req.query.reference as string;
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 
 	if (!reference) {
 		throw new BadRequestError("Payment reference is required");
 	}
 
+<<<<<<< HEAD
 	try {
 		const result = await verifyContributionPayment(reference, isAddCard);
+=======
+  try {
+    const result = await verifyContributionPayment(reference);
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 
 		res.status(StatusCodes.OK).json({
 			statusCode: StatusCodes.OK,
@@ -617,14 +626,22 @@ export const chargeforUnpaidContributions = async (
 };
 
 export const verifyUnpaidPayment = async (req: Request, res: Response) => {
+<<<<<<< HEAD
 	const { reference } = req.query;
 	const isAddCard = req.query.addCard === "true";
+=======
+  const { reference } = req.query;
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 
 	if (!reference || typeof reference !== "string") {
 		throw new BadRequestError("Payment reference is required");
 	}
 
+<<<<<<< HEAD
 	const result = await verifyUnpaidContributionPayment(reference, isAddCard);
+=======
+  const result = await verifyUnpaidContributionPayment(reference);
+>>>>>>> 0b5ea30 (feature(card): Using paystack authorizations)
 
 	res.status(StatusCodes.OK).json({ result });
 };

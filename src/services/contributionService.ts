@@ -5,11 +5,8 @@ import { BadRequestError } from "../errors";
 import axios from "axios";
 import dotenv from "dotenv";
 import { findUser } from "./authService";
-import {
-  addCardService,
-  chargeCardService,
-  findWalletService,
-} from "./walletService";
+import { chargeCardService, findWalletService } from "./walletService";
+import logger from "../utils/logger";
 
 dotenv.config();
 
@@ -79,7 +76,7 @@ export const createContributionService = async (data: {
       balance: 0,
       status: "Pending",
     });
-    console.log("Created Contribution ID:", contribution._id);
+    logger.info("Created Contribution ID:", contribution._id);
 
     return {
       contributionId: contribution._id,
@@ -147,12 +144,10 @@ export const initializeContributionPayment = async (
       // Reset failed attempts count on card
       const wallet = await findWalletService({ user: userId });
       if (wallet) {
-        const usableCard = wallet?.allCards?.find(
-          (card: any) => card.authCode === cardData
-        );
+        const usableCard = wallet.Card;
         if (usableCard) {
           usableCard.failedAttempts = 0;
-          wallet.markModified("allCards");
+          wallet.markModified("Card");
           await wallet.save();
         }
       }
@@ -234,12 +229,10 @@ export const chargeUnpaidContributions = async (
     // Reset failed attempts count on card
     const wallet = await findWalletService({ user: contribution.user });
     if (wallet) {
-      const usableCard = wallet?.allCards?.find(
-        (card: any) => card.authCode === cardData
-      );
+      const usableCard = wallet.Card;
       if (usableCard) {
         usableCard.failedAttempts = 0;
-        wallet.markModified("allCards");
+        wallet.markModified("Card");
         await wallet.save();
       }
     }
@@ -254,10 +247,7 @@ export const chargeUnpaidContributions = async (
   }
 };
 
-export const verifyUnpaidContributionPayment = async (
-  reference: string,
-  isAddCard?: boolean
-) => {
+export const verifyUnpaidContributionPayment = async (reference: string) => {
   try {
     const referenceExists = await ContributionHistory.countDocuments({
       reference: reference,
@@ -289,13 +279,6 @@ export const verifyUnpaidContributionPayment = async (
       const user = await findUser("email", customer.email);
       if (!user) {
         throw new BadRequestError("User not found");
-      }
-
-      if (isAddCard) {
-        await addCardService(user._id as string, {
-          number: paymentData.authorization.last4,
-          authCode: paymentData.authorization.authorization_code,
-        });
       }
 
       const contribution = await Contribution.findOne({
@@ -345,10 +328,7 @@ export const verifyUnpaidContributionPayment = async (
   }
 };
 
-export const verifyContributionPayment = async (
-  reference: string,
-  isAddCard?: Boolean
-) => {
+export const verifyContributionPayment = async (reference: string) => {
   try {
     const referenceExists = await ContributionHistory.countDocuments({
       reference: reference,
@@ -379,13 +359,6 @@ export const verifyContributionPayment = async (
       const user = await findUser("email", customer.email);
       if (!user) {
         throw new BadRequestError("User not found");
-      }
-
-      if (isAddCard) {
-        await addCardService(user._id as string, {
-          number: paymentData.authorization.last4,
-          authCode: paymentData.authorization.authorization_code,
-        });
       }
 
       const contribution = await Contribution.findOne({
@@ -477,11 +450,8 @@ export const tryRecurringContributions = async () => {
       //@ts-ignore
       const wallet = await findWalletService({ user: user._id });
 
-      if (wallet?.allCards?.length && wallet?.allCards[0]?.authCode) {
-        const Preferred = wallet.allCards.filter(
-          (card: any) => card.isPreferred
-        );
-        const usableCard = Preferred.length ? Preferred[0] : wallet.allCards[0];
+      if (wallet?.Card?.data) {
+        const usableCard = wallet.Card;
         if (usableCard.failedAttempts && usableCard.failedAttempts >= 3) {
           console.log("Payment failed 3 times for card:", usableCard);
           await paymentforContribution(contribution);
@@ -490,7 +460,7 @@ export const tryRecurringContributions = async () => {
 
         while (contribution.nextContributionDate! < new Date()) {
           const charge = (await chargeCardService(
-            usableCard.authCode,
+            usableCard.data,
             //@ts-ignore
             user.email,
             contribution.amount
