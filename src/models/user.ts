@@ -7,6 +7,9 @@ export interface UserDocument extends Document {
   membershipStatus: "active" | "pending" | "inactive";
   membershipPaymentStatus: "paid" | "in-progress" | "not_started";
   membershipType: "Explorer" | "Pioneer" | "Voyager";
+  phoneNumber: string;
+  Tier: 0 | 1 | 2;
+  isVerified: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -39,9 +42,10 @@ const UserSchema: Schema = new Schema({
     required: false,
   },
   Tier: {
-    type: String,
+    type: Number,
     required: false,
-    enum: ["0", "1", "2"],
+    enum: [0, 1, 2],
+    default: 0,
   },
   isVerified: {
     type: Boolean,
