@@ -36,7 +36,7 @@ const createUserNotification = async (
 
 // Get notifications for a specific user
 const getUserNotifications = async (userId: string, filters: any) => {
-  const { searchString, startDate, endDate, isRead } = filters;
+  const { searchString, startDate, endDate, isRead, page = 1, limit = 10 } = filters;
 
   // Base query to include both 'All' and user-specific notifications
   let query: any = {
@@ -60,18 +60,34 @@ const getUserNotifications = async (userId: string, filters: any) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
   }
 
-  // Fetch notifications
-  const notifications = await notificationModel.find(query);
+  // Fetch total count of matching notifications
+  const totalCount = await notificationModel.countDocuments(query);
+
+  // Pagination setup
+  const skip = (page - 1) * limit;
+
+  // Fetch notifications with pagination
+  const notifications = await notificationModel
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Sort by latest notifications
 
   // Fetch read statuses for the user
   const readStatuses = await userNotificationStatusModel.find({ userId });
 
   // Map and append the isRead field
-  return notifications.map(notification => ({
+  const enrichedNotifications = notifications.map((notification) => ({
       ...notification.toObject(),
-      isRead: readStatuses.some(rs => rs.notificationId.toString() === notification.id.toString()),
+      isRead: readStatuses.some(
+          (rs) => rs.notificationId.toString() === notification.id.toString()
+      ),
   }));
+
+  return { totalCount, notifications: enrichedNotifications };
 };
+
+
 
 
 
