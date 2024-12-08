@@ -14,6 +14,9 @@ const options = {
       {
         url: "http://localhost:3000/api/v1",
       },
+      {
+        url: "https://chain-coop-backend.onrender.com/api/v1",
+      },
     ],
   },
   apis: ["./src/routes/*.ts", "./src/controllers/*.ts"], // Paths to files containing OpenAPI definitions
