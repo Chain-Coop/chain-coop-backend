@@ -361,6 +361,20 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("User not found");
       }
 
+      const wallet = await findWalletService({ user: user._id });
+      if (!wallet) {
+        throw new BadRequestError("Wallet not found");
+      }
+
+      if (!wallet.Card?.data) {
+        wallet.Card = {
+          data: paymentData.authorization.authorization_code,
+          failedAttempts: 0,
+        };
+        wallet.markModified("Card");
+        await wallet.save();
+      }
+
       const contribution = await Contribution.findOne({
         _id: paymentData.metadata.contributionId,
       });

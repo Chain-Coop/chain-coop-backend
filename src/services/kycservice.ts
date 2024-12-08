@@ -86,8 +86,8 @@ const setBVN = async (bvn: string, userId: string) => {
 };
 
 const verifyBVN = async ({
-  countryCode,
-  type,
+  countryCode = "NG",
+  type = "bank_account",
   accountNumber,
   bvn,
   bankcode,
