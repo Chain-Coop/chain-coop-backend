@@ -40,54 +40,59 @@ const getUserNotifications = async (userId: string, filters: any) => {
 
   // Base query to include both 'All' and user-specific notifications
   let query: any = {
-      $or: [{ audience: 'All' }, { audience: 'User', userId }],
+    $or: [{ audience: 'All' }, { audience: 'User', userId }],
   };
 
   // Add searchString filter
   if (searchString) {
-      query.$or.push({
-          $or: [
-              { title: { $regex: searchString, $options: 'i' } },
-              { message: { $regex: searchString, $options: 'i' } },
-          ],
-      });
+    query.$or.push({
+      $or: [
+        { title: { $regex: searchString, $options: 'i' } },
+        { message: { $regex: searchString, $options: 'i' } },
+      ],
+    });
   }
 
   // Add date range filter
   if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = new Date(startDate);
+    if (endDate) query.createdAt.$lte = new Date(endDate);
   }
 
-  // Fetch total count of matching notifications
-  const totalCount = await notificationModel.countDocuments(query);
-
-  // Pagination setup
-  const skip = (page - 1) * limit;
-
-  // Fetch notifications with pagination
+  // Fetch all matching notifications from the database
   const notifications = await notificationModel
-      .find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 }); // Sort by latest notifications
+    .find(query)
+    .sort({ createdAt: -1 }) // Sort by latest notifications
+    .lean();
 
   // Fetch read statuses for the user
   const readStatuses = await userNotificationStatusModel.find({ userId });
 
-  // Map and append the isRead field
+  // Enrich notifications with isRead field
   const enrichedNotifications = notifications.map((notification) => ({
-      ...notification.toObject(),
-      isRead: readStatuses.some(
-          (rs) => rs.notificationId.toString() === notification.id.toString()
-      ),
+    ...notification,
+    isRead: readStatuses.some(
+      (rs) => rs.notificationId.toString() === notification._id.toString()
+    ),
   }));
 
-  return { totalCount, notifications: enrichedNotifications };
+  // Apply the isRead filter if provided
+  let filteredNotifications = enrichedNotifications;
+  if (typeof isRead === 'string') {
+    const isReadBoolean = isRead === 'true';
+    filteredNotifications = enrichedNotifications.filter(
+      (notification) => notification.isRead === isReadBoolean
+    );
+  }
+
+  // Pagination setup
+  const totalCount = filteredNotifications.length;
+  const skip = (page - 1) * limit;
+  const paginatedNotifications = filteredNotifications.slice(skip, skip + limit);
+
+  return { totalCount, notifications: paginatedNotifications };
 };
-
-
 
 
 
