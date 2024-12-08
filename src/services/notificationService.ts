@@ -77,7 +77,13 @@ const getUserNotifications = async (userId: string, filters: any) => {
     ),
   }));
 
-  // Apply the isRead filter if provided
+  // **Step 1**: Filter unread notifications to calculate `totalCount`
+  const unreadNotifications = enrichedNotifications.filter(
+    (notification) => notification.isRead === false
+  );
+  const totalCount = unreadNotifications.length;
+
+  // **Step 2**: Apply additional filters if `isRead` or pagination parameters are provided
   let filteredNotifications = enrichedNotifications;
   if (typeof isRead === 'string') {
     const isReadBoolean = isRead === 'true';
@@ -86,13 +92,13 @@ const getUserNotifications = async (userId: string, filters: any) => {
     );
   }
 
-  // Pagination setup
-  const totalCount = filteredNotifications.length;
+  // Pagination for filtered notifications
   const skip = (page - 1) * limit;
   const paginatedNotifications = filteredNotifications.slice(skip, skip + limit);
 
   return { totalCount, notifications: paginatedNotifications };
 };
+
 
 
 
