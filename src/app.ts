@@ -12,6 +12,26 @@ import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
 } from "./services/contributionService";
+import { setupSwagger } from "./swagger";
+
+// Routers
+import {
+  authRouter,
+  newsLetterRouter,
+  walletRouter,
+  proposalRouter,
+  contactRouter,
+  portfolioRouter,
+  projectRouter,
+  contributionRouter,
+  profilePictureRouter,
+  membershipRouter,
+  withdrawalRoutes,
+  notificationRouter,
+  kycRouter,
+} from "./routes";
+import logger from "./utils/logger";
+import { webhookController } from "./controllers/webhookController";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -41,25 +61,6 @@ cron.schedule("0 0 * * *", () => {
       console.error("Error clearing pending contributions:", err)
     );
 });
-// Routers
-import {
-  authRouter,
-  newsLetterRouter,
-  walletRouter,
-  proposalRouter,
-  contactRouter,
-  portfolioRouter,
-  projectRouter,
-  contributionRouter,
-  profilePictureRouter,
-  membershipRouter,
-  withdrawalRoutes,
-  notificationRouter,
-  kycRouter,
-} from "./routes";
-import logger from "./utils/logger";
-import { webhookController } from "./controllers/webhookController";
-import { verifyBVN } from "./services/kycservice";
 
 // Middleware
 const app = express();
@@ -82,6 +83,8 @@ app.use((req, _res, next) => {
   logger.info({ req }, "Incoming request");
   next();
 });
+
+setupSwagger(app);
 
 // Routes
 app.use("/api/v1/auth", authRouter);
