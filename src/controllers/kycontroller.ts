@@ -1,6 +1,13 @@
 import { findUser } from "../services/authService";
-import { sendSMSOTP, setBVN, verifyOTP } from "../services/kycservice";
+import {
+  sendSMSOTP,
+  setBVN,
+  verifyBVN,
+  verifyOTP,
+} from "../services/kycservice";
 import { Request, Response } from "express";
+import { findWalletService } from "../services/walletService";
+import { decrypt } from "../services/encryption";
 interface CustomRequest extends Request {
   user: {
     id: string;
@@ -46,4 +53,35 @@ const setBVNController = async (req: Request, res: Response) => {
   return res.status(200).json({ message: "BVN set successfully" });
 };
 
-export { sendOTP, verifyOTPController, setBVNController };
+const verifyBVNController = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const user = await findWalletService({ user: req.user.userId });
+  //@ts-ignore
+  const mainuser = await findUser("id", req.user.userId);
+
+  if (!mainuser) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (!mainuser.isVerified) {
+    return res.status(404).json({ message: "User not verified" });
+  }
+
+  if (!user || !user.bvn) {
+    return res.status(404).json({ message: "BVN not set" });
+  }
+  //@ts-ignore
+  const isSet = await verifyBVN({
+    countryCode: req.body.countryCode,
+    bvn: (await decrypt(user.bvn)) as string,
+    accountNumber: req.body.accountNumber,
+    type: req.body.type,
+    bankcode: req.body.bankcode,
+    firstName: mainuser.firstName,
+    lastName: mainuser.lastName,
+    customer_code: mainuser.email,
+  });
+  return res.status(200).json(isSet);
+};
+
+export { sendOTP, verifyOTPController, setBVNController, verifyBVNController };

@@ -59,6 +59,7 @@ import {
 } from "./routes";
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
+import { verifyBVN } from "./services/kycservice";
 
 // Middleware
 const app = express();

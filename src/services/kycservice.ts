@@ -4,9 +4,20 @@ const serviceId = process.env.TWILIO_SERVICE_ID;
 
 const client = require("twilio")(sid, authtoken);
 import axios from "axios";
-import { findUser } from "./authService";
 import { encrypt } from "./encryption";
 import { findWalletService } from "./walletService";
+import { findUser } from "./authService";
+
+interface VerifyBVNParams {
+  countryCode: string;
+  type: string;
+  accountNumber: string;
+  bvn: string;
+  bankcode: string;
+  firstName: string;
+  lastName: string;
+  customer_code: string;
+}
 
 const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
 const sendSMSOTP = async (phone: string) => {
@@ -60,7 +71,7 @@ const createPaystackCustomer = async (
 
 const setBVN = async (bvn: string, userId: string) => {
   const user = await findWalletService({ user: userId });
-  if (!user) {
+  if (!user || bvn.length !== 11) {
     return false;
   }
 
@@ -74,4 +85,62 @@ const setBVN = async (bvn: string, userId: string) => {
   return true;
 };
 
-export { sendSMSOTP, verifyOTP, createPaystackCustomer, setBVN };
+const verifyBVN = async ({
+  countryCode,
+  type,
+  accountNumber,
+  bvn,
+  bankcode,
+  firstName,
+  lastName,
+  customer_code,
+}: VerifyBVNParams) => {
+  try {
+    const data = {
+      country: countryCode,
+      type: type,
+      account_number: accountNumber,
+      bvn: bvn,
+      bank_code: bankcode,
+      first_name: firstName,
+      last_name: lastName,
+    };
+    const response = await axios.post(
+      `https://api.paystack.co/customer/${customer_code}/identification`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    //@ts-ignore
+    return error.response.data;
+  }
+};
+
+const BVNWebhook = async (data: any) => {
+  const user = await findUser("email", data.email);
+
+  if (!user) {
+    return "User not found";
+  }
+
+  user.Tier = 1;
+
+  await user.save();
+
+  return "success";
+};
+
+export {
+  sendSMSOTP,
+  verifyOTP,
+  createPaystackCustomer,
+  setBVN,
+  verifyBVN,
+  BVNWebhook,
+};

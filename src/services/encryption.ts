@@ -22,19 +22,8 @@ function encrypt(data: string) {
   }
 }
 
-// Function to decrypt data
-interface DecryptParams {
-  encryptedData: string;
-  ivHex: string;
-  keyHex: string;
-}
-
-function decrypt({ encryptedData, ivHex, keyHex }: DecryptParams): string {
-  const decipher = crypto.createDecipheriv(
-    algorithm,
-    Buffer.from(keyHex, "hex"),
-    Buffer.from(ivHex, "hex")
-  );
+function decrypt(encryptedData: string): string {
+  const decipher = crypto.createDecipheriv(algorithm, key, iv);
   let decrypted = decipher.update(encryptedData, "hex", "utf8");
   decrypted += decipher.final("utf8");
   return decrypted;

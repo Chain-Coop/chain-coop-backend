@@ -5,6 +5,7 @@ import {
 } from "../services/contributionService";
 
 import { verifyPayment } from "../services/paystackService";
+import { BVNWebhook } from "../services/kycservice";
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log("Webhook called");
@@ -28,5 +29,9 @@ export const webhookController = async (req: Request, res: Response) => {
     ) {
       verifyPayment(data.data.reference);
     }
+  }
+
+  if (data.event === "customeridentification.success") {
+    BVNWebhook(data.data);
   }
 };
