@@ -15,18 +15,27 @@ export const findNotifications = async (req: Request, res: Response) => {
     //@ts-ignore
     const userId = req.user.userId;
 
-    // Extract filters from query parameters
-    const { searchString, startDate, endDate, isRead } = req.query;
+    // Extract filters and pagination from query parameters
+    const { searchString, startDate, endDate, isRead, page = 1, limit = 10 } = req.query;
 
-    const notifications = await getUserNotifications(userId, {
+    const { totalCount, notifications } = await getUserNotifications(userId, {
         searchString,
         startDate,
         endDate,
         isRead,
+        page: parseInt(page as string, 10),
+        limit: parseInt(limit as string, 10),
     });
 
-    res.status(StatusCodes.OK).json(notifications);
+    res.status(StatusCodes.OK).json({ 
+        totalCount,
+        page: parseInt(page as string, 10),
+        limit: parseInt(limit as string, 10),
+        notifications 
+    });
 };
+
+
 
   
 
