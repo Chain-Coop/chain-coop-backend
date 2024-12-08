@@ -49,12 +49,13 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
-    "nodemailer-smtp-transport": "^2.7.4",
+    "nodemailer-smtp-transport": "^2.4.2",
     "nodemon": "^3.0.2",
     "otp-generator": "^4.0.1",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
     "rate-limiter": "^0.2.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "twilio": "^5.3.7"
   }
 }

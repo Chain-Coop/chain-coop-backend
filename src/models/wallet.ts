@@ -19,6 +19,7 @@ export interface WalletDocument extends Document {
     failedAttempts: number;
   };
   hasWithdrawnBefore: boolean;
+  bvn?: string;
 }
 
 export type fundedProject = {
@@ -33,6 +34,9 @@ const WalletSchema = new Schema<WalletDocument>(
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
+    },
+    bvn: {
+      type: String,
     },
     isPinCreated: {
       type: Boolean,

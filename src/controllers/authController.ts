@@ -1,35 +1,35 @@
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
-    createUser,
-    findUser,
-    getUserDetails,
-    resetUserPassword,
-    updateUserByEmail,
-    updateUserById,
+  createUser,
+  findUser,
+  getUserDetails,
+  resetUserPassword,
+  updateUserByEmail,
+  updateUserById,
 } from "../services/authService";
 import {
-    BadRequestError,
-    ConflictError,
-    NotFoundError,
-    UnauthenticatedError,
-    ForbiddenError,
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  UnauthenticatedError,
+  ForbiddenError,
 } from "../errors";
 import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
 import { generateAndSendOtp } from "../utils/sendOtp";
 import {
-    createWalletService,
-    findWalletService,
-    iWallet,
+  createWalletService,
+  findWalletService,
+  iWallet,
 } from "../services/walletService";
 import { verifyPayment } from "../services/paystackService";
 
 // Updated register method to include membership statusimport { LogModel } from "../models/logModel";
 import { logUserOperation } from "../middlewares/logging";
-import { registerValidator } from "../utils/requestValidator";
+import { createPaystackCustomer } from "../services/kycservice";
 
 const register = async (req: Request, res: Response) => {
-	let user: any = null;
+  let user: any = null;
   try {
     //registerValidator(req);
     const { email } = req.body;
@@ -39,6 +39,13 @@ const register = async (req: Request, res: Response) => {
     }
     user = await createUser(req.body);
     const token = await user.createJWT();
+
+    await createPaystackCustomer(
+      email,
+      req.body.phoneNumber,
+      req.body.firstName,
+      req.body.lastName
+    );
 
     await generateAndSendOtp({
       email: email!,
@@ -55,57 +62,59 @@ const register = async (req: Request, res: Response) => {
     };
 
     await createWalletService(walletPayload);
-	await logUserOperation(user?.id, req, "REGISTER", "Success");
+    await logUserOperation(user?.id, req, "REGISTER", "Success");
     res.status(StatusCodes.CREATED).json({
       msg: "Registration successful, enter the OTP sent to your email",
       user: { _id: user._id, email: user.email, token },
     });
   } catch (error) {
-	await logUserOperation(user?.id, req, "REGISTER", "Failure");
-	throw error;
+    await logUserOperation(user?.id, req, "REGISTER", "Failure");
+    throw error;
   }
 };
 
 // Verify OTP and activate account
 const verifyOtp = async (req: Request, res: Response) => {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-        throw new BadRequestError("Email and otp is required");
-    }
-    const validOtp = await findOtp(email, otp);
-    if (!validOtp) {
-        throw new UnauthenticatedError("Failed to validate OTP");
-    }
-    const newUser = await updateUserByEmail(email, { status: "active" });
-    if (!newUser) {
-        throw new NotFoundError("User not found");
-    }
-    await deleteOtp(email);
-    res.status(StatusCodes.OK).json({ msg: "Your account has been activated", newUser });
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    throw new BadRequestError("Email and otp is required");
+  }
+  const validOtp = await findOtp(email, otp);
+  if (!validOtp) {
+    throw new UnauthenticatedError("Failed to validate OTP");
+  }
+  const newUser = await updateUserByEmail(email, { status: "active" });
+  if (!newUser) {
+    throw new NotFoundError("User not found");
+  }
+  await deleteOtp(email);
+  res
+    .status(StatusCodes.OK)
+    .json({ msg: "Your account has been activated", newUser });
 };
 
 // Resend OTP for email verification
 const resendOtp = async (req: Request, res: Response) => {
-    const { email } = req.body;
-    const isOtp = await findOtpByEmail(email);
-    if (isOtp) {
-        await deleteOtp(email);
-    }
-    const user = await findUser("email", email);
+  const { email } = req.body;
+  const isOtp = await findOtpByEmail(email);
+  if (isOtp) {
+    await deleteOtp(email);
+  }
+  const user = await findUser("email", email);
 
-    if (!user) {
-        throw new NotFoundError("User with this email does not exist");
-    }
+  if (!user) {
+    throw new NotFoundError("User with this email does not exist");
+  }
 
-    await generateAndSendOtp({
-        email: email!,
-        message: "Your OTP to verify your account is",
-        subject: "Email verification",
-    });
+  await generateAndSendOtp({
+    email: email!,
+    message: "Your OTP to verify your account is",
+    subject: "Email verification",
+  });
 
-    res.status(StatusCodes.CREATED).json({
-        msg: "OTP successfully sent to your email",
-    });
+  res.status(StatusCodes.CREATED).json({
+    msg: "OTP successfully sent to your email",
+  });
 };
 
 // Updated login method to include membership payment and status check
@@ -130,36 +139,36 @@ const login = async (req: Request, res: Response) => {
     }
 
     // Check membership payment status
-	//@ts-ignore
-   // if (user.membershipPaymentStatus === 'not_started') {
-   //     return res.status(403).json({
-   //         message: "Membership payment required",
-   //         redirectUrl: "/api/v1/membership/activate",
-   //     });
-   // }
+    //@ts-ignore
+    // if (user.membershipPaymentStatus === 'not_started') {
+    //     return res.status(403).json({
+    //         message: "Membership payment required",
+    //         redirectUrl: "/api/v1/membership/activate",
+    //     });
+    // }
 
     // Check membership status
-	//@ts-ignore
-   // if (user.membershipStatus === 'inactive') {
-   //     return res.status(403).json({
-   //         message: "Your membership is inactive. Please activate your membership.",
-   //     });
-  //  }
+    //@ts-ignore
+    // if (user.membershipStatus === 'inactive') {
+    //     return res.status(403).json({
+    //         message: "Your membership is inactive. Please activate your membership.",
+    //     });
+    //  }
 
     const token = await user.createJWT();
 
     await logUserOperation(user?.id, req, "LOGIN", "Success");
 
     res.status(StatusCodes.OK).json({
-        _id: user._id,
-        email: user.email,
-		
-        token,
-		role: user.role,
-		//@ts-ignore
-        membershipStatus: user.membershipStatus,
-		//@ts-ignore
-        membershipPaymentStatus: user.membershipPaymentStatus,
+      _id: user._id,
+      email: user.email,
+
+      token,
+      role: user.role,
+      //@ts-ignore
+      membershipStatus: user.membershipStatus,
+      //@ts-ignore
+      membershipPaymentStatus: user.membershipPaymentStatus,
     });
   } catch (error) {
     await logUserOperation(user?.id, req, "LOGIN", "Failure");
@@ -169,30 +178,32 @@ const login = async (req: Request, res: Response) => {
 
 // Get user details and wallet information
 const getUser = async (req: Request, res: Response) => {
-    //@ts-ignore
-    const id = req.user.userId;
-    const user = await getUserDetails(id);
-    const wallet = await findWalletService({ user: id });
-    const isPinCreated = wallet?.isPinCreated;
-    res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated });
+  //@ts-ignore
+  const id = req.user.userId;
+  const user = await getUserDetails(id);
+  const wallet = await findWalletService({ user: id });
+  const isPinCreated = wallet?.isPinCreated;
+  res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated });
 };
 
 // Send OTP for password reset
 const forgetPassword = async (req: Request, res: Response) => {
-    const { email } = req.body;
-    if (!email) {
-        throw new BadRequestError("Email is required");
-    }
-    const user = await findUser("email", email);
-    if (!user) {
-        throw new NotFoundError("User not found");
-    }
-    await generateAndSendOtp({
-        email,
-        message: "Your OTP to reset password is",
-        subject: "Password Reset",
-    });
-    res.status(StatusCodes.OK).json({ msg: "Password reset OTP sent to your email" });
+  const { email } = req.body;
+  if (!email) {
+    throw new BadRequestError("Email is required");
+  }
+  const user = await findUser("email", email);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+  await generateAndSendOtp({
+    email,
+    message: "Your OTP to reset password is",
+    subject: "Password Reset",
+  });
+  res
+    .status(StatusCodes.OK)
+    .json({ msg: "Password reset OTP sent to your email" });
 };
 
 // Reset password after OTP validation
@@ -218,20 +229,10 @@ const resetPassword = async (req: Request, res: Response) => {
 
     await resetUserPassword(user, password);
     await deleteOtp(email);
-    await logUserOperation(
-      user?.id,
-      req,
-      "RESET_PASSWORD",
-      "Success"
-    );
+    await logUserOperation(user?.id, req, "RESET_PASSWORD", "Success");
     res.status(StatusCodes.OK).json({ msg: "Password reset successful" });
   } catch (error) {
-    await logUserOperation(
-      user?.id,
-      req,
-      "RESET_PASSWORD",
-      "Failure"
-    );
+    await logUserOperation(user?.id, req, "RESET_PASSWORD", "Failure");
     throw error;
   }
 };

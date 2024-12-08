@@ -10,6 +10,7 @@ import profilePictureRouter from "./profilePictureRoutes";
 import membershipRouter from "./membershipRoutes";
 import withdrawalRoutes from "./withdrawalRoutes";
 import notificationRouter from "./notificationRoute";
+import kycRouter from "./kycroutes";
 
 export {
   authRouter,
@@ -24,4 +25,5 @@ export {
   membershipRouter,
   withdrawalRoutes,
   notificationRouter,
+  kycRouter,
 };

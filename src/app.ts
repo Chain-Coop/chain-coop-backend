@@ -11,9 +11,6 @@ import fileUpload from "express-fileupload";
 import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
-  updateMissedContributions,
-  verifyContributionPayment,
-  verifyUnpaidContributionPayment,
 } from "./services/contributionService";
 
 dotenv.config();
@@ -58,9 +55,11 @@ import {
   membershipRouter,
   withdrawalRoutes,
   notificationRouter,
+  kycRouter,
 } from "./routes";
-import { verifyPayment } from "./services/paystackService";
 import logger from "./utils/logger";
+import { webhookController } from "./controllers/webhookController";
+import { verifyBVN } from "./services/kycservice";
 
 // Middleware
 const app = express();
@@ -97,6 +96,7 @@ app.use("/api/v1/profile", profilePictureRouter);
 app.use("/api/v1/membership", membershipRouter);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
 app.use("/api/v1/notification", notificationRouter);
+app.use("/api/v1/kyc", kycRouter);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
@@ -105,32 +105,7 @@ app.all("/", (req: Request, res: Response) => {
   res.send("Chain Coop Backend");
 });
 
-app.all("/webhook", async (req: Request, res: Response) => {
-  console.log("Webhook called");
-  res.sendStatus(200);
-
-  const data = req.body;
-  if (data.event !== "charge.success") {
-    return;
-  }
-
-  if (
-    data.data.status === "success" &&
-    data.data.metadata.type === "conpayment"
-  ) {
-    verifyContributionPayment(data.data.reference);
-  } else if (
-    data.data.status === "success" &&
-    data.data.metadata.type === "conunpaid"
-  ) {
-    verifyUnpaidContributionPayment(data.data.reference);
-  } else if (
-    data.data.status === "success" &&
-    data.data.metadata.type === "wallet_funding"
-  ) {
-    verifyPayment(data.data.reference);
-  }
-});
+app.all("/webhook", webhookController);
 
 // Error handling middlewares
 app.use(notFound);
