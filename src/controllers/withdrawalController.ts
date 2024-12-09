@@ -5,6 +5,7 @@ import {
   findWithdrawalById,
   getAllWithdrawals,
   getUserBankAccounts,
+  LimitChecker,
 } from "../services/withdrawalService";
 import { BadRequestError, ForbiddenError } from "../errors";
 import { StatusCodes } from "http-status-codes";
@@ -43,10 +44,11 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
     const { amount, accountNumber, bankCode, pin, bankName } = req.body;
 
     // Validate input
-    if (!amount || !accountNumber || !bankCode || !pin) {
+    if (!amount || !accountNumber || !bankCode || !pin || !bankName) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: StatusCodes.BAD_REQUEST,
-        error: "Amount, account number, bank code, and pin are required",
+        error:
+          "Amount, account number, bank name, bank code and pin are required",
       });
     }
 
@@ -66,6 +68,8 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
         error: "User not found",
       });
     }
+
+    await LimitChecker(user, amount);
 
     if (user.isVerified === false) {
       return res.status(StatusCodes.BAD_REQUEST).json({

@@ -7,6 +7,7 @@ import {
 import { verifyPayment } from "../services/paystackService";
 import { BVNWebhook } from "../services/kycservice";
 import { sendEmail } from "../utils/sendEmail";
+import { verifyPaymentService } from "../services/walletService";
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log("Webhook called");
@@ -28,7 +29,7 @@ export const webhookController = async (req: Request, res: Response) => {
       data.data.status === "success" &&
       data.data.metadata.type === "wallet_funding"
     ) {
-      verifyPayment(data.data.reference);
+      verifyPaymentService(data.data.reference);
     }
   }
 
