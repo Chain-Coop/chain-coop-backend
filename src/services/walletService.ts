@@ -69,6 +69,11 @@ export const DepositLimitChecker = async (
     case 1:
       limit = 50000;
       break;
+    case 2:
+      limit = 200000;
+      break;
+    case 3:
+      return;
     default:
       limit = 0;
       break;

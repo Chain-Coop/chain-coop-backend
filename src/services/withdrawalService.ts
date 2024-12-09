@@ -21,6 +21,11 @@ export const LimitChecker = async (user: UserDocument, amount: number) => {
     case 1:
       limit = 20000;
       break;
+    case 2:
+      limit = 200000;
+      break;
+    case 3:
+      return;
     default:
       limit = 0;
       break;
