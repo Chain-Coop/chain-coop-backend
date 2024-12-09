@@ -11,3 +11,5 @@ const contract =async(tokenAddress:string,privateKey?:string):Promise<ethers.Con
     const contract = new Contract(tokenAddress,erc20abi,signerOrProvider);
     return contract
 }
+
+export {contract}

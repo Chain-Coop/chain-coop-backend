@@ -1,5 +1,5 @@
 import { ethers,Wallet } from "ethers";
-import { Provider } from "../../services/web3/stableContractService";
+import { Provider } from "./contract";
 
 
 const Signer = async(privateKey:string):Promise<ethers.Signer>=>{
