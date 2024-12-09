@@ -11,6 +11,7 @@ import membershipRouter from "./membershipRoutes";
 import withdrawalRoutes from "./withdrawalRoutes";
 import notificationRouter from "./notificationRoute";
 import kycRouter from "./kycroutes";
+import dashboardRouter from './dashboardRoutes'
 
 export {
   authRouter,
@@ -26,4 +27,5 @@ export {
   withdrawalRoutes,
   notificationRouter,
   kycRouter,
+  dashboardRouter
 };
