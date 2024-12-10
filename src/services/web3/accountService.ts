@@ -1,14 +1,29 @@
 import { generateAccount } from "../../utils/web3/generateAccount";
 import { contract } from "../../utils/web3/contract";
 import { parseEther } from "ethers";
-
-/***
- * TODO import web3 wallet account model
- */
+import Web3Wallet from "../../models/web3Wallet";
+import User from "../../models/user";
 
 const activateAccount = async(userId:string)=>{
+    const user = User.findById(userId);
+    if (!user){
+        throw new Error("User not found");
+    }
     const {address,privateKey,publicKey} =  generateAccount()
-    //add address,keys to the model
+    /***
+     * TODO
+     *  //generate algorithm to encrypt purivate key
+     */
+   
+    const web3Wallet = new Web3Wallet({
+        user: userId,
+        encryptedKey: privateKey,
+        publicKey: publicKey,
+        address: address,
+      });
+    
+      await web3Wallet.save();
+      return web3Wallet;
 
 }
 
@@ -42,5 +57,23 @@ const transferStable = async (
     }
 };
 
+//get user account details
+const  userWeb3WalletDetails=async(userId: string)=> {
+    try {
+      
+      const wallets = await Web3Wallet.find({ user: userId })
+        .select("-encryptedKey") 
+        .populate("user", "email phoneNumber"); // Optionally include specific user fields
+  
+      if (!wallets || wallets.length === 0) {
+        throw new Error("No wallets found for this user");
+      }
+  
+    
+      return wallets;
+    } catch (error:any) {
+      throw new Error(`Error fetching wallet details: ${error.message}`);
+    }
+  }
 
-export {transferStable,activateAccount,checkStableUserBalance}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails}
