@@ -16,7 +16,7 @@ const activate = AsyncHandler(async(req:Request,res:Response)=>{
             return
             }
         const account = await activateAccount(userId)
-        res.json({message:"Account activated successfully",account})
+        res.json({message:"Account activated successfully"})
 
     }catch(error){
         console.log(error);

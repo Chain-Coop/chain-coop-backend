@@ -35,10 +35,20 @@ const checkExistingWallet = async (userId: string):Promise<boolean> => {
 }
 
 
-const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<number>=>{
+const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<{bal:number,symbol:string}>=>{
     const con_tract = await contract(tokenAddress)
     const balance = await con_tract.balanceOf(publicKey)
-    return balance;
+    //token symbol
+    const tokenSymbol = await con_tract.symbol()
+    //token decimal
+    const tokenDecimal = await con_tract.decimals()
+    const adjustedBalance = Number(balance.toString()) / (10 ** Number(tokenDecimal));
+    return {bal:adjustedBalance,symbol:tokenSymbol};
+}
+
+const userAddress = async(userId:string):Promise<string>=>{
+  const wallet = await Web3Wallet.findOne({user:userId});
+  return wallet.address;
 }
 
 const transferStable = async (
@@ -84,4 +94,4 @@ const  userWeb3WalletDetails=async(userId: string)=> {
     }
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress}
