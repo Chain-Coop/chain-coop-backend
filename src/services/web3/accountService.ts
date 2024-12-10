@@ -3,21 +3,23 @@ import { contract } from "../../utils/web3/contract";
 import { parseEther } from "ethers";
 import Web3Wallet from "../../models/web3Wallet";
 import User from "../../models/user";
+import { encrypt,decrypt } from "../../utils/web3/encryptordecrypt";
 
 const activateAccount = async(userId:string)=>{
     const user = User.findById(userId);
     if (!user){
         throw new Error("User not found");
     }
+    
     const {address,privateKey,publicKey} =  generateAccount()
     /***
      * TODO
-     *  //generate algorithm to encrypt purivate key
+     *  //generate algorithm to encrypt purivate key 
      */
    
     const web3Wallet = new Web3Wallet({
         user: userId,
-        encryptedKey: privateKey,
+        encryptedKey: encrypt(privateKey),
         publicKey: publicKey,
         address: address,
       });
@@ -26,6 +28,12 @@ const activateAccount = async(userId:string)=>{
       return web3Wallet;
 
 }
+//check existing user wallet
+const checkExistingWallet = async (userId: string):Promise<boolean> => {
+  const existingWallet = await Web3Wallet.findOne({ user: userId });
+  return existingWallet!!
+}
+
 
 const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<number>=>{
     const con_tract = await contract(tokenAddress)
@@ -41,7 +49,7 @@ const transferStable = async (
 ): Promise<string> => {
     try {
       
-        const con_tract = await contract(tokenAddress, userPrivateKey);
+        const con_tract = await contract(tokenAddress, decrypt(userPrivateKey));
 
        
         const tx = await con_tract.transfer(toAddress, parseEther(amount));
@@ -76,4 +84,4 @@ const  userWeb3WalletDetails=async(userId: string)=> {
     }
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet}

@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 import User, { UserDocument } from "./user";
 
-
 export interface Web3WalletDocument extends Document {
   user: Types.ObjectId | UserDocument; 
   encryptedKey: string;
@@ -15,6 +14,7 @@ const Web3WalletSchema: Schema = new Schema(
       type: Schema.Types.ObjectId, 
       ref: "User",
       required: true,
+      unique: true, // Ensure a user can only have one wallet
     },
     encryptedKey: {
       type: String,
@@ -27,7 +27,7 @@ const Web3WalletSchema: Schema = new Schema(
     address: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // Wallet addresses must be unique
     },
   },
   {

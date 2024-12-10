@@ -399,15 +399,17 @@ axios@^1.7.4, axios@^1.7.7:
     "@types/swagger-jsdoc" "^6.0.4"
     "@types/swagger-ui-express" "^4.1.7"
     axios "^1.7.7"
-    backend-ts "file:../../../.cache/yarn/v6/npm-backend-ts-1.0.0-b3555c44-98b6-4ad4-bddb-e81a25730e3e-1733747402576/node_modules/backend-ts"
+    backend-ts "file:../../../.cache/yarn/v6/npm-backend-ts-1.0.0-ec9b114c-2449-4325-b9ae-17effa542089-1733857882475/node_modules/backend-ts"
     bcryptjs "^2.4.3"
     body-parser "^1.20.2"
     chalk "^5.3.0"
     cloudinary "^1.41.2"
     cors "^2.8.5"
     dotenv "^16.4.5"
+    ethers "^6.13.4"
     express "^4.18.2"
     express-async-errors "^3.1.1"
+    express-async-handler "^1.2.0"
     express-fileupload "^1.5.1"
     express-rate-limit "^7.1.5"
     express-session "^1.17.3"
@@ -647,6 +649,11 @@ create-require@^1.1.0:
   resolved "https://registry.npmjs.org/create-require/-/create-require-1.1.1.tgz"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
+crypto@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/crypto/-/crypto-1.0.1.tgz#2af1b7cad8175d24c8a1b0778255794a21803037"
+  integrity sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig==
+
 dateformat@^4.6.3:
   version "4.6.3"
   resolved "https://registry.npmjs.org/dateformat/-/dateformat-4.6.3.tgz"
@@ -792,6 +799,11 @@ express-async-errors@^3.1.1:
   version "3.1.1"
   resolved "https://registry.npmjs.org/express-async-errors/-/express-async-errors-3.1.1.tgz"
   integrity sha512-h6aK1da4tpqWSbyCa3FxB/V6Ehd4EEB15zyQq9qe75OZBp0krinNKuH4rAY+S/U/2I36vdLAUFSjQJ+TFmODng==
+
+express-async-handler@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/express-async-handler/-/express-async-handler-1.2.0.tgz#ffc9896061d90f8d2e71a2d2b8668db5b0934391"
+  integrity sha512-rCSVtPXRmQSW8rmik/AIb2P0op6l7r1fMW538yyvTMltCO4xQEWMmobfrIxN2V1/mVrgxB8Az3reYF6yUZw37w==
 
 express-fileupload@^1.5.1:
   version "1.5.1"

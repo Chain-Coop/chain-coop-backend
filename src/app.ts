@@ -28,8 +28,11 @@ import {
   membershipRouter,
   withdrawalRoutes,
   notificationRouter,
-  kycRouter,
+  kycRouter
+  
 } from "./routes";
+import account from "./routes/web3/account"
+//import
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
 
@@ -100,6 +103,8 @@ app.use("/api/v1/membership", membershipRouter);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/kyc", kycRouter);
+//web3 
+app.use("/api/v1/web3",account)
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
