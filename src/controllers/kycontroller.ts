@@ -8,6 +8,8 @@ import {
 import { Request, Response } from "express";
 import { findWalletService } from "../services/walletService";
 import { decrypt } from "../services/encryption";
+import { generateAndSendOtpWA } from "../utils/sendOtp";
+import { findOtpPhone } from "../services/otpService";
 interface CustomRequest extends Request {
   user: {
     id: string;
@@ -26,6 +28,39 @@ const sendOTP = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to send OTP" });
   }
   return res.status(200).json({ message: "OTP sent successfully" });
+};
+
+const sendWhatsappOTPController = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const user = await findUser("id", req.user.userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  const result = (await generateAndSendOtpWA(user.phoneNumber)) as {
+    status: string;
+  };
+
+  if (result.status !== "success") {
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+  return res.status(200).json({ message: "OTP sent successfully" });
+};
+
+const verifyWhatsappOTPController = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const user = await findUser("id", req.user.userId);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  const result = await findOtpPhone(user.phoneNumber, req.body.code);
+
+  if (!result) {
+    return res.status(500).json({ message: "Failed to verify OTP" });
+  }
+
+  user.isVerified = true;
+  await user.save();
+  return res.status(200).json({ message: "OTP verified successfully" });
 };
 
 const verifyOTPController = async (req: Request, res: Response) => {
@@ -84,4 +119,11 @@ const verifyBVNController = async (req: Request, res: Response) => {
   return res.status(200).json(isSet);
 };
 
-export { sendOTP, verifyOTPController, setBVNController, verifyBVNController };
+export {
+  sendOTP,
+  verifyOTPController,
+  setBVNController,
+  verifyBVNController,
+  sendWhatsappOTPController,
+  verifyWhatsappOTPController,
+};

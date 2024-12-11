@@ -7,6 +7,8 @@ import axios from "axios";
 import { encrypt } from "./encryption";
 import { findWalletService } from "./walletService";
 import { findUser } from "./authService";
+import { createToken } from "../utils/createToken";
+import { generateAndSendOtpWA } from "../utils/sendOtp";
 
 interface VerifyBVNParams {
   countryCode: string;
