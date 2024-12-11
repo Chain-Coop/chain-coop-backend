@@ -284,6 +284,7 @@ export const newgetContributionHistory = async (
             nextContributionDate,
             withdrawalDate,
             savingsCategory,
+            contributionPlan,
         } = contribution;
 
         // Fetch the total history length
@@ -305,6 +306,7 @@ export const newgetContributionHistory = async (
 
         res.status(StatusCodes.OK).json({
             balance,
+            contributionPlan,
             savingsCategory,
             startDate,
             nextContributionDate,
