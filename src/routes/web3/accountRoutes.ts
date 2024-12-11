@@ -6,13 +6,6 @@ const router = Router()
 
 /**
  * @swagger
- * tags:
- *   name: Web3
- *   description: Web3 routes
- */
-
-/**
- * @swagger
  * /web3/activate:
  *   post:
  *     summary: Activate a new Web3 wallet for the user
