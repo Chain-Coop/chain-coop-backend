@@ -4,6 +4,9 @@ import Wallet from "../models/wallet";
 import WalletHistory from "../models/walletHistory";
 import bcrypt from "bcryptjs";
 import logger from "../utils/logger";
+import { UserDocument } from "../models/authModel";
+import { addtoLimit, getDailyTotal } from "./dailyServices";
+import { findUser } from "./authService";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BANK_VERIFICATION_URL = "https://api.paystack.co/bank/resolve";
@@ -45,6 +48,39 @@ export interface WebHookDataProps {
 export const createWalletService = async (payload: iWallet) => {
   console.log("Creating wallet with payload:", payload);
   return await Wallet.create(payload);
+};
+
+export const DepositLimitChecker = async (
+  user: UserDocument,
+  amount: number
+) => {
+  const total = await getDailyTotal(user._id as string);
+
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  let limit = 0;
+
+  switch (user.Tier) {
+    case 0:
+      limit = 20000;
+      break;
+    case 1:
+      limit = 50000;
+      break;
+    case 2:
+      limit = 200000;
+      break;
+    case 3:
+      return;
+    default:
+      limit = 0;
+      break;
+  }
+  if ((total?.deposit || 0) + amount > limit) {
+    throw new BadRequestError("Deposit limit exceeded");
+  }
 };
 
 export const createPin = async (id: any, payload: iWallet) => {
@@ -239,5 +275,61 @@ export const chargeCardService = async (
   } catch (error) {
     //@ts-ignore
     return error;
+  }
+};
+
+export const verifyPaymentService = async (reference: string) => {
+  if (!reference) {
+    throw new BadRequestError("Payment reference is required");
+  }
+
+  const isRefExist = await findSingleWalletHistoryService({ ref: reference });
+  if (isRefExist) {
+    throw new BadRequestError("Payment already verified");
+  }
+  try {
+    const response: any = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+    const paymentData = response.data.data;
+    if (paymentData.status === "success") {
+      const { amount, customer } = paymentData;
+      const user = await findUser("email", customer.email);
+      if (!user) {
+        return;
+      }
+
+      const wallet = await findWalletService({ user: user?.id });
+      if (!wallet) {
+        return;
+      }
+
+      await updateWalletService(wallet._id, {
+        balance: wallet.balance + amount / 100,
+      });
+
+      const historyPayload: iWalletHistory = {
+        amount: amount,
+        label: "Wallet top up via Paystack",
+        ref: reference,
+        type: "credit",
+        user: user._id as string,
+      };
+
+      await createWalletHistoryService(historyPayload);
+
+      await addtoLimit(user.id, amount / 100, "deposit");
+
+      return;
+    } else {
+      return;
+    }
+  } catch (error: any) {
+    return;
   }
 };

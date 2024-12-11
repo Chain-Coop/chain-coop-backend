@@ -27,15 +27,17 @@ import {
   profilePictureRouter,
   membershipRouter,
   withdrawalRoutes,
-  notificationRouter,
-  kycRouter
-  
+  notificationRouter,   
+  kycRouter,
+  dashboardRouter,
 } from "./routes";
 import account from "./routes/web3/accountRoutes"
 import balance from "./routes/web3/balanceRoutes"
 //import
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
+import { authorize } from "./middlewares/authorization";
+import { addtoLimit, getDailyTotal } from "./services/dailyServices";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -104,9 +106,11 @@ app.use("/api/v1/membership", membershipRouter);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/kyc", kycRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 //web3 
 app.use("/api/v1/web3/account",account)
 app.use("/api/v1/web3/balance",balance)
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
@@ -116,6 +120,12 @@ app.all("/", (req: Request, res: Response) => {
 });
 
 app.all("/webhook", webhookController);
+
+app.all("/add", authorize, async (req: Request, res: Response) => {
+  //@ts-ignore
+  const data = await getDailyTotal(req.user.userId);
+  res.send(data);
+});
 
 // Error handling middlewares
 app.use(notFound);

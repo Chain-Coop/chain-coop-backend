@@ -11,78 +11,20 @@ import {
   findSingleWalletHistoryService,
   setPreferredCardService,
   verifyAccountDetailsService,
+  DepositLimitChecker,
 } from "../services/walletService";
 import { Request, Response } from "express";
 import { BadRequestError } from "../errors";
 import { StatusCodes } from "http-status-codes";
 import uploadImageFile from "../utils/imageUploader";
 import { findUser, getUserDetails } from "../services/authService";
-import { createHmac } from "crypto";
 import axios from "axios";
 import { generateAndSendOtp } from "../utils/sendOtp";
 import { findOtp } from "../services/otpService";
 import { deleteCard, getCustomer } from "../services/paystackService";
+import { addtoLimit } from "../services/dailyServices";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
-
-const paystackWebhook = async (req: Request, res: Response) => {
-  const hash = createHmac("sha512", secret)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
-
-  if (hash === req.headers["x-paystack-signature"]) {
-    const { event, data } = req.body;
-    if (event === "charge.success") {
-      console.log("Transaction successful");
-
-      await creditWallet(data);
-    }
-    if (event === "transfer.success") {
-      console.log("Transfer successful", data);
-    }
-    if (event === "transfer.failed") {
-      console.log("Transfer failed", data);
-    }
-    if (event === "transfer.reversed") {
-      console.log("Transfer reversed", data);
-    }
-  }
-  res.status(StatusCodes.OK).send();
-};
-
-const creditWallet = async (data: WebHookDataProps) => {
-  const user = await findUser("email", data.customer.email);
-  if (!user) {
-    console.log("User does not exist");
-    return;
-  }
-  const userWallet = await findWalletService({ user: user._id });
-  if (!userWallet) {
-    console.log("Wallet does not exist");
-    return;
-  }
-
-  // Calculate new balance
-  const newBalance = userWallet.balance + data.amount;
-
-  // Update wallet balance
-  await updateWalletService(userWallet._id, {
-    balance: newBalance,
-  });
-
-  // Create wallet history entry
-  const historyPayload: iWalletHistory = {
-    amount: data.amount / 100,
-    label: "Wallet top up via Paystack",
-    ref: data.reference,
-    type: "credit",
-    user: user._id as string,
-  };
-
-  await createWalletHistoryService(historyPayload);
-
-  console.log(`Wallet credited. New balance: ${newBalance}`);
-};
 
 const initiatePayment = async (req: Request, res: Response) => {
   const { amount } = req.body;
@@ -93,12 +35,19 @@ const initiatePayment = async (req: Request, res: Response) => {
     throw new BadRequestError("Amount and email are required");
   }
 
+  const user = await findUser("email", email);
+  if (!user) {
+    throw new BadRequestError("User not found");
+  }
+
+  await DepositLimitChecker(user, amount);
+
   try {
     const response: any = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
         email,
-        amount,
+        amount: amount * 100,
         callback_url: "http://localhost:5173/dashboard/wallet",
         metadata: {
           type: "wallet_funding",
@@ -147,9 +96,7 @@ const verifyPayment = async (req: Request, res: Response) => {
     const paymentData = response.data.data;
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
-      console.log({ amount, customer });
       const user = await findUser("email", customer.email);
-      console.log(user);
       if (!user) {
         throw new BadRequestError("user not found");
       }
@@ -172,6 +119,8 @@ const verifyPayment = async (req: Request, res: Response) => {
       };
 
       await createWalletHistoryService(historyPayload);
+
+      await addtoLimit(user.id, amount / 100, "deposit");
 
       res.status(StatusCodes.OK).json({
         message: "Payment verified and wallet topped up successfully",
