@@ -39,6 +39,7 @@ export interface iContribution {
   user: ObjectId;
   contributionPlan: string;
   amount: number;
+  currency: string;
   status?: string;
   bankDetails?: {
     accountNumber: string;
@@ -51,15 +52,17 @@ export interface iContribution {
 }
 
 export const createContribution = async (req: Request, res: Response) => {
-  const { amount, contributionPlan, savingsCategory, startDate, endDate } =
-    req.body;
+  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate } = req.body;
+
   //@ts-ignore
   const email = req.user.email;
   //@ts-ignore
   const userId = req.user.userId;
 
+  // Check for required fields
   if (
     !amount ||
+    !currency || // Ensure currency is provided
     !email ||
     !contributionPlan ||
     !savingsCategory ||
@@ -70,16 +73,19 @@ export const createContribution = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = (await createContributionService({
+    // Pass the required fields, including currency, to the service layer
+    const result = await createContributionService({
       amount,
+      currency, // Include the currency field
       contributionPlan,
       savingsCategory,
       startDate,
       endDate,
       email,
       user: userId,
-    })) as Object;
+    });
 
+    // Respond with the created contribution data
     res.status(StatusCodes.OK).json({ result });
   } catch (error: any) {
     console.error("Error in createContribution:", error);
@@ -284,6 +290,7 @@ export const newgetContributionHistory = async (
             nextContributionDate,
             withdrawalDate,
             savingsCategory,
+            contributionPlan,
         } = contribution;
 
         // Fetch the total history length
@@ -305,6 +312,7 @@ export const newgetContributionHistory = async (
 
         res.status(StatusCodes.OK).json({
             balance,
+            contributionPlan,
             savingsCategory,
             startDate,
             nextContributionDate,
@@ -441,6 +449,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     contribution: contributionId,
     user: contribution.user,
     amount: amount,
+    currency: "",
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
@@ -542,6 +551,7 @@ export const chargeCardforContribution = async (
     contribution: contributionId,
     user: contribution.user,
     amount: contribution.amount,
+    currency: contribution.currency,
     Date: new Date(),
     type: "credit",
     balance: contribution.balance,

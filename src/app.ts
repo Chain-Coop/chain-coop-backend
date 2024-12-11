@@ -8,6 +8,8 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
+import { RequestHandler } from "express";
+
 import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
@@ -27,10 +29,13 @@ import {
   profilePictureRouter,
   membershipRouter,
   withdrawalRoutes,
-  notificationRouter,
+  notificationRouter,   
   kycRouter,
   dashboardRouter,
 } from "./routes";
+import account from "./routes/web3/accountRoutes"
+import balance from "./routes/web3/balanceRoutes"
+//import
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
 import { authorize } from "./middlewares/authorization";
@@ -79,8 +84,9 @@ app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp",
-  })
+  }) as unknown as RequestHandler
 );
+
 
 app.use((req, _res, next) => {
   logger.info({ req }, "Incoming request");
@@ -104,6 +110,10 @@ app.use("/api/v1/withdrawal", withdrawalRoutes);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/kyc", kycRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
+//web3 
+app.use("/api/v1/web3/account",account)
+app.use("/api/v1/web3/balance",balance)
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

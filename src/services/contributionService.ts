@@ -18,6 +18,7 @@ export interface iContribution {
   user: ObjectId;
   contributionPlan: string;
   amount: number;
+  currency: string;
   status?: string;
   bankDetails?: {
     accountNumber: string;
@@ -32,6 +33,7 @@ export interface iContributionHistory {
   contribution: ObjectId;
   user: ObjectId;
   amount: number;
+  currency: string;
   Date: Date;
   type: string;
   balance: number;
@@ -47,6 +49,7 @@ export const createContributionService = async (data: {
   user: ObjectId;
   contributionPlan: string;
   amount: number;
+  currency: string;
   savingsCategory: string;
   startDate: Date;
   endDate: Date;
@@ -67,6 +70,7 @@ export const createContributionService = async (data: {
       user: data.user,
       contributionPlan: data.contributionPlan,
       amount: data.amount,
+      currency: data.currency,
       savingsCategory: data.savingsCategory,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
@@ -295,6 +299,7 @@ export const verifyUnpaidContributionPayment = async (reference: string) => {
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Paid",
@@ -409,6 +414,7 @@ export const verifyContributionPayment = async (reference: string) => {
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Completed",
@@ -499,6 +505,7 @@ export const tryRecurringContributions = async () => {
                 //@ts-ignore
                 user: user._id as ObjectId,
                 amount: contribution.amount,
+                currency: contribution.currency,
                 type: "Credit",
                 balance: contribution.balance,
                 status: "Completed",
@@ -570,6 +577,7 @@ export const paymentforContribution = async (contribution: any) => {
         //@ts-ignore
         user: contribution.user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Unpaid",

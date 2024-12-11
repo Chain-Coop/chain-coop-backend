@@ -19,7 +19,6 @@ import { authorize } from "../middlewares/authorization";
 
 const router = Router();
 
-
 /**
  * @swagger
  * tags:
@@ -50,6 +49,9 @@ const router = Router();
  *               amount:
  *                 type: number
  *                 description: Contribution amount
+ *               currency:
+ *                 type: string
+ *                 description: Currency for the contribution (e.g., USD, EUR, GBP)
  *               savingsCategory:
  *                 type: string
  *                 description: Savings category
@@ -125,6 +127,9 @@ const router = Router();
  *               contributionId:
  *                 type: string
  *                 description: Contribution ID to withdraw
+ *               currency:
+ *                 type: string
+ *                 description: Currency for the withdrawal (e.g., USD, EUR, GBP)
  *     responses:
  *       200:
  *         description: Contribution withdrawn successfully
@@ -193,6 +198,9 @@ const router = Router();
  *               cardData:
  *                 type: string
  *                 description: Card data for payment
+ *               currency:
+ *                 type: string
+ *                 description: Currency for the charge (e.g., USD, EUR, GBP)
  *     responses:
  *       200:
  *         description: Card charged successfully
@@ -219,6 +227,17 @@ const router = Router();
  *   post:
  *     summary: Attempt payment for a contribution
  *     tags: [Contributions]
+ *     requestBody:
+ *       description: Payment attempt details
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currency:
+ *                 type: string
+ *                 description: Currency for the payment (e.g., USD, EUR, GBP)
  *     responses:
  *       200:
  *         description: Payment attempt successful
@@ -256,6 +275,9 @@ const router = Router();
  *               cardData:
  *                 type: string
  *                 description: Card data for payment
+ *               currency:
+ *                 type: string
+ *                 description: Currency for the charge (e.g., USD, EUR, GBP)
  *     responses:
  *       200:
  *         description: Unpaid contributions charged successfully
@@ -276,8 +298,6 @@ const router = Router();
  *         description: Unpaid contribution not found
  */
 
-
-
 router.post("/contribute", authorize, createContribution);
 router.get("/contribute", authorize, getUserContributions);
 router.get("/history", authorize, newgetContributionHistory);
@@ -291,7 +311,7 @@ router.route("/pending").get(authorize, getPendingContributions);
 
 router.route("/pay").post(authorize, attemptPayment);
 
-//Unpaid contributions
+// Unpaid contributions
 router.route("/unpaid").get(authorize, getUnpaidContributions);
 router.route("/charge-unpaid").post(authorize, chargeforUnpaidContributions);
 router.route("/verify-unpaid").get(authorize, verifyUnpaidPayment);
