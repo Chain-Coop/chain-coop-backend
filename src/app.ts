@@ -8,6 +8,8 @@ import { notFound } from "./middlewares/notFoundMiddleWare";
 import { errorHandlerMiddleware } from "./middlewares/errorHandler";
 import cloudinary from "cloudinary";
 import fileUpload from "express-fileupload";
+import { RequestHandler } from "express";
+
 import {
   clearAllPendingContributionsService,
   tryRecurringContributions,
@@ -82,8 +84,9 @@ app.use(
   fileUpload({
     useTempFiles: true,
     tempFileDir: "/tmp",
-  })
+  }) as unknown as RequestHandler
 );
+
 
 app.use((req, _res, next) => {
   logger.info({ req }, "Incoming request");
