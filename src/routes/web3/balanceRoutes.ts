@@ -16,7 +16,7 @@ const router = Router()
  *   get:
  *     summary: Get the token balance for the user
  *     tags:
- *       - Web3 Balances
+ *       - [Web3]
  *     security:
  *       - bearerAuth: []
  *     parameters:
