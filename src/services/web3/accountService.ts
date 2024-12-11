@@ -94,4 +94,13 @@ const  userWeb3WalletDetails=async(userId: string)=> {
     }
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress}
+  //approve token transfer
+  const approveTokenTransfer = async(tokenAddress:string,toContractAddress:string,amount:string,userPrivateKey:string)=>{
+    const con_tract = await contract(tokenAddress, decrypt(userPrivateKey));
+    const tx = await con_tract.approve(toContractAddress,parseEther(amount));
+    await tx.wait();
+    return tx;
+
+  }
+
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer}

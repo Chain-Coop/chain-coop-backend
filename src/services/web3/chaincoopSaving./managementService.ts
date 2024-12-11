@@ -1,4 +1,4 @@
-import { contract,chainCoopSavingcontract } from "../../../utils/web3/contract";
+import {chainCoopSavingcontract } from "../../../utils/web3/contract";
 
 
 
