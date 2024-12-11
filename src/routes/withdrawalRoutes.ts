@@ -30,7 +30,7 @@ router.post("/verify-bank-account", authorize, verifyBankDetails);
 router.patch(
   "/update-status/:withdrawalId",
   authorize,
-  authorizePermissions("admin", "user"),
+  authorizePermissions("admin"),
   updateWithdrawalStatusController
 );
 
