@@ -426,7 +426,7 @@ axios@^1.7.4, axios@^1.7.7:
     "@types/swagger-jsdoc" "^6.0.4"
     "@types/swagger-ui-express" "^4.1.7"
     axios "^1.7.7"
-    backend-ts "file:../../../.cache/yarn/v6/npm-backend-ts-1.0.0-78b3b409-1bd2-42d0-b51f-acbd9ce82984-1733906477054/node_modules/backend-ts"
+    backend-ts "file:../../../.cache/yarn/v6/npm-backend-ts-1.0.0-cd3bc522-51c9-4cc3-890f-116d5a4247cf-1733908334489/node_modules/backend-ts"
     bcryptjs "^2.4.3"
     body-parser "^1.20.2"
     chalk "^5.3.0"
