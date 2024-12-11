@@ -1,4 +1,4 @@
-import OTP from "../models/otpmodel";
+import OTP from "../models/otpModel";
 
 const createOtp = async (email: string, otp: string) => {
   const newOTP = await OTP.create({ email, otp });
