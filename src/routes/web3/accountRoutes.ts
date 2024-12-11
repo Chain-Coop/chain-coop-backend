@@ -3,6 +3,14 @@ import { activate } from "../../controllers/web3/accountController";
 import {authorize}  from "../../middlewares/authorization"
 const router = Router()
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Web3
+ *   description: Web3 routes
+ */
+
 /**
  * @swagger
  * /web3/activate:
