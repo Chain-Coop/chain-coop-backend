@@ -4,7 +4,7 @@ import { approveTokenTransfer } from "../accountService";
 import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET } from "../../../constant/contract/ChainCoopSaving";
 
 //NB DURATION IS IN SECONDS
-
+//lisk, usdc
 const openPool = async(tokenAddressToSaveWith:string,initialSaveAmount:string,goalAmount:string,reasonForSaving:string,duration:number,userPrivateKey:string)=>{
     try{
         const approveTx = await approveTokenTransfer(tokenAddressToSaveWith,CHAINCOOPSAVINGCONTRACT_LISK_TESTNET,initialSaveAmount,userPrivateKey);

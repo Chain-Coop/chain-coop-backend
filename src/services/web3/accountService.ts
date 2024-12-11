@@ -12,10 +12,7 @@ const activateAccount = async(userId:string)=>{
     }
     
     const {address,privateKey,publicKey} =  generateAccount()
-    /***
-     * TODO
-     *  //generate algorithm to encrypt purivate key 
-     */
+  
    
     const web3Wallet = new Web3Wallet({
         user: userId,
@@ -34,7 +31,7 @@ const checkExistingWallet = async (userId: string):Promise<boolean> => {
   return existingWallet!!
 }
 
-
+//publickey is the address
 const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<{bal:number,symbol:string}>=>{
     const con_tract = await contract(tokenAddress)
     const balance = await con_tract.balanceOf(publicKey)
