@@ -8,6 +8,8 @@ import { UserDocument } from "../models/authModel";
 export const LimitChecker = async (user: UserDocument, amount: number) => {
   const total = await getDailyTotal(user._id as string);
 
+  console.log(total);
+
   if (!user) {
     throw new NotFoundError("User not found");
   }

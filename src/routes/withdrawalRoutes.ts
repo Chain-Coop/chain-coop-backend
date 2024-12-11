@@ -1,6 +1,14 @@
 import { Router } from "express";
-import { requestWithdrawal, updateWithdrawalStatusController, listAllWithdrawals, getUserBankAccountsController } from "../controllers/withdrawalController";
-import { collectBankDetails, verifyBankDetails } from "../controllers/walletController";
+import {
+  requestWithdrawal,
+  updateWithdrawalStatusController,
+  listAllWithdrawals,
+  getUserBankAccountsController,
+} from "../controllers/withdrawalController";
+import {
+  collectBankDetails,
+  verifyBankDetails,
+} from "../controllers/walletController";
 import { getAllBanks } from "../controllers/bankController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 
@@ -19,11 +27,15 @@ router.post("/collect-bank-details", authorize, collectBankDetails);
 router.post("/verify-bank-account", authorize, verifyBankDetails);
 
 // PATCH route to update withdrawal status (admin only)
-router.patch('/update-status/:withdrawalId', authorize, authorizePermissions("admin"), updateWithdrawalStatusController);
+router.patch(
+  "/update-status/:withdrawalId",
+  authorize,
+  authorizePermissions("admin", "user"),
+  updateWithdrawalStatusController
+);
 
-router.get('/requests', authorize,  listAllWithdrawals);
+router.get("/requests", authorize, listAllWithdrawals);
 
-router.get('/user-bank-accounts', authorize, getUserBankAccountsController);
-
+router.get("/user-bank-accounts", authorize, getUserBankAccountsController);
 
 export default router;
