@@ -33,9 +33,10 @@ import {
   kycRouter,
   dashboardRouter,
 } from "./routes";
-import accountRouter from "./routes/web3/accountRoutes"
-import balanceRouter from "./routes/web3/balanceRoutes"
-import chainCoopManagementRouter from "./routes/web3/chaincoopSaving/managementRoutes"
+import accountRouter from "./routes/web3/accountRoutes";
+import balanceRouter from "./routes/web3/balanceRoutes";
+import chainCoopManagementRouter from "./routes/web3/chaincoopSaving/managementRoutes";
+import chaincoopSavingRoute from "./routes/web3/chaincoopSaving/savingRoutes";
 //import
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
@@ -115,6 +116,7 @@ app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/web3/account",accountRouter)
 app.use("/api/v1/web3/balance",balanceRouter)
 app.use("/api/v1/web3/management",chainCoopManagementRouter)
+app.use("/api/v1/web3/saving",chaincoopSavingRoute)
 
 
 const port = process.env.PORT || 3000;
