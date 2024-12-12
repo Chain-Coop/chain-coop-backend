@@ -20,4 +20,21 @@ const deleteOtp = async (email: string) => {
   return otp;
 };
 
-export { createOtp, findOtp, deleteOtp, findOtpByEmail };
+const createOtpPhone = async (phone: string, otp: string) => {
+  const newOTP = await OTP.create({ phone, otp });
+  return newOTP;
+};
+
+const findOtpPhone = async (phone: string, otpValue: string) => {
+  const otp = await OTP.findOne({ phone, otp: otpValue });
+  return otp;
+};
+
+export {
+  createOtp,
+  findOtp,
+  deleteOtp,
+  findOtpByEmail,
+  createOtpPhone,
+  findOtpPhone,
+};

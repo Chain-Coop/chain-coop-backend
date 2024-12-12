@@ -3,13 +3,14 @@ import { activate } from "../../controllers/web3/accountController";
 import {authorize}  from "../../middlewares/authorization"
 const router = Router()
 
+
 /**
  * @swagger
  * /web3/activate:
  *   post:
  *     summary: Activate a new Web3 wallet for the user
  *     tags:
- *       - Web3 Accounts
+ *       - [Web3]
  *     security:
  *       - bearerAuth: []
  *     requestBody:

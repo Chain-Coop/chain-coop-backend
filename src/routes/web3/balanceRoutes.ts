@@ -5,11 +5,18 @@ const router = Router()
 
 /**
  * @swagger
+ * tags:
+ *   name: Web3
+ *   description: Web3 routes
+ */
+
+/**
+ * @swagger
  * /web3/token/{tokenId}:
  *   get:
  *     summary: Get the token balance for the user
  *     tags:
- *       - Web3 Balances
+ *       - [Web3]
  *     security:
  *       - bearerAuth: []
  *     parameters:
