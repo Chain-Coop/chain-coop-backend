@@ -31,6 +31,12 @@ const checkExistingWallet = async (userId: string):Promise<boolean> => {
   return existingWallet!!
 }
 
+//get use wallet
+const getUserWeb3Wallet = async (userId: string)=> {
+  const wallet = await Web3Wallet.findOne({ user: userId });
+  return wallet
+}
+
 //publickey is the address
 const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<{bal:number,symbol:string}>=>{
     const con_tract = await contract(tokenAddress)
@@ -100,4 +106,4 @@ const  userWeb3WalletDetails=async(userId: string)=> {
 
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer,getUserWeb3Wallet}
