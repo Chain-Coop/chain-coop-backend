@@ -27,7 +27,11 @@ const sendOTP = async (req: Request, res: Response) => {
   if (result === "failed") {
     return res.status(500).json({ message: "Failed to send OTP" });
   }
-  return res.status(200).json({ message: "OTP sent successfully" });
+  return res.status(200).json({
+    message: "OTP sent successfully",
+    //@ts-ignore
+    reference: result.data.reference,
+  });
 };
 
 const sendWhatsappOTPController = async (req: Request, res: Response) => {
@@ -69,7 +73,7 @@ const verifyOTPController = async (req: Request, res: Response) => {
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
-  const result = await verifyOTP(user.phoneNumber, req.body.code);
+  const result = await verifyOTP(req.body.code, req.body.reference);
 
   if (result === "failed") {
     return res.status(500).json({ message: "Failed to verify OTP" });

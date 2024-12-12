@@ -63,6 +63,9 @@ const router = Router();
  *               code:
  *                 type: string
  *                 description: OTP code
+ *               reference:
+ *                 type: string
+ *                 description: Reference code
  *     responses:
  *       200:
  *         description: OTP verified successfully
