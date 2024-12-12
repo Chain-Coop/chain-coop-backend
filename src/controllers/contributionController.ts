@@ -286,6 +286,7 @@ export const newgetContributionHistory = async (
         // Get the overall balance, next contribution date, and withdrawal date from the contribution
         const {
             balance,
+            currency,
             startDate,
             nextContributionDate,
             withdrawalDate,
@@ -313,6 +314,7 @@ export const newgetContributionHistory = async (
         res.status(StatusCodes.OK).json({
             balance,
             contributionPlan,
+            currency,
             savingsCategory,
             startDate,
             nextContributionDate,
