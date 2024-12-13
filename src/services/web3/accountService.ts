@@ -3,7 +3,8 @@ import { contract } from "../../utils/web3/contract";
 import { parseEther } from "ethers";
 import Web3Wallet from "../../models/web3Wallet";
 import User from "../../models/user";
-import { encrypt,decrypt } from "../../utils/web3/encryptordecrypt";
+
+import { encrypt,decrypt } from "../encryption";
 
 const activateAccount = async(userId:string)=>{
     const user = User.findById(userId);
@@ -31,6 +32,12 @@ const checkExistingWallet = async (userId: string):Promise<boolean> => {
   return existingWallet!!
 }
 
+//get use wallet
+const getUserWeb3Wallet = async (userId: string)=> {
+  const wallet = await Web3Wallet.findOne({ user: userId });
+  return wallet
+}
+
 //publickey is the address
 const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<{bal:number,symbol:string}>=>{
     const con_tract = await contract(tokenAddress)
@@ -42,7 +49,12 @@ const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promi
     const adjustedBalance = Number(balance.toString()) / (10 ** Number(tokenDecimal));
     return {bal:adjustedBalance,symbol:tokenSymbol};
 }
-
+const getTokenAddressSymbol = async(tokenAddress:string)=>{
+  const con_tract = await contract(tokenAddress)
+  const symbol = await con_tract.symbol()
+  
+  return symbol
+}
 const userAddress = async(userId:string):Promise<string>=>{
   const wallet = await Web3Wallet.findOne({user:userId});
   return wallet.address;
@@ -93,11 +105,11 @@ const  userWeb3WalletDetails=async(userId: string)=> {
 
   //approve token transfer
   const approveTokenTransfer = async(tokenAddress:string,toContractAddress:string,amount:string,userPrivateKey:string)=>{
-    const con_tract = await contract(tokenAddress, decrypt(userPrivateKey));
+    const con_tract = await contract(tokenAddress, userPrivateKey);
     const tx = await con_tract.approve(toContractAddress,parseEther(amount));
     await tx.wait();
     return tx;
 
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer,getUserWeb3Wallet,getTokenAddressSymbol}

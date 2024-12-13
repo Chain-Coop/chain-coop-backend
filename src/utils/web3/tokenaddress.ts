@@ -1,7 +1,7 @@
 import { SupportedLISKStables } from "./supportedStables";
 
 
-type Token = { USDC: string } | { LISK: string };
+type Token = { USDC: string } | { LISK: string } |{ WUSDC: string };
 
 const tokenAddress = (tokenId: number): string => {
  
