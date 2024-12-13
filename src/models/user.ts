@@ -10,6 +10,7 @@ export interface UserDocument extends Document {
   phoneNumber: string;
   Tier: 0 | 1 | 2;
   isVerified: boolean;
+  isCrypto: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -48,6 +49,10 @@ const UserSchema: Schema = new Schema({
     default: 0,
   },
   isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  isCrypto: {
     type: Boolean,
     default: false,
   },
