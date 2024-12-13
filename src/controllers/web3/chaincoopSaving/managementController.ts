@@ -2,7 +2,8 @@ import asyncHandler from "express-async-handler";
 import { addSupportedTokenAddress,flagRemoveTokens,transferOwnership,setAddressForFeeCollection } from "../../../services/web3/chaincoopSaving./managementService";
 import { Request, Response } from "express";
 import { getUserWeb3Wallet } from "../../../services/web3/accountService";
-import { decrypt } from "../../../utils/web3/encryptordecrypt";
+
+import { decrypt } from "../../../services/encryption";
 
 const allowStableTokenAddressfForSaving =asyncHandler(async(req:Request,res:Response)=>{
     const {stableTokenAddress}=req.body
@@ -110,7 +111,7 @@ const setFeeCollectionAddress =asyncHandler(async(req:Request,res:Response)=>{
     const userId = req.user.userId;
     try{
         if(!feeCollectionAddress){
-            res.status(400).json({message:"stableTokenAddress missing in body"})
+            res.status(400).json({message:"feeCollectionAddress missing in body"})
             return
         }
         const wallet = await getUserWeb3Wallet(userId);
