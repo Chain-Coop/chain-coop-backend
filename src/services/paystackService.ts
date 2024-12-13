@@ -128,8 +128,7 @@ export const createPaymentLink = async (
         amount,
         planId, // Include planId for subscriptions or leave it undefined for one-off payments
         currency: "NGN",
-        callback_url:
-          "https://chain-coop-backend.onrender.com/set-payment-plan/step3",
+        callback_url: "https://chaincoop.org/set-payment-plan/step3",
         metadata: {
           userId,
           membershipType,
