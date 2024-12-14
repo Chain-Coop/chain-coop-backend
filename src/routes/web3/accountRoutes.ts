@@ -1,11 +1,14 @@
 import { Router } from "express";
-import { activate } from "../../controllers/web3/accountController";
+import {
+  activate,
+  userDetails,
+} from "../../controllers/web3/accountController";
 import { authorize } from "../../middlewares/authorization";
 const router = Router();
 
 /**
  * @swagger
- * /web3/account/activate:
+ * /web3/activate:
  *   post:
  *     summary: Activate a new Web3 wallet for the user
  *     tags:
@@ -63,5 +66,6 @@ const router = Router();
  */
 
 router.post("/activate", authorize, activate);
+router.get("/details", authorize, userDetails);
 
 export default router;

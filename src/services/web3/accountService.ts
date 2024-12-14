@@ -7,7 +7,7 @@ import User from "../../models/user";
 import { encrypt, decrypt } from "../encryption";
 
 const activateAccount = async (userId: string) => {
-  const user = await User.findById(userId);
+  const user = User.findById(userId);
   if (!user) {
     throw new Error("User not found");
   }
@@ -21,9 +21,6 @@ const activateAccount = async (userId: string) => {
     address: address,
   });
 
-  user.isCrypto = true;
-  await user.save();
-
   await web3Wallet.save();
   return web3Wallet;
 };
@@ -36,7 +33,7 @@ const checkExistingWallet = async (userId: string): Promise<boolean> => {
 //get use wallet
 const getUserWeb3Wallet = async (userId: string) => {
   const wallet = await Web3Wallet.findOne({ user: userId });
-  return wallet;
+  return wallet?._doc;
 };
 
 //publickey is the address
