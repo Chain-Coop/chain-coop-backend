@@ -1,12 +1,11 @@
-import {Router} from "express"
+import { Router } from "express";
 import { activate } from "../../controllers/web3/accountController";
-import {authorize}  from "../../middlewares/authorization"
-const router = Router()
-
+import { authorize } from "../../middlewares/authorization";
+const router = Router();
 
 /**
  * @swagger
- * /web3/activate:
+ * /web3/account/activate:
  *   post:
  *     summary: Activate a new Web3 wallet for the user
  *     tags:
@@ -63,6 +62,6 @@ const router = Router()
  *                   example: Internal Server Error
  */
 
-router.post("/activate",authorize,activate)
+router.post("/activate", authorize, activate);
 
 export default router;

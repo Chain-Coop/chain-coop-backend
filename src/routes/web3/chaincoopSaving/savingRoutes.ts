@@ -11,7 +11,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/openPool:
+ * /web3/saving/openPool:
  *   post:
  *     summary: Open a new saving pool
  *     tags: [Web3]
@@ -77,7 +77,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/updatePool:
+ * /web3/saving/updatePool:
  *   post:
  *     summary: Update a saving pool with amount
  *     tags: [Web3]
@@ -137,7 +137,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/withdraw:
+ * /web3/saving/withdraw:
  *   post:
  *     summary: Withdraw from a saving pool by ID
  *     tags: [Web3]
@@ -191,7 +191,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/userPools:
+ * /web3/saving/userPools:
  *   get:
  *     summary: Get all user pools
  *     tags: [Web3]
@@ -236,7 +236,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/totalPools:
+ * /web3/saving/totalPools:
  *   get:
  *     summary: Get total number of pools created
  *     tags: [Web3]

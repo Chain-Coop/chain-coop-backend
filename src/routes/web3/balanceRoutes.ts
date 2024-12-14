@@ -1,7 +1,7 @@
-import {Router} from "express"
-import { userTokenBalance } from "../../controllers/web3/balanceController"
-import {authorize}  from "../../middlewares/authorization"
-const router = Router()
+import { Router } from "express";
+import { userTokenBalance } from "../../controllers/web3/balanceController";
+import { authorize } from "../../middlewares/authorization";
+const router = Router();
 
 /**
  * @swagger
@@ -12,7 +12,7 @@ const router = Router()
 
 /**
  * @swagger
- * /web3/token/{tokenId}:
+ * /web3/balance/token/{tokenId}:
  *   get:
  *     summary: Get the token balance for the user
  *     tags:
@@ -81,7 +81,6 @@ const router = Router()
  *                   example: Internal Server Error
  */
 
-
-router.get("/token/:tokenId",authorize,userTokenBalance)
+router.get("/token/:tokenId", authorize, userTokenBalance);
 
 export default router;
