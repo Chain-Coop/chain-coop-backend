@@ -27,6 +27,7 @@ import { verifyPayment } from "../services/paystackService";
 // Updated register method to include membership statusimport { LogModel } from "../models/logModel";
 import { logUserOperation } from "../middlewares/logging";
 import { createPaystackCustomer } from "../services/kycservice";
+import Web3Wallet from "../models/web3Wallet";
 
 const register = async (req: Request, res: Response) => {
   let user: any = null;
@@ -183,7 +184,11 @@ const getUser = async (req: Request, res: Response) => {
   const user = await getUserDetails(id);
   const wallet = await findWalletService({ user: id });
   const isPinCreated = wallet?.isPinCreated;
-  res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated });
+  
+  const web3wallet = await Web3Wallet.findOne({ user: id });
+  const isWalletActivated = web3wallet ? true : false;
+
+  res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated, isWalletActivated, });
 };
 
 // Send OTP for password reset

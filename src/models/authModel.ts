@@ -22,6 +22,7 @@ export interface UserDocument extends Document {
   membershipType: string;
   membershipStatus: "active" | "pending" | "inactive";
   membershipPaymentStatus: "paid" | "in-progress" | "not_started";
+  isWalletActivated: boolean;
 }
 
 const UserSchema = new Schema({
@@ -92,6 +93,7 @@ const UserSchema = new Schema({
     type: String,
     required: [true, "Last name is required"],
   },
+  isWalletActivated: { type: Boolean, default: false },
 });
 
 UserSchema.pre("save", async function (next) {
