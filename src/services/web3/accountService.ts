@@ -35,7 +35,7 @@ const checkExistingWallet = async (userId: string):Promise<boolean> => {
 //get use wallet
 const getUserWeb3Wallet = async (userId: string)=> {
   const wallet = await Web3Wallet.findOne({ user: userId });
-  return wallet
+  return wallet?._doc 
 }
 
 //publickey is the address
