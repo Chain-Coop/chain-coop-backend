@@ -119,11 +119,11 @@ export const initializeContributionPayment = async (
         {
           email: user.email,
           amount: contribution.amount * 100,
-          callback_url: `https://chaincoop.org/dashboard/contribution`,
+          callback_url: ` https://chain-coop-backend.onrender.com/dashboard/wallet`,
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
-          },
+          }, 
         },
         {
           headers: {
@@ -200,7 +200,7 @@ export const chargeUnpaidContributions = async (
         //@ts-ignore
         email: contribution.user.email,
         amount: amount * 100,
-        callback_url: `https://chaincoop.org/dashboard/contribution`,
+        callback_url: ` https://chain-coop-backend.onrender.com/dashboard/wallet`,
         metadata: {
           contributionId: contributionId,
           type: "conunpaid",
