@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
   createUser,
+  findExistingUser,
   findUser,
   getUserDetails,
   resetUserPassword,
@@ -34,9 +35,9 @@ const register = async (req: Request, res: Response) => {
   try {
     //registerValidator(req);
     const { email } = req.body;
-    const legacyUser = await findUser("email", email!);
+    const legacyUser = await findExistingUser(email, req.body.phoneNumber);
     if (legacyUser) {
-      throw new ConflictError("Email already exists");
+      throw new ConflictError("Email or Phone already registered");
     }
     user = await createUser(req.body);
     const token = await user.createJWT();
@@ -184,11 +185,13 @@ const getUser = async (req: Request, res: Response) => {
   const user = await getUserDetails(id);
   const wallet = await findWalletService({ user: id });
   const isPinCreated = wallet?.isPinCreated;
-  
+
   const web3wallet = await Web3Wallet.findOne({ user: id });
   const isWalletActivated = web3wallet ? true : false;
 
-  res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated, isWalletActivated, });
+  res
+    .status(StatusCodes.OK)
+    .json({ ...user?.toObject(), isPinCreated, isWalletActivated });
 };
 
 // Send OTP for password reset
