@@ -36,8 +36,11 @@ const register = async (req: Request, res: Response) => {
     //registerValidator(req);
     const { email } = req.body;
     const legacyUser = await findExistingUser(email, req.body.phoneNumber);
-    if (legacyUser) {
-      throw new ConflictError("Email or Phone already registered");
+    if (legacyUser && legacyUser.email === email) {
+      throw new ConflictError("Email already registered");
+    }
+    if (legacyUser && legacyUser.phoneNumber === req.body.phoneNumber) {
+      throw new ConflictError("Phone number already registered");
     }
     user = await createUser(req.body);
     const token = await user.createJWT();
