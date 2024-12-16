@@ -94,7 +94,6 @@ export const createContributionService = async (data: {
   }
 };
 
-
 export const initializeContributionPayment = async (
   contributionId: string,
   paymentType: string,
@@ -124,7 +123,7 @@ export const initializeContributionPayment = async (
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
-          }, 
+          },
         },
         {
           headers: {
@@ -379,7 +378,7 @@ export const verifyContributionPayment = async (reference: string) => {
         };
         wallet.markModified("Card");
         await wallet.save();
-      }  
+      }
 
       const contribution = await Contribution.findOne({
         _id: paymentData.metadata.contributionId,
@@ -391,7 +390,9 @@ export const verifyContributionPayment = async (reference: string) => {
 
       // Skip balance update for non-NGN currencies
       if (contribution.currency !== "NGN") {
-        logger.info(`Payment made with ${contribution.currency}, skipping balance update.`);
+        logger.info(
+          `Payment made with ${contribution.currency}, skipping balance update.`
+        );
       } else {
         contribution.balance += amount / 100;
       }
@@ -433,7 +434,6 @@ export const verifyContributionPayment = async (reference: string) => {
     );
   }
 };
-
 
 export const tryRecurringContributions = async () => {
   const contributions = await Contribution.find({
@@ -640,7 +640,9 @@ export const updateContributionService = async (
 
   // Skip updating balance for non-NGN currencies
   if (contribution.currency !== "NGN") {
-    logger.info(`Skipping balance update for non-NGN currency: ${contribution.currency}`);
+    logger.info(
+      `Skipping balance update for non-NGN currency: ${contribution.currency}`
+    );
     return contribution;
   }
 
@@ -673,7 +675,6 @@ export const updateContributionService = async (
   );
 };
 
-
 export const createContributionHistoryService = async (
   payload: iContributionHistory
 ) => {
@@ -685,7 +686,9 @@ export const createContributionHistoryService = async (
 
     // Skip history creation for non-NGN contributions
     if (contribution.currency !== "NGN") {
-      logger.info(`Skipping history for non-NGN currency: ${contribution.currency}`);
+      logger.info(
+        `Skipping history for non-NGN currency: ${contribution.currency}`
+      );
       return; // Skip history creation for non-NGN contributions
     }
 
@@ -700,7 +703,6 @@ export const createContributionHistoryService = async (
     throw new Error("Failed to create contribution history");
   }
 };
-
 
 export const findContributionHistoryService = async (
   contributionId: string
