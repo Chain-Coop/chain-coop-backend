@@ -48,8 +48,7 @@ const initiatePayment = async (req: Request, res: Response) => {
       {
         email,
         amount: amount * 100,
-        callback_url:
-          "https://chain-coop-backend.onrender.com/dashboard/wallet",
+        callback_url: "https://chaincoop.org/dashboard/wallet",
         metadata: {
           type: "wallet_funding",
         },
