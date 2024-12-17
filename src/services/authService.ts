@@ -10,6 +10,13 @@ const findUser = async (by: string, val: string) =>
     ? await User.findOne({ _id: val })
     : "";
 
+const findExistingUser = async (email: string, phone: string) => {
+  let user = await User.findOne({
+    $or: [{ email }, { phone }],
+  });
+  return user;
+};
+
 const getUserDetails = async (id: string) =>
   await User.findOne({ _id: id }).select("-password");
 
@@ -41,4 +48,5 @@ export {
   getUserDetails,
   resetUserPassword,
   getAdminDetails,
+  findExistingUser,
 };

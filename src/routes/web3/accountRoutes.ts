@@ -1,12 +1,14 @@
-import {Router} from "express"
-import { activate } from "../../controllers/web3/accountController";
-import {authorize}  from "../../middlewares/authorization"
-const router = Router()
-
+import { Router } from "express";
+import {
+  activate,
+  userDetails,
+} from "../../controllers/web3/accountController";
+import { authorize } from "../../middlewares/authorization";
+const router = Router();
 
 /**
  * @swagger
- * /web3/activate:
+ * /web3/account/activate:
  *   post:
  *     summary: Activate a new Web3 wallet for the user
  *     tags:
@@ -63,6 +65,68 @@ const router = Router()
  *                   example: Internal Server Error
  */
 
-router.post("/activate",authorize,activate)
+/**
+ * @swagger
+ * /web3/account/details:
+ *   get:
+ *     summary: Get details of the user's Web3 wallet
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Wallet details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                       example: "1234567890"
+ *                     walletAddress:
+ *                       type: string
+ *                       example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                     balance:
+ *                       type: number
+ *                       example: 100.0
+ *       400:
+ *         description: No Wallet found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No Wallet found
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal Server Error
+ */
+
+router.post("/activate", authorize, activate);
+router.get("/details", authorize, userDetails);
 
 export default router;
