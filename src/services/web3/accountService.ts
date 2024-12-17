@@ -3,8 +3,15 @@ import { contract } from "../../utils/web3/contract";
 import { parseEther } from "ethers";
 import Web3Wallet from "../../models/web3Wallet";
 import User from "../../models/user";
+import { SupportedLISKStables } from "../../utils/web3/supportedStables";
 
 import { encrypt,decrypt } from "../encryption";
+export interface TokenBalance{
+  tokenAddress: string;
+  balance: number;
+  tokenSymbol:string
+
+}
 
 const activateAccount = async(userId:string)=>{
     const user = User.findById(userId);
@@ -49,6 +56,29 @@ const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promi
     const adjustedBalance = Number(balance.toString()) / (10 ** Number(tokenDecimal));
     return {bal:adjustedBalance,symbol:tokenSymbol};
 }
+//user tokenBalances
+const userTokensBalance = async (publicKey: string): Promise<TokenBalance[]> => {
+  const tokens = SupportedLISKStables.map((tokenObj)=> Object.values(tokenObj)[0])
+
+  const tokenBalances = await Promise.all(
+      tokens.map(async (tokenAddress) => {
+          const { bal, symbol } = await checkStableUserBalance(publicKey, tokenAddress);
+          return {
+              tokenAddress,
+              balance: bal,
+              tokenSymbol: symbol,
+          } as TokenBalance;
+      })
+  );
+  return tokenBalances;
+};
+//total sum of all the tokens
+const totalUserTokenBalance = async (publicKey: string): Promise<number> => {
+  const tokenBalances = await userTokensBalance(publicKey);
+  const totalBalance = tokenBalances.reduce((acc, tokenBalance) => acc + tokenBalance
+  .balance, 0);
+  return totalBalance;
+  };
 const getTokenAddressSymbol = async(tokenAddress:string)=>{
   const con_tract = await contract(tokenAddress)
   const symbol = await con_tract.symbol()
@@ -112,4 +142,4 @@ const  userWeb3WalletDetails=async(userId: string)=> {
 
   }
 
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer,getUserWeb3Wallet,getTokenAddressSymbol}
+export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer,getUserWeb3Wallet,getTokenAddressSymbol,totalUserTokenBalance,userTokensBalance}

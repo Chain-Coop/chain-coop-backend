@@ -1,6 +1,6 @@
 import AsyncHandler from "express-async-handler";
 import { Request,Response } from "express";
-import { activateAccount,checkStableUserBalance,checkExistingWallet,getUserWeb3Wallet } from "../../services/web3/accountService";
+import { activateAccount,checkStableUserBalance,checkExistingWallet,getUserWeb3Wallet} from "../../services/web3/accountService";
 
 const activate = AsyncHandler(async(req:Request,res:Response)=>{
      //@ts-ignore
@@ -44,5 +44,7 @@ const userDetails = AsyncHandler(async(req:Request,res:Response)=>{
                 res.status(500).json({message:"Internal Server Error"})
                 }
 })
+
+
 
 export {activate,userDetails}
