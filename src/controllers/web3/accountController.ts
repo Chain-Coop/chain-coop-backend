@@ -20,30 +20,28 @@ const activate = AsyncHandler(async(req:Request,res:Response)=>{
 
     }catch(error){
         console.log(error);
-        res.status(500).json({message:"Internal Server Error"})
+        res.status(500).json({message:"Internal Server Error"})}})
 
+
+const userDetails = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    const exists = await checkExistingWallet(userId);
+    if (!exists) {
+      res.status(400).json({ message: "No Wallet found" });
+      return;
     }
-})
+    const details = await getUserWeb3Wallet(userId);
+    //remove encryptedKey
+    const { encryptedKey, ...user } = details;
 
-const userDetails = AsyncHandler(async(req:Request,res:Response)=>{
-    //@ts-ignore
-    const userId = req.user.userId;
-    try{
-        const exists = await checkExistingWallet(userId)
-        if(!exists){
-            res.status(400).json({message:"No Wallet found"});
-            return
-            }
-            const details= await getUserWeb3Wallet(userId)
-            //remove encryptedKey
-            const {encryptedKey,...user} = details
-
-            res.json({data:user})
-            }catch(error){
-                console.log(error);
-                res.status(500).json({message:"Internal Server Error"})
-                }
-})
+    res.json({ data: user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 
 

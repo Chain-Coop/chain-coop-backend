@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import {
   createUser,
+  findExistingUser,
   findUser,
   getUserDetails,
   resetUserPassword,
@@ -27,6 +28,7 @@ import { verifyPayment } from "../services/paystackService";
 // Updated register method to include membership statusimport { LogModel } from "../models/logModel";
 import { logUserOperation } from "../middlewares/logging";
 import { createPaystackCustomer } from "../services/kycservice";
+import Web3Wallet from "../models/web3Wallet";
 
 const register = async (req: Request, res: Response) => {
   let user: any = null;
@@ -35,7 +37,7 @@ const register = async (req: Request, res: Response) => {
     const { email } = req.body;
     const legacyUser = await findUser("email", email!);
     if (legacyUser) {
-      throw new ConflictError("Email already exists");
+      throw new ConflictError("User with this email already exists");
     }
     user = await createUser(req.body);
     const token = await user.createJWT();
@@ -183,7 +185,13 @@ const getUser = async (req: Request, res: Response) => {
   const user = await getUserDetails(id);
   const wallet = await findWalletService({ user: id });
   const isPinCreated = wallet?.isPinCreated;
-  res.status(StatusCodes.OK).json({ ...user?.toObject(), isPinCreated });
+
+  const web3wallet = await Web3Wallet.findOne({ user: id });
+  const isWalletActivated = web3wallet ? true : false;
+
+  res
+    .status(StatusCodes.OK)
+    .json({ ...user?.toObject(), isPinCreated, isWalletActivated });
 };
 
 // Send OTP for password reset

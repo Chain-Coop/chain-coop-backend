@@ -119,7 +119,7 @@ export const initializeContributionPayment = async (
         {
           email: user.email,
           amount: contribution.amount * 100,
-          callback_url: `http://localhost:5173/dashboard/contribution`,
+          callback_url: `https://chaincoop.org/dashboard/contribution`,
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
@@ -200,7 +200,7 @@ export const chargeUnpaidContributions = async (
         //@ts-ignore
         email: contribution.user.email,
         amount: amount * 100,
-        callback_url: `http://localhost:5173/dashboard/contribution`,
+        callback_url: `https://chaincoop.org/dashboard/contribution`,
         metadata: {
           contributionId: contributionId,
           type: "conunpaid",
@@ -388,27 +388,14 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("Contribution not found");
       }
 
-      contribution.lastContributionDate = new Date();
-      //@ts-ignore
-      if (contribution.startDate > new Date()) {
-        contribution.nextContributionDate = calculateNextContributionDate(
-          contribution.startDate || new Date(),
-          contribution.contributionPlan
+      // Skip balance update for non-NGN currencies
+      if (contribution.currency !== "NGN") {
+        logger.info(
+          `Payment made with ${contribution.currency}, skipping balance update.`
         );
       } else {
-        contribution.nextContributionDate = calculateNextContributionDate(
-          new Date(),
-          contribution.contributionPlan
-        );
+        contribution.balance += amount / 100;
       }
-
-      contribution.status = "Completed";
-      contribution.balance += amount / 100;
-      contribution.categoryBalances[contribution.savingsCategory] =
-        (contribution.categoryBalances[contribution.savingsCategory] || 0) +
-        amount / 100;
-
-      await contribution.save();
 
       await createContributionHistoryService({
         contribution: contribution._id as ObjectId,
@@ -421,6 +408,13 @@ export const verifyContributionPayment = async (reference: string) => {
         Date: new Date(),
         reference: reference,
       });
+
+      await updateContributionStatusService(
+        contribution._id as string,
+        "Completed"
+      );
+
+      await contribution.save();
 
       return {
         message: "Payment verified successfully",
@@ -644,6 +638,14 @@ export const updateContributionService = async (
 
   const categoryBalances = contribution.categoryBalances || {};
 
+  // Skip updating balance for non-NGN currencies
+  if (contribution.currency !== "NGN") {
+    logger.info(
+      `Skipping balance update for non-NGN currency: ${contribution.currency}`
+    );
+    return contribution;
+  }
+
   if (payload.savingsCategory && payload.amount) {
     const oldCategoryBalance =
       categoryBalances[contribution.savingsCategory] || 0;
@@ -680,6 +682,14 @@ export const createContributionHistoryService = async (
     const contribution = await Contribution.findById(payload.contribution);
     if (!contribution) {
       throw new Error("Contribution not found");
+    }
+
+    // Skip history creation for non-NGN contributions
+    if (contribution.currency !== "NGN") {
+      logger.info(
+        `Skipping history for non-NGN currency: ${contribution.currency}`
+      );
+      return; // Skip history creation for non-NGN contributions
     }
 
     const contributionHistory = await ContributionHistory.create({

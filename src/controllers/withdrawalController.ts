@@ -198,7 +198,13 @@ export const updateWithdrawalStatusController = async (
     const { status } = req.body;
 
     // Validate the status input
-    const validStatuses = ["pending", "completed", "failed"];
+    const validStatuses = [
+      "pending",
+      "completed",
+      "accepted",
+      "rejected",
+      "failed",
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: StatusCodes.BAD_REQUEST,
@@ -222,7 +228,7 @@ export const updateWithdrawalStatusController = async (
       status
     );
 
-    if (status === "failed") {
+    if (withdrawal.status === "failed") {
       const userWallet = await findWalletService({ user: withdrawal.user });
       if (!userWallet) {
         return res
@@ -242,11 +248,57 @@ export const updateWithdrawalStatusController = async (
       });
     }
 
-    return res.status(StatusCodes.OK).json({
-      status: StatusCodes.OK,
-      message: "Withdrawal status updated successfully",
-      updatedWithdrawal,
-    });
+    if (withdrawal.status === "pending") {
+      const withdrawal = await findWithdrawalById(withdrawalId);
+
+      if (status === "accepted") {
+        if (withdrawal) {
+          withdrawal.status = "completed";
+          await withdrawal.save();
+
+          await createWalletHistoryService({
+            user: withdrawal.user.toString(),
+            amount: withdrawal.amount,
+            type: "credit",
+            label: "Withdrawal Accepted",
+            ref: withdrawal._id.toString(),
+          });
+
+          return res.status(StatusCodes.OK).json({
+            status: StatusCodes.OK,
+            error: "Withdrawal Accepted",
+          });
+        }
+      }
+
+      if (status === "rejected") {
+        if (withdrawal) {
+          const userWallet = await findWalletService({ user: withdrawal.user });
+
+          userWallet!.balance += withdrawal.amount;
+          await userWallet!.save();
+
+          await createWalletHistoryService({
+            user: withdrawal.user.toString(),
+            amount: withdrawal.amount,
+            type: "credit",
+            label: "Withdrawal rejected",
+            ref: withdrawal._id.toString(),
+          });
+
+          return res.status(StatusCodes.NOT_IMPLEMENTED).json({
+            status: StatusCodes.NOT_IMPLEMENTED,
+            error: "Withdrawal rejected",
+          });
+        }
+      }
+    }
+
+    if (withdrawal.status !== "pending")
+      return res.status(StatusCodes.OK).json({
+        status: StatusCodes.OK,
+        message: "Withdrawal status cannot br revert",
+      });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: StatusCodes.INTERNAL_SERVER_ERROR,

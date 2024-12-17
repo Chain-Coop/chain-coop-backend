@@ -1,8 +1,3 @@
-const sid = process.env.TWILIO_ACCOUNT_SID;
-const authtoken = process.env.TWILIO_AUTH_TOKEN;
-const serviceId = process.env.TWILIO_SERVICE_ID;
-
-const client = require("twilio")(sid, authtoken);
 import axios from "axios";
 import { encrypt } from "./encryption";
 import { findWalletService } from "./walletService";
@@ -23,23 +18,55 @@ interface VerifyBVNParams {
 
 const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
 const sendSMSOTP = async (phone: string) => {
+  const options = {
+    method: "POST",
+    url: "https://api.sendchamp.com/api/v1/verification/create",
+    headers: {
+      Accept: "application/json,text/plain,*/*",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.SENDCHAMP_KEY}`,
+    },
+    data: {
+      channel: "sms",
+      sender: "Sendchamp",
+      token_type: "numeric",
+      token_length: 6,
+      expiration_time: 6,
+      customer_mobile_number: phone,
+      meta_data: { description: "verifyphone" },
+    },
+  };
   try {
-    const verification = await client.verify
-      .services(serviceId)
-      .verifications.create({ to: phone, channel: "sms" });
-    return verification.sid;
+    const result = await axios(options);
+
+    return result.data;
   } catch (error) {
+    console.error(error);
     return "failed";
   }
 };
 
-const verifyOTP = async (phone: string, code: string) => {
+const verifyOTP = async (code: string, reference: string) => {
   try {
-    const verificationCheck = await client.verify
-      .services(serviceId)
-      .verificationChecks.create({ to: phone, code: code });
-    return verificationCheck.status;
+    const axiosOptions = {
+      method: "post",
+      url: "https://api.sendchamp.com/api/v1/verification/confirm",
+      headers: {
+        Authorization: `Bearer ${process.env.SENDCHAMP_KEY}`,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      data: {
+        verification_reference: reference,
+        verification_code: code,
+      },
+    };
+
+    const response = await axios(axiosOptions);
+    return response.data;
   } catch (error) {
+    //@ts-ignore
+    console.error(error.response ? error.response.data : error.message);
     return "failed";
   }
 };
