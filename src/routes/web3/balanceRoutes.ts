@@ -1,7 +1,7 @@
-import { Router } from "express";
-import { userTokenBalance } from "../../controllers/web3/balanceController";
-import { authorize } from "../../middlewares/authorization";
-const router = Router();
+import {Router} from "express"
+import { userTokenBalance,totalUserWalletBalance,usertokensAmount } from "../../controllers/web3/balanceController"
+import {authorize}  from "../../middlewares/authorization"
+const router = Router()
 
 /**
  * @swagger
@@ -82,5 +82,10 @@ const router = Router();
  */
 
 router.get("/token/:tokenId", authorize, userTokenBalance);
+
+router.get("/token/:tokenId",authorize,userTokenBalance)
+router.get("/total/",authorize,totalUserWalletBalance)
+router.get("/tokens/",authorize,usertokensAmount)
+
 
 export default router;

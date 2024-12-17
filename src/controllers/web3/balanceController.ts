@@ -1,6 +1,6 @@
 import AsyncHandler from "express-async-handler";
 import { Request,Response } from "express";
-import { activateAccount,checkStableUserBalance,userAddress,checkExistingWallet } from "../../services/web3/accountService";
+import { activateAccount,checkStableUserBalance,userAddress,checkExistingWallet, getUserWeb3Wallet, totalUserTokenBalance, userTokensBalance } from "../../services/web3/accountService";
 import { tokenAddress } from "../../utils/web3/tokenaddress";
 
 
@@ -35,4 +35,46 @@ const userTokenBalance = AsyncHandler(async(req:Request,res:Response)=>{
                 }
 })
 
-export {userTokenBalance}
+const usertokensAmount = AsyncHandler(async(req:Request,res:Response)=>{
+    //@ts-ignore
+    const userId = req.user.userId;
+    try{
+        const exists = await checkExistingWallet(userId)
+        if(!exists){
+            res.status(400).json({message:"No Wallet found"});
+            return
+            }
+            const details= await getUserWeb3Wallet(userId)
+            //get address
+            const tokensbalance = await userTokensBalance(details.address)
+
+            
+
+            res.json({message:"Success",data:tokensbalance})
+            }catch(error){
+                console.log(error);
+                res.status(500).json({message:"Internal Server Error"})
+                }
+})
+const totalUserWalletBalance = AsyncHandler(async(req:Request,res:Response)=>{
+    //@ts-ignore
+    const userId = req.user.userId;
+    try{
+        const exists = await checkExistingWallet(userId)
+        if(!exists){
+            res.status(400).json({message:"No Wallet found"});
+            return
+            }
+            const details= await getUserWeb3Wallet(userId)
+            //get address
+            const totalbalance = await totalUserTokenBalance(details.address)
+
+            
+
+            res.json({message:"Success",data:totalbalance})
+            }catch(error){
+                console.log(error);
+                res.status(500).json({message:"Internal Server Error"})
+                }
+})
+export {userTokenBalance,usertokensAmount,totalUserWalletBalance}
