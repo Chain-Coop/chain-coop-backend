@@ -29,7 +29,7 @@ import {
   profilePictureRouter,
   membershipRouter,
   withdrawalRoutes,
-  notificationRouter,   
+  notificationRouter,
   kycRouter,
   dashboardRouter,
 } from "./routes";
@@ -42,6 +42,7 @@ import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
 import { authorize } from "./middlewares/authorization";
 import { addtoLimit, getDailyTotal } from "./services/dailyServices";
+import { tryRecurringCircleService } from "./services/savingCircle.services";
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -72,6 +73,12 @@ cron.schedule("0 0 * * *", () => {
     );
 });
 
+cron.schedule("0 0 * * *", () => {
+  tryRecurringCircleService()
+    .then(() => console.log("Processed recurring circles."))
+    .catch((err) => console.error("Error processing circles:", err));
+});
+
 // Middleware
 const app = express();
 const corsOptions = {
@@ -88,7 +95,6 @@ app.use(
     tempFileDir: "/tmp",
   }) as unknown as RequestHandler
 );
-
 
 app.use((req, _res, next) => {
   logger.info({ req }, "Incoming request");
@@ -112,12 +118,11 @@ app.use("/api/v1/withdrawal", withdrawalRoutes);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/kyc", kycRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
-//web3 
-app.use("/api/v1/web3/account",accountRouter)
-app.use("/api/v1/web3/balance",balanceRouter)
-app.use("/api/v1/web3/management",chainCoopManagementRouter)
-app.use("/api/v1/web3/saving",chaincoopSavingRoute)
-
+//web3
+app.use("/api/v1/web3/account", accountRouter);
+app.use("/api/v1/web3/balance", balanceRouter);
+app.use("/api/v1/web3/management", chainCoopManagementRouter);
+app.use("/api/v1/web3/saving", chaincoopSavingRoute);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
