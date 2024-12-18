@@ -7,14 +7,26 @@ export interface SavingCircleDocument extends Document {
   members: Array<{
     userId: Schema.Types.ObjectId;
     contribution: number;
+    status: "pending" | "active" | "completed";
+    cardData?: string;
+    failures?: number;
   }>;
   createdDate: Date;
   updatedDate: Date;
   currency: string;
+  amount: number;
   balance: number;
   duration: number;
-  frequency: String;
+  frequency: number;
   nextContributionDate: Date;
+  progress?: number;
+  startDate?: Date;
+  endDate?: Date;
+  interestRate?: number;
+  interestAmount?: number;
+  goalAmount?: number;
+  currentIndividualTotal?: number;
+  type?: string;
 }
 
 const SavingCircleSchema = new Schema(
@@ -43,8 +55,25 @@ const SavingCircleSchema = new Schema(
           type: Number,
           required: [true, "Contribution is required"],
         },
+        status: {
+          type: String,
+          enum: ["pending", "active", "completed"],
+          default: "pending",
+        },
+        cardData: {
+          type: String,
+        },
+        failures: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
+    type: {
+      type: String,
+      enum: ["free", "time"],
+      default: "time",
+    },
     createdDate: {
       type: Date,
       default: Date.now,
@@ -66,12 +95,43 @@ const SavingCircleSchema = new Schema(
       required: [true, "Duration is required"],
     },
     frequency: {
-      type: String,
+      type: Number,
       required: [true, "Frequency is required"],
     },
     nextContributionDate: {
       type: Date,
       required: [true, "Next contribution date is required"],
+    },
+    amount: {
+      type: Number,
+      required: [true, "Amount is required"],
+    },
+    progress: {
+      type: Number,
+      default: 0,
+    },
+    startDate: {
+      type: Date,
+      default: Date.now,
+    },
+    endDate: {
+      type: Date,
+    },
+    interestRate: {
+      type: Number,
+      default: 0,
+    },
+    interestAmount: {
+      type: Number,
+      default: 0,
+    },
+    goalAmount: {
+      type: Number,
+      default: 0,
+    },
+    currentIndividualTotal: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
