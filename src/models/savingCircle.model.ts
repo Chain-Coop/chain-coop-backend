@@ -11,7 +11,6 @@ export interface SavingCircleDocument extends Document {
     cardData?: string;
     failures?: number;
   }>;
-  createdBy: Schema.Types.ObjectId;
   createdDate: Date;
   updatedDate: Date;
   currency: string;
@@ -44,11 +43,6 @@ const SavingCircleSchema = new Schema(
       type: String,
       enum: ["pending", "active", "completed"],
       default: "pending",
-    },
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "Created by is required"],
     },
     members: [
       {
