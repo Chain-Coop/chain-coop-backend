@@ -5,7 +5,7 @@ const createTransactionHistory = async(userId:string,amount:number,transactionTy
     const history = new Web3History({
         user:userId,
         transactionType:transactionType,
-        Amount:amount,
+        amount:amount,
         Token:tokenSymbol,
         TxHash:txHash
               

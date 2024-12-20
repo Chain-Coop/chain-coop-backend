@@ -4,7 +4,7 @@ import User, { UserDocument } from "./user";
 export interface Web3HistoryDocument extends Document {
   user: Types.ObjectId | UserDocument; 
   transactionType: string;
-  Amount: number;
+  amount: number;
   Token: string;
   TxHash:string;
   
