@@ -7,7 +7,7 @@ export interface Web3HistoryDocument extends Document {
   Amount: number;
   Token: string;
   TxHash:string;
-  Date:Date
+  
 }
 
 const WebHistorySchema: Schema = new Schema(
