@@ -27,6 +27,7 @@ export interface SavingCircleDocument extends Document {
   goalAmount?: number;
   currentIndividualTotal?: number;
   type?: string;
+  createdBy?: Schema.Types.ObjectId;
 }
 
 const SavingCircleSchema = new Schema(
@@ -43,6 +44,11 @@ const SavingCircleSchema = new Schema(
       type: String,
       enum: ["pending", "active", "completed"],
       default: "pending",
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "User ID is required"],
     },
     members: [
       {
