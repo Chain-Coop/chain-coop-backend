@@ -94,19 +94,16 @@ const SavingCircleSchema = new Schema(
     },
     balance: {
       type: Number,
-      required: [true, "Balance is required"],
+      default: 0,
     },
     duration: {
       type: Number,
-      required: [true, "Duration is required"],
     },
     frequency: {
       type: Number,
-      required: [true, "Frequency is required"],
     },
     nextContributionDate: {
       type: Date,
-      required: [true, "Next contribution date is required"],
     },
     amount: {
       type: Number,
