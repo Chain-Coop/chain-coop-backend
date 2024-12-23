@@ -1,6 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
 import { getUserWeb3Wallet } from "../../../services/web3/accountService";
+import { getTokenAddressSymbol } from "../../../services/web3/accountService";
+import { createTransactionHistory } from "../../../services/web3/historyService";
 
 import { decrypt } from "../../../services/encryption";
 import {
@@ -39,7 +41,7 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    console.log("UserPrvateAdd",userPrivateKey)
+    
     const tx = await openPool(
       tokenAddressToSaveWith,
       initialSaveAmount,
@@ -52,6 +54,8 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: "Failed to open a pool" });
       return;
     }
+    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith)
+     await createTransactionHistory(userId,parseFloat(initialSaveAmount),"SAVE",tx.hash,tokenSymbol)
     res.status(200).json({ message: "Success", data: tx.hash });
     return;
   } catch (error: any) {
@@ -94,6 +98,8 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to update a pool ${poolId_bytes}` });
         return;
       }
+      const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith)
+      await createTransactionHistory(userId,parseFloat(amount),"SAVE",tx.hash,tokenSymbol)
       res.status(200).json({ message: "Success", data: tx.hash });
       return;
     } catch (error: any) {
@@ -131,6 +137,7 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
+      
       res.status(200).json({ message: "Success", data: tx.hash });
       return;
     } catch (error: any) {
