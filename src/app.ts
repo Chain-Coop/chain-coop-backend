@@ -32,6 +32,7 @@ import {
   notificationRouter,
   kycRouter,
   dashboardRouter,
+  savingCircleRoutes,
 } from "./routes";
 import accountRouter from "./routes/web3/accountRoutes";
 import balanceRouter from "./routes/web3/balanceRoutes";
@@ -126,7 +127,7 @@ app.use("/api/v1/web3/management",chainCoopManagementRouter)
 app.use("/api/v1/web3/saving",chaincoopSavingRoute)
 app.use("/api/v1/web3/transaction",transactionHistory)
 
-
+app.use("/api/v1/savingcircle",savingCircleRoutes)
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
