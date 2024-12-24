@@ -3,6 +3,12 @@ import {
   createCircleService,
   joinCircleService,
   getCircleServiceByUserId,
+  getCircleService,
+  updateCircleService,
+  initializeCircleService,
+  paymentCircleService,
+  unpaidCircleService,
+  tryRecurringCircleService,
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
 
@@ -87,6 +93,122 @@ export const getUserCirclesController = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(error.status || 500).json({
       message: error.message || "Failed to fetch user circles",
+    });
+  }
+};
+
+/**
+ * Get a saving circle by its ID
+ */
+export const getCircleController = async (req: Request, res: Response) => {
+  try {
+    const circleId = req.params.circleId;
+
+    const circle = await getCircleService(circleId);
+    if (!circle) {
+      throw new BadRequestError("Circle not found");
+    }
+
+    res.status(200).json({
+      message: "Successfully fetched the circle",
+      data: circle,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to fetch the circle",
+    });
+  }
+};
+
+/**
+ * Update a saving circle by its ID
+ */
+export const updateCircleController = async (req: Request, res: Response) => {
+  try {
+    const circleId = req.params.circleId;
+    const circleData = req.body;
+
+    const updatedCircle = await updateCircleService(circleId, circleData);
+    res.status(200).json({
+      message: "Successfully updated the circle",
+      data: updatedCircle,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to update the circle",
+    });
+  }
+};
+
+/**
+ * Initialize a saving circle for payment
+ */
+export const initializeCircleController = async (req: Request, res: Response) => {
+  try {
+    const { circleId, paymentType, userId, cardData } = req.body;
+
+    const response = await initializeCircleService(circleId, paymentType, userId, cardData);
+    res.status(200).json({
+      message: "Circle initialized for payment successfully",
+      data: response,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to initialize the circle for payment",
+    });
+  }
+};
+
+/**
+ * Make a payment in a saving circle
+ */
+export const paymentCircleController = async (req: Request, res: Response) => {
+  try {
+    const { userId, circleId, amount } = req.body;
+
+    const circle = await paymentCircleService({ userId, circleId, amount });
+    res.status(200).json({
+      message: "Payment made successfully",
+      data: circle,
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to make payment",
+    });
+  }
+};
+
+/**
+ * Get the unpaid amount for a user in a circle
+ */
+export const unpaidCircleController = async (req: Request, res: Response) => {
+  try {
+    const { circleId, userId } = req.params;
+
+    const unpaidAmount = await unpaidCircleService({ userId, circleId });
+    res.status(200).json({
+      message: "Successfully fetched unpaid amount",
+      data: { unpaidAmount },
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to fetch unpaid amount",
+    });
+  }
+};
+
+/**
+ * Trigger recurring contributions for circles
+ */
+export const recurringCircleController = async (req: Request, res: Response) => {
+  try {
+    await tryRecurringCircleService();
+    res.status(200).json({
+      message: "Successfully triggered recurring contributions",
+    });
+  } catch (error: any) {
+    res.status(error.status || 500).json({
+      message: error.message || "Failed to trigger recurring contributions",
     });
   }
 };
