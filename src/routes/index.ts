@@ -12,6 +12,7 @@ import withdrawalRoutes from "./withdrawalRoutes";
 import notificationRouter from "./notificationRoute";
 import kycRouter from "./kycroutes";
 import dashboardRouter from './dashboardRoutes'
+import savingCircleRoutes from "./savingCircle.routes";
 
 export {
   authRouter,
@@ -27,5 +28,6 @@ export {
   withdrawalRoutes,
   notificationRouter,
   kycRouter,
-  dashboardRouter
+  dashboardRouter,
+  savingCircleRoutes,
 };
