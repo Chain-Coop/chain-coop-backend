@@ -758,7 +758,7 @@ export const getAllUserContributionsService = async (
   limit = 0,
   skip = 0
 ) => {
-  return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
+  return await Contribution.find({ user: userId, status: { $ne: "Paid" } })
     .limit(limit)
     .skip(skip);
 };
