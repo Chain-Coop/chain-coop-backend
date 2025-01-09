@@ -39,7 +39,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     currency: {  // Add this line in your schema
       type: String,
-      required: true,  // or optional depending on your requirements
+      required: false,  // or optional depending on your requirements
     },
     categoryBalances: {
       type: Map,
