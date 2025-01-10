@@ -4,7 +4,7 @@ import {
   flagRemoveTokens,
   transferOwnership,
   setAddressForFeeCollection,
-} from "../../../services/web3/chaincoopSaving./managementService";
+} from "../../../services/web3/chaincoopSaving/managementService";
 import { Request, Response } from "express"; 
 import { getUserWeb3Wallet } from "../../../services/web3/accountService";
 
