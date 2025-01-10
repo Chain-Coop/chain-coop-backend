@@ -119,6 +119,7 @@ export const initializeContributionPayment = async (
         {
           email: user.email,
           amount: contribution.amount * 100,
+          currency: contribution.currency,
           callback_url: `https://chaincoop.org/dashboard/contribution`,
           metadata: {
             contributionId: contribution._id,
@@ -477,7 +478,8 @@ export const tryRecurringContributions = async () => {
             usableCard.data,
             //@ts-ignore
             user.email,
-            contribution.amount
+            contribution.amount,
+            contribution.currency,
           )) as {
             data: any;
           };
