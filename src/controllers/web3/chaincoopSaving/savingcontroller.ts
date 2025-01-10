@@ -11,7 +11,7 @@ import {
   totalPoolCreated,
   withdrawFromPool,
   updatePoolAmount,
-} from "../../../services/web3/chaincoopSaving./savingServices";
+} from "../../../services/web3/chaincoopSaving/savingServices";
 import { tokenAddress } from "../../../utils/web3/tokenaddress";
 
 const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
