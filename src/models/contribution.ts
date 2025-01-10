@@ -39,7 +39,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     currency: {  // Add this line in your schema
       type: String,
-      required: true, 
+      required: false, 
       default: "NGN", // or optional depending on your requirements
     },
     categoryBalances: {
