@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import notificationModel from "../models/notificationModel";
 import userNotificationStatusModel from "../models/notificationStatusModel";
 import Notification from "../models/notificationModel";
+import User from "../models/user";
 
 
 interface CreateNotificationInput {
@@ -38,14 +39,42 @@ const createUserNotification = async (
 const getUserNotifications = async (userId: string, filters: any) => {
   const { searchString, startDate, endDate, isRead, page = 1, limit = 10 } = filters;
 
-  // Base query to include both 'All' and user-specific notifications
-  let query: any = {
+  // Get the user's creation date
+  const user = await User.findById(userId);
+  const userCreationDate = user?.createdAt;
+
+  console.log(userCreationDate)
+
+  // Fetch the welcome messages (no date filtering)
+  let queryWelcomeMessages: any = { title: "welcome message" };
+
+  // Add searchString filter for welcome messages
+  if (searchString) {
+    queryWelcomeMessages.$or = [
+      { title: { $regex: searchString, $options: 'i' } },
+      { message: { $regex: searchString, $options: 'i' } },
+    ];
+  }
+
+  // Fetch welcome messages
+  const welcomeMessages = await notificationModel
+    .find(queryWelcomeMessages)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Fetch user-specific notifications
+  let queryUserNotifications: any = {
     $or: [{ audience: 'All' }, { audience: 'User', userId }],
   };
 
-  // Add searchString filter
+  // Add filter for notifications after user creation date
+  if (userCreationDate) {
+    queryUserNotifications.createdAt = { $gte: userCreationDate };
+  }
+
+  // Add searchString filter for user notifications
   if (searchString) {
-    query.$or.push({
+    queryUserNotifications.$or.push({
       $or: [
         { title: { $regex: searchString, $options: 'i' } },
         { message: { $regex: searchString, $options: 'i' } },
@@ -53,18 +82,24 @@ const getUserNotifications = async (userId: string, filters: any) => {
     });
   }
 
-  // Add date range filter
+  // Add date range filter for user notifications
   if (startDate || endDate) {
-    query.createdAt = {};
-    if (startDate) query.createdAt.$gte = new Date(startDate);
-    if (endDate) query.createdAt.$lte = new Date(endDate);
+    queryUserNotifications.createdAt = queryUserNotifications.createdAt || {};
+    if (startDate) queryUserNotifications.createdAt.$gte = new Date(startDate);
+    if (endDate) queryUserNotifications.createdAt.$lte = new Date(endDate);
   }
 
-  // Fetch all matching notifications from the database
-  const notifications = await notificationModel
-    .find(query)
-    .sort({ createdAt: -1 }) // Sort by latest notifications
+  // Fetch user-specific notifications
+  const userNotifications = await notificationModel
+    .find(queryUserNotifications)
+    .sort({ createdAt: -1 })
     .lean();
+
+  // Combine both sets of notifications
+  const notifications = [...welcomeMessages, ...userNotifications];
+
+  // Sort the combined notifications by createdAt in descending order
+  notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Fetch read statuses for the user
   const readStatuses = await userNotificationStatusModel.find({ userId });
@@ -77,13 +112,13 @@ const getUserNotifications = async (userId: string, filters: any) => {
     ),
   }));
 
-  // **Step 1**: Filter unread notifications to calculate `totalCount`
+  // Filter unread notifications to calculate `totalCount`
   const unreadNotifications = enrichedNotifications.filter(
     (notification) => notification.isRead === false
   );
   const totalCount = unreadNotifications.length;
 
-  // **Step 2**: Apply additional filters if `isRead` or pagination parameters are provided
+  // Apply additional filters if `isRead` or pagination parameters are provided
   let filteredNotifications = enrichedNotifications;
   if (typeof isRead === 'string') {
     const isReadBoolean = isRead === 'true';
@@ -98,7 +133,6 @@ const getUserNotifications = async (userId: string, filters: any) => {
 
   return { totalCount, notifications: paginatedNotifications };
 };
-
 
 
 
