@@ -23,6 +23,8 @@ export interface UserDocument extends Document {
   membershipStatus: "active" | "pending" | "inactive";
   membershipPaymentStatus: "paid" | "in-progress" | "not_started";
   isWalletActivated: boolean;
+  createdAt: Date; // added createdAt
+  updatedAt: Date; // added updatedAt
 }
 
 const UserSchema = new Schema({
@@ -94,7 +96,7 @@ const UserSchema = new Schema({
     required: [true, "Last name is required"],
   },
   isWalletActivated: { type: Boolean, default: false },
-});
+}, { timestamps: true });  // added timestamps
 
 UserSchema.pre("save", async function (next) {
   if (this.isModified("password")) {

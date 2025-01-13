@@ -117,10 +117,11 @@ export const initializeContributionPayment = async (
       response = await axios.post(
         `${PAYSTACK_BASE_URL}/transaction/initialize`,
         {
-          email: user.email,
-          amount: contribution.amount * 100,
-          callback_url: `https://chaincoop.org/dashboard/contribution`,
-          metadata: {
+           email: user.email,
+           amount: contribution.amount * 100,
+           currency: contribution.currency,
+           callback_url: `https://chaincoop.org/dashboard/contribution`,
+           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
           },
@@ -474,10 +475,11 @@ export const tryRecurringContributions = async () => {
 
         while (contribution.nextContributionDate! < new Date()) {
           const charge = (await chargeCardService(
-            usableCard.data,
-            //@ts-ignore
-            user.email,
-            contribution.amount
+             usableCard.data,
+             //@ts-ignore
+             user.email,
+             contribution.amount,
+             contribution.currency,
           )) as {
             data: any;
           };
@@ -758,7 +760,7 @@ export const getAllUserContributionsService = async (
   limit = 0,
   skip = 0
 ) => {
-  return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
+  return await Contribution.find({ user: userId, status: { $ne: "Paid" } })
     .limit(limit)
     .skip(skip);
 };
