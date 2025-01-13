@@ -5,7 +5,6 @@ export interface ContributionDocument extends Document {
   contributionPlan: string;
   savingsCategory: string;
   amount: number;
-  currency: string; 
   startDate?: Date;
   endDate?: Date;
   categoryBalances: Record<string, number>;
@@ -27,7 +26,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     contributionPlan: {
       type: String,
-      enum: ["Daily", "Weekly", "Monthly", "Yearly"],
+      enum: ["Daily", "Weekly", "Monthly", "Yearly", "5Minutes"],
       required: true,
     },
     savingsCategory: {
@@ -36,11 +35,6 @@ const ContributionSchema = new Schema<ContributionDocument>(
     amount: {
       type: Number,
       required: true,
-    },
-    currency: {  
-      type: String,
-      required: false, 
-      default: "NGN", 
     },
     categoryBalances: {
       type: Map,
