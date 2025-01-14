@@ -56,15 +56,32 @@ export const createContributionService = async (data: {
   email: string;
 }) => {
   try {
-    // Set nextContributionDate
+    // Parse startDate and ensure it includes a time
+    let startDate = new Date(data.startDate);
+    if (isNaN(startDate.getTime())) {
+      throw new Error("Invalid start date");
+    }
+
+    // If no time is provided, align it with the current time
+    if (
+      startDate.getUTCHours() === 0 &&
+      startDate.getUTCMinutes() === 0 &&
+      startDate.getUTCSeconds() === 0
+    ) {
+      const now = new Date();
+      startDate.setUTCHours(now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+    }
+
+    // Calculate the next contribution date
     const nextContributionDate = calculateNextContributionDate(
-      data.startDate,
+      startDate,
       data.contributionPlan
     );
 
     // Set withdrawal date to 1 day after endDate
     const withdrawalDate = new Date(data.endDate);
     withdrawalDate.setDate(withdrawalDate.getDate() + 1);
+ 
 
     const contribution = await Contribution.create({
       user: data.user,
