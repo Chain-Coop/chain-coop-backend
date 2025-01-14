@@ -81,13 +81,14 @@ cron.schedule("0 0 * * *", () => {
     .catch((err) => console.error("Error processing circles:", err));
 });
 
-cron.schedule("*/2 * * * *", () => {
-  console.log("Clearing pending contributions...");
-  tryRecurringContributions()
-    .then(() => console.log("Processed recurring contributions."))
-    .catch((err) =>
-      console.error("Error processing contributions:", err)
-    );
+cron.schedule("*/2 * * * *", async () => {
+  console.log("Starting tryRecurringContributions...");
+  try {
+    await tryRecurringContributions();
+    console.log("Completed tryRecurringContributions.");
+  } catch (err) {
+    console.error("Error in tryRecurringContributions:", err);
+  }
 });
 
 // Middleware
