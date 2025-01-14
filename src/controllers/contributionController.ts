@@ -62,6 +62,7 @@ export const createContribution = async (req: Request, res: Response) => {
   // Check for required fields
   if (
     !amount ||
+    !currency || // Ensure currency is provided
     !email ||
     !contributionPlan ||
     !savingsCategory ||
@@ -75,6 +76,7 @@ export const createContribution = async (req: Request, res: Response) => {
     // Pass the required fields, including currency, to the service layer
     const result = await createContributionService({
       amount,
+      currency, // Include the currency field
       contributionPlan,
       savingsCategory,
       startDate,
@@ -284,6 +286,7 @@ export const newgetContributionHistory = async (
         // Get the overall balance, next contribution date, and withdrawal date from the contribution
         const {
             balance,
+            currency,
             startDate,
             nextContributionDate,
             withdrawalDate,
@@ -311,6 +314,7 @@ export const newgetContributionHistory = async (
         res.status(StatusCodes.OK).json({
             balance,
             contributionPlan,
+            currency,
             savingsCategory,
             startDate,
             nextContributionDate,
@@ -447,6 +451,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     contribution: contributionId,
     user: contribution.user,
     amount: amount,
+    currency: "NGN",
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
@@ -548,6 +553,7 @@ export const chargeCardforContribution = async (
     contribution: contributionId,
     user: contribution.user,
     amount: contribution.amount,
+    currency: contribution.currency,
     Date: new Date(),
     type: "credit",
     balance: contribution.balance,
@@ -640,4 +646,3 @@ export const verifyUnpaidPayment = async (req: Request, res: Response) => {
 
   res.status(StatusCodes.OK).json({ result });
 };
-

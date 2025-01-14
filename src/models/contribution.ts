@@ -5,6 +5,7 @@ export interface ContributionDocument extends Document {
   contributionPlan: string;
   savingsCategory: string;
   amount: number;
+  currency: string; 
   startDate?: Date;
   endDate?: Date;
   categoryBalances: Record<string, number>;
@@ -35,6 +36,11 @@ const ContributionSchema = new Schema<ContributionDocument>(
     amount: {
       type: Number,
       required: true,
+    },
+    currency: {  
+      type: String,
+      required: true, 
+      default: "NGN", 
     },
     categoryBalances: {
       type: Map,

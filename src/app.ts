@@ -81,6 +81,15 @@ cron.schedule("0 0 * * *", () => {
     .catch((err) => console.error("Error processing circles:", err));
 });
 
+cron.schedule("*/2 * * * *", () => {
+  console.log("Clearing pending contributions...");
+  tryRecurringContributions()
+    .then(() => console.log("Processed recurring contributions."))
+    .catch((err) =>
+      console.error("Error processing contributions:", err)
+    );
+});
+
 // Middleware
 const app = express();
 const corsOptions = {

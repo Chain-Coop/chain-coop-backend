@@ -4,6 +4,7 @@ export interface ContributionHistoryDocument extends Document {
   contribution: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   amount: number;
+  currency: string;
   Date: Date;
   type: string;
   balance: number;
@@ -20,6 +21,7 @@ const contributionHistorySchema = new Schema<ContributionHistoryDocument>(
     },
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true },
+    currency: { type: String, required: true },
     Date: { type: Date, default: Date.now },
     type: { type: String, required: true },
     balance: { type: Number, required: true },

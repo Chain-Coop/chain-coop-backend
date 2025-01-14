@@ -33,6 +33,7 @@ export interface iContributionHistory {
   contribution: ObjectId;
   user: ObjectId;
   amount: number;
+  currency: string;
   Date: Date;
   type: string;
   balance: number;
@@ -48,6 +49,7 @@ export const createContributionService = async (data: {
   user: ObjectId;
   contributionPlan: string;
   amount: number;
+  currency: string;
   savingsCategory: string;
   startDate: Date;
   endDate: Date;
@@ -68,17 +70,18 @@ export const createContributionService = async (data: {
       user: data.user,
       contributionPlan: data.contributionPlan,
       amount: data.amount,
+      currency: data.currency,
       savingsCategory: data.savingsCategory,
-      startDate: new Date(),
+      startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
-      nextContributionDate: new Date(data.endDate),
+      nextContributionDate,
       lastContributionDate: new Date(),
       withdrawalDate,
       balance: 0,
       status: "Pending",
     });
     logger.info("Created Contribution ID:", contribution._id);
-    console.log(contribution)
+    console.log(contribution);
     return {
       contributionId: contribution._id,
       withdrawalDate: contribution.withdrawalDate,
@@ -114,10 +117,10 @@ export const initializeContributionPayment = async (
       response = await axios.post(
         `${PAYSTACK_BASE_URL}/transaction/initialize`,
         {
-           email: user.email,
-           amount: contribution.amount * 100,
-           callback_url: `https://chaincoop.org/dashboard/contribution`,
-           metadata: {
+          email: user.email,
+          amount: contribution.amount * 100,
+          callback_url: `https://chaincoop.org/dashboard/contribution`,
+          metadata: {
             contributionId: contribution._id,
             type: "conpayment",
           },
@@ -296,6 +299,7 @@ export const verifyUnpaidContributionPayment = async (reference: string) => {
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Paid",
@@ -384,14 +388,20 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("Contribution not found");
       }
 
-
+      // Skip balance update for non-NGN currencies
+      if (contribution.currency !== "NGN") {
+        logger.info(
+          `Payment made with ${contribution.currency}, skipping balance update.`
+        );
+      } else {
         contribution.balance += amount / 100;
-      
+      }
 
       await createContributionHistoryService({
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Completed",
@@ -464,10 +474,10 @@ export const tryRecurringContributions = async () => {
 
         while (contribution.nextContributionDate! < new Date()) {
           const charge = (await chargeCardService(
-             usableCard.data,
-             //@ts-ignore
-             user.email,
-             contribution.amount,
+            usableCard.data,
+            //@ts-ignore
+            user.email,
+            contribution.amount
           )) as {
             data: any;
           };
@@ -489,6 +499,7 @@ export const tryRecurringContributions = async () => {
                 //@ts-ignore
                 user: user._id as ObjectId,
                 amount: contribution.amount,
+                currency: contribution.currency,
                 type: "Credit",
                 balance: contribution.balance,
                 status: "Completed",
@@ -560,6 +571,7 @@ export const paymentforContribution = async (contribution: any) => {
         //@ts-ignore
         user: contribution.user._id as ObjectId,
         amount: contribution.amount,
+        currency: contribution.currency,
         type: "Credit",
         balance: contribution.balance,
         status: "Unpaid",
@@ -625,7 +637,14 @@ export const updateContributionService = async (
   if (!contribution) throw new Error("Contribution not found");
 
   const categoryBalances = contribution.categoryBalances || {};
-  
+
+  // Skip updating balance for non-NGN currencies
+  if (contribution.currency !== "NGN") {
+    logger.info(
+      `Skipping balance update for non-NGN currency: ${contribution.currency}`
+    );
+    return contribution;
+  }
 
   if (payload.savingsCategory && payload.amount) {
     const oldCategoryBalance =
@@ -663,6 +682,14 @@ export const createContributionHistoryService = async (
     const contribution = await Contribution.findById(payload.contribution);
     if (!contribution) {
       throw new Error("Contribution not found");
+    }
+
+    // Skip history creation for non-NGN contributions
+    if (contribution.currency !== "NGN") {
+      logger.info(
+        `Skipping history for non-NGN currency: ${contribution.currency}`
+      );
+      return; // Skip history creation for non-NGN contributions
     }
 
     const contributionHistory = await ContributionHistory.create({
@@ -722,9 +749,6 @@ export const calculateNextContributionDate = (
       throw new Error(`Invalid contribution frequency: ${frequency}`);
   }
 
-
-  
-
   return date;
 };
 
@@ -737,7 +761,7 @@ export const getAllUserContributionsService = async (
   limit = 0,
   skip = 0
 ) => {
-  return await Contribution.find({ user: userId, status: { $ne: "Paid" } })
+  return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
     .limit(limit)
     .skip(skip);
 };
