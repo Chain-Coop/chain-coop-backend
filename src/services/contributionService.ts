@@ -89,7 +89,7 @@ export const createContributionService = async (data: {
       amount: data.amount,
       currency: data.currency,
       savingsCategory: data.savingsCategory,
-      startDate: new Date(data.startDate),
+      startDate: startDate,
       endDate: new Date(data.endDate),
       nextContributionDate,
       lastContributionDate: new Date(),
