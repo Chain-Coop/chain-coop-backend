@@ -66,7 +66,7 @@ cron.schedule(cronString, () => {
 });
 
 // Clear pending contributions every day at 12:00 AM
-cron.schedule("*/2 * * * *", () => {
+cron.schedule("* * * * *", () => {
   console.log("Clearing pending contributions...");
   clearAllPendingContributionsService()
     .then(() => console.log("Cleared pending contributions."))
