@@ -49,6 +49,7 @@ export const createContributionService = async (data: {
   user: ObjectId;
   contributionPlan: string;
   amount: number;
+  savingsType: string;
   currency: string;
   savingsCategory: string;
   startDate: Date;
@@ -70,6 +71,7 @@ export const createContributionService = async (data: {
       user: data.user,
       contributionPlan: data.contributionPlan,
       amount: data.amount,
+      savingsType: data.savingsType,
       currency: data.currency,
       savingsCategory: data.savingsCategory,
       startDate: new Date(data.startDate),
