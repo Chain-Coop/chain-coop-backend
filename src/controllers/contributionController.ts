@@ -323,12 +323,13 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   await createContributionHistoryService({
     contribution: contributionId,
     user: contribution.user,
-    amount: totalAmountToWithdraw, 
+    amount: totalAmountToWithdraw,
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
     status: "success",
-    withdrawalDate: currentDate 
+    withdrawalDate: currentDate,
+    reference: contribution.paymentReference as string,
   });
 
   await contribution.save();
@@ -425,6 +426,7 @@ export const chargeCardforContribution = async (
     type: "credit",
     balance: contribution.balance,
     status: "success",
+    reference: contribution.paymentReference as string,
   });
 
   await contribution.save();
@@ -461,4 +463,3 @@ export const getUserContributions = async (req: Request, res: Response) => {
       .json({ message: "Error fetching user contributions" });
   }
 };
-
