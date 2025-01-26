@@ -323,13 +323,12 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   await createContributionHistoryService({
     contribution: contributionId,
     user: contribution.user,
-    amount: totalAmountToWithdraw,
+    amount: totalAmountToWithdraw, 
     Date: new Date(),
     type: "debit",
     balance: contribution.balance,
     status: "success",
-    withdrawalDate: currentDate,
-    reference: contribution.paymentReference as string,
+    withdrawalDate: currentDate, 
   });
 
   await contribution.save();
@@ -426,7 +425,6 @@ export const chargeCardforContribution = async (
     type: "credit",
     balance: contribution.balance,
     status: "success",
-    reference: contribution.paymentReference as string,
   });
 
   await contribution.save();

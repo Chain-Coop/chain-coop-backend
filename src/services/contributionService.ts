@@ -30,7 +30,6 @@ export interface iContribution {
   balance?: number;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
-  paymentReferance: string;
 }
 
 export interface iContributionHistory {
@@ -42,7 +41,6 @@ export interface iContributionHistory {
   balance: number;
   status: string;
   withdrawalDate?: Date; 
-  reference: string;
 }
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
@@ -172,7 +170,6 @@ export const verifyContributionPayment = async (reference: string) => {
         type: "Credit",
         balance: contribution.balance,
         status: "Completed",
-        reference: contribution.paymentReference as string,
         Date: new Date(),
       });
 
@@ -250,7 +247,6 @@ export const tryRecurringContributions = async () => {
           balance: contribution.balance,
           status: "Completed",
           Date: new Date(),
-          reference: contribution.paymentReference as string,
         });
 
         await contribution.save();
