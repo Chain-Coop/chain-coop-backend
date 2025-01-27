@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/src/app.js",
-    "dev": "nodemon src/app.ts --exec 'ts-node' --ignore 'dist/'",
+    "dev": "nodemon src/app.ts --exec ts-node --ignore 'dist/'",
     "build": "tsc"
   },
   "keywords": [],
@@ -25,6 +25,7 @@
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.14",
     "@types/otp-generator": "^4.0.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
@@ -51,7 +52,6 @@
     "nodemailer-smtp-transport": "^2.7.4",
     "nodemon": "^3.0.2",
     "otp-generator": "^4.0.1",
-    "rate-limiter": "^0.2.0",
-    "ts-node": "^10.9.2"
+    "rate-limiter": "^0.2.0"
   }
 }

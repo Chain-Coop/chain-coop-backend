@@ -81,7 +81,7 @@ export const createContributionService = async (data: {
       balance: 0,
       status: "Pending",
     });
-    console.log("Created Contribution ID:", contribution._id);
+    // console.log("Created Contribution ID:", contribution._id);
 
     // Initialize payment on Paystack
     const response: any = await axios.post(
@@ -131,7 +131,7 @@ export const verifyContributionPayment = async (reference: string) => {
     }
 
     const paymentData = response?.data?.data;
-    console.log("Payment verification response:", response);
+    // console.log("Payment verification response:", response);
 
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
@@ -255,7 +255,7 @@ export const tryRecurringContributions = async () => {
           Date: new Date(),
           reference: contribution.paymentReference as string
         });
-        console.log(contribution.paymentReference)
+        // console.log("paystack refence", contribution.paymentReference)
         await contribution.save();
       } else {
         // Increment failed attempts count on card
@@ -368,7 +368,10 @@ export const calculateNextContributionDate = (
       date.setMonth(date.getMonth() + 1);
       break;
     case "5Minutes":
-      date.setMinutes(date.getMinutes() + 2);
+      date.setMinutes(date.getMinutes() + 5);
+      break; 
+    case "10Minutes":
+      date.setMinutes(date.getMinutes() + 10);
       break; 
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
