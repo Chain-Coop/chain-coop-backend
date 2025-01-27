@@ -30,6 +30,7 @@ export interface iContribution {
   balance?: number;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
+  paymentReference: string;
 }
 
 export interface iContributionHistory {
@@ -125,16 +126,13 @@ export const verifyContributionPayment = async (reference: string) => {
       }
     );
 
-
-  
-
     if (!response || !response?.data) {
       throw new BadRequestError("Invalid response from Paystack");
     }
 
     const paymentData = response?.data?.data;
     console.log("Payment verification response:", response);
-    
+
     if (paymentData.status === "success") {
       const { amount, customer } = paymentData;
 
@@ -162,8 +160,12 @@ export const verifyContributionPayment = async (reference: string) => {
       contribution.categoryBalances[contribution.savingsCategory] =
         (contribution.categoryBalances[contribution.savingsCategory] || 0) + amount / 100;
 
+      // Save the reference from Paystack's response
+      contribution.paymentReference = paymentData.reference;
+
       await contribution.save();
 
+      // Create a contribution history entry
       await createContributionHistoryService({
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
@@ -172,7 +174,7 @@ export const verifyContributionPayment = async (reference: string) => {
         balance: contribution.balance,
         status: "Completed",
         Date: new Date(),
-        reference: contribution.paymentReference as string
+        reference: paymentData.reference, // Use verified reference
       });
 
       return {
@@ -239,6 +241,8 @@ export const tryRecurringContributions = async () => {
         );
         contribution.balance += contribution.amount;
 
+        contribution.paymentReference = charge.data.data.reference;
+
         // Create contribution history
         await createContributionHistoryService({
           contribution: contribution._id as ObjectId,
@@ -251,7 +255,7 @@ export const tryRecurringContributions = async () => {
           Date: new Date(),
           reference: contribution.paymentReference as string
         });
-
+        console.log(contribution.paymentReference)
         await contribution.save();
       } else {
         // Increment failed attempts count on card
@@ -364,7 +368,7 @@ export const calculateNextContributionDate = (
       date.setMonth(date.getMonth() + 1);
       break;
     case "5Minutes":
-      date.setMinutes(date.getMinutes() + 5);
+      date.setMinutes(date.getMinutes() + 2);
       break; 
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
