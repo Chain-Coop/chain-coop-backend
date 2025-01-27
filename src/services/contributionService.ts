@@ -746,6 +746,9 @@ export const calculateNextContributionDate = (
     case "Monthly":
       date.setMonth(date.getMonth() + 1);
       break;
+    case "5Minutes":
+      date.setMinutes(date.getMinutes() + 5);
+      break; 
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
   }

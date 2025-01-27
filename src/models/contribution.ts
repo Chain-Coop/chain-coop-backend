@@ -28,7 +28,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     contributionPlan: {
       type: String,
-      enum: ["Daily", "Weekly", "Monthly", "Yearly"],
+      enum: ["Daily", "Weekly", "Monthly", "Yearly", "5Minutes"],
       required: true,
     },
     savingsCategory: {
