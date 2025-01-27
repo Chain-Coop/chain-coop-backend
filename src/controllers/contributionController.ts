@@ -52,7 +52,7 @@ export interface iContribution {
 }
 
 export const createContribution = async (req: Request, res: Response) => {
-  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate } = req.body;
+  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate, savingsType, } = req.body;
 
   //@ts-ignore
   const email = req.user.email;
@@ -62,27 +62,28 @@ export const createContribution = async (req: Request, res: Response) => {
   // Check for required fields
   if (
     !amount ||
-    !currency || // Ensure currency is provided
+    !currency ||
     !email ||
     !contributionPlan ||
     !savingsCategory ||
     !startDate ||
-    !endDate
+    !endDate  ||
+    !savingsType
   ) {
     throw new BadRequestError("All fields are required");
   }
 
   try {
-    // Pass the required fields, including currency, to the service layer
     const result = await createContributionService({
       amount,
-      currency, // Include the currency field
+      currency,
       contributionPlan,
       savingsCategory,
       startDate,
       endDate,
       email,
       user: userId,
+      savingsType
     });
 
     // Respond with the created contribution data
@@ -370,14 +371,124 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     });
   }
 
+  const currentDate = new Date();
+  const endDate = new Date(contribution.withdrawalDate);
+
+  // Handle savingsType: Flexible
+  if (contribution.savingsType === "Flexible") {
+    if (contribution.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Insufficient funds in contribution balance",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+  
+    contribution.balance -= amount;
+    wallet.balance += amount;
+  
+    const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  
+    const historyPayload: iWalletHistory = {
+      amount: amount,
+      label: "Withdrawal from Flexible Contribution",
+      type: "credit",
+      ref: "Self",
+      //@ts-ignore
+      user: req.user.userId,
+    };
+  
+    await createWalletHistoryService(historyPayload);
+    
+    try {
+      await createContributionHistoryService({
+        contribution: contributionId,
+        user: contribution.user,
+        amount: amount,
+        currency: contribution.currency,
+        Date: currentDate,
+        type: "debit",
+        balance: contribution.balance,
+        status: "success",
+        reference: reference, // Include unique reference
+        withdrawalDate: currentDate,
+      });
+  
+      await contribution.save();
+      await wallet.save();
+  
+      return res.status(StatusCodes.OK).json({
+        message: "Withdrawal successful. No penalties applied.",
+        amount: amount,
+        statusCode: StatusCodes.OK,
+      });
+    } catch (error) {
+      console.error("Error creating contribution history:", error);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        message: "Failed to create contribution history",
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+      });
+    }
+  }
+  
+  // Handle savingsType: Strict
+  if (contribution.savingsType === "Strict") {
+    if (currentDate < endDate) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "You cannot withdraw until the withdrawal date is reached.",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    if (contribution.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Insufficient funds in contribution balance",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    contribution.balance -= amount;
+    wallet.balance += amount;
+
+    const historyPayload: iWalletHistory = {
+      amount: amount,
+      label: "Withdrawal from Strict Contribution",
+      type: "credit",
+      ref: "Self",
+      //@ts-ignore
+      user: req.user.userId,
+    };
+
+    await createWalletHistoryService(historyPayload);
+    await createContributionHistoryService({
+      contribution: contributionId,
+      user: contribution.user,
+      amount: amount,
+      currency: "",
+      Date: currentDate,
+      type: "debit",
+      balance: contribution.balance,
+      status: "success",
+      withdrawalDate: currentDate,
+    });
+
+    await contribution.save();
+    await wallet.save();
+
+    return res.status(StatusCodes.OK).json({
+      message: "Withdrawal successful. No penalties applied.",
+      amount: amount,
+      statusCode: StatusCodes.OK,
+    });
+  }
+
+  // Handle savingsType: Lock (default behavior)
   if (!pay) {
     const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
     const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
     const deadline =
-      contribution.withdrawalDate || new Date() < new Date() ? 2000 : 0;
+      contribution.withdrawalDate && currentDate < endDate ? 2000 : 0;
     const charges = 50;
 
-    // total penalties and amount remaining after deductions
     const totalPenalties = membershipFee + deadline + charges + debtfee;
     const totalToPay = amount - totalPenalties;
 
@@ -399,9 +510,6 @@ export const withdrawContribution = async (req: Request, res: Response) => {
       statusCode: StatusCodes.OK,
     });
   }
-
-  const currentDate = new Date();
-  const endDate = new Date(contribution.withdrawalDate);
 
   let penalties = 0;
 
@@ -439,7 +547,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   const historyPayload: iWalletHistory = {
     amount: totalToPay,
-    label: "Withdrawal from Contribution",
+    label: "Withdrawal from Lock Contribution",
     type: "credit",
     ref: "Self",
     //@ts-ignore
