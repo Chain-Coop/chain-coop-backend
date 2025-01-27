@@ -27,12 +27,13 @@ cloudinary.v2.config({
 // });
 
 // Schedule the recurring contributions check every hour
-cron.schedule("3/* * * * *", () => {
+cron.schedule("*/2 * * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
     .catch((err) => console.error("Error processing contributions:", err));
 });
+
 
 // Routers
 import {

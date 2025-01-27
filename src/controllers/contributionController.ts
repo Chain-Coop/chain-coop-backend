@@ -329,6 +329,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     balance: contribution.balance,
     status: "success",
     withdrawalDate: currentDate, 
+    reference: contribution.paymentReference as string
   });
 
   await contribution.save();
@@ -425,6 +426,7 @@ export const chargeCardforContribution = async (
     type: "credit",
     balance: contribution.balance,
     status: "success",
+    reference: contribution.paymentReference as string
   });
 
   await contribution.save();
