@@ -16,7 +16,7 @@ export const getAllBlogPost = async (req: Request, res: Response) => {
 			.json({ msg: "No blog post at the moment", blogs });
 	}
 
-	res.status(StatusCodes.OK).json({ blogs });
+	res.status(StatusCodes.OK).json({ count: blogs.length, blogs });
 };
 
 export const getBlogPost = async (req: Request, res: Response) => {
@@ -32,6 +32,8 @@ export const getBlogPost = async (req: Request, res: Response) => {
 
 export const createBlogPost = async (req: Request, res: Response) => {
 	const { title, summary, content, status } = req.body;
+	//@ts-ignore
+	const userId = req.user.userId;
 
 	if (!title || !summary || !content || !status) {
 		throw new BadRequestError(
@@ -43,14 +45,17 @@ export const createBlogPost = async (req: Request, res: Response) => {
 		throw new BadRequestError("Summary should not be more than 100 characters");
 	}
 
-	const { public_id, secure_url } = await uploadImageFile(
-		req,
-		"blogs",
-		"image"
-	);
+	let coverImage;
+	//@ts-ignore
+	console.log(req.files.blogCoverImage);
+	//@ts-ignore
+	if (req.files && req.files.blogCoverImage) {
+		coverImage = await uploadImageFile(req, "blogCoverImage", "image");
+	}
 	const blog = await blogService.createBlog({
 		...req.body,
-		image: { url: secure_url, imageId: public_id },
+		createdBy: userId,
+		coverImage: { url: coverImage?.secure_url, imageId: coverImage?.public_id },
 	});
 
 	res.status(StatusCodes.CREATED).json({ blog });
@@ -67,8 +72,8 @@ export const updateBlogPost = async (req: Request, res: Response) => {
 
 	const newImg = req.files?.image;
 	if (newImg) {
-		if (blog.image.imageId) {
-			await deleteDocument(blog.image.imageId);
+		if (blog.coverImage.imageId) {
+			await deleteDocument(blog.coverImage.imageId);
 		}
 		const { public_id, secure_url } = await uploadImageFile(
 			req,
@@ -95,8 +100,8 @@ export const deleteBlogPost = async (req: Request, res: Response) => {
 		throw new BadRequestError("Blog not found");
 	}
 
-	if (blog.image.imageId) {
-		await deleteDocument(blog.image.imageId);
+	if (blog.coverImage.imageId) {
+		await deleteDocument(blog.coverImage.imageId);
 	}
 
 	await blogService.deleteBlog(id);

@@ -3,7 +3,7 @@ import { model, Schema, Document } from "mongoose";
 export interface IBlog extends Document {
 	title: string;
 	summary: string;
-	image: {
+	coverImage: {
 		url: string;
 		imageId: string;
 	};
@@ -11,23 +11,26 @@ export interface IBlog extends Document {
 	status: "publish" | "save";
 	createdAt: Date;
 	updatedAt: Date;
+	createdBy: Schema.Types.ObjectId;
 }
 
 const BlogSchema = new Schema<IBlog>(
 	{
 		title: { type: String, required: true },
 		summary: { type: String, required: true, maxLength: 100 },
-		image: {
-			url: { type: String, required: true },
-			imageId: { type: String, required: true },
+		coverImage: {
+			url: { type: String },
+			imageId: { type: String },
 		},
 		content: { type: String, required: true },
 		status: {
 			type: String,
 			required: true,
-			enum: ["publish", "save"],
+			enum: ["publish", "draft"],
 		},
+		createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
 	},
+
 	{ timestamps: true }
 );
 

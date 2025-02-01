@@ -2,7 +2,11 @@ import Blog, { IBlog } from "../models/blogSchema";
 
 export const getAllBlogs = async (page: number, limit: number) => {
 	const skip = (page - 1) * limit;
-	return await Blog.find().skip(skip).limit(limit).sort({ createdAt: -1 });
+	return await Blog.find()
+		.skip(skip)
+		.limit(limit)
+		.sort({ createdAt: -1 })
+		.populate("createdBy", "username firstName lastName");
 };
 
 export const getBlogById = async (id: string) => {
