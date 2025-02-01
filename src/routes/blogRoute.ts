@@ -9,10 +9,20 @@ router.get("/:id", blogController.getBlogPost);
 router.post(
 	"/",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.createBlogPost
 );
-router.patch("/:id", blogController.updateBlogPost);
-router.delete("/:id", blogController.deleteBlogPost);
+router.patch(
+	"/:id",
+	authorize,
+	authorizePermissions("admin"),
+	blogController.updateBlogPost
+);
+router.delete(
+	"/:id",
+	authorize,
+	authorizePermissions("admin"),
+	blogController.deleteBlogPost
+);
 
 export default router;
