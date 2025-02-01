@@ -46,9 +46,6 @@ export const createBlogPost = async (req: Request, res: Response) => {
 	}
 
 	let coverImage;
-	//@ts-ignore
-	console.log(req.files.blogCoverImage);
-	//@ts-ignore
 	if (req.files && req.files.blogCoverImage) {
 		coverImage = await uploadImageFile(req, "blogCoverImage", "image");
 	}
@@ -70,19 +67,19 @@ export const updateBlogPost = async (req: Request, res: Response) => {
 		throw new BadRequestError("Blog post not found");
 	}
 
-	const newImg = req.files?.image;
+	const newImg = req.files?.coverImage;
 	if (newImg) {
 		if (blog.coverImage.imageId) {
 			await deleteDocument(blog.coverImage.imageId);
 		}
 		const { public_id, secure_url } = await uploadImageFile(
 			req,
-			"blogs",
+			"blogCoverImage",
 			"image"
 		);
 		updateData = {
 			...req.body,
-			image: { url: secure_url, imageId: public_id },
+			coverImage: { url: secure_url, imageId: public_id },
 		};
 	}
 
