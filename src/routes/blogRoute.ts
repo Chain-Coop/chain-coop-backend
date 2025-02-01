@@ -11,7 +11,7 @@ router.post("/comment/:id", blogController.createComment);
 router.post(
 	"/",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.createBlogPost
 );
 router.patch(
@@ -29,13 +29,13 @@ router.delete(
 router.delete(
 	"/comment/:commentId",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.deleteComment
 );
 router.post(
 	"/category",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.createCategory
 );
 
@@ -43,13 +43,13 @@ router.get("/category/get-all", blogController.getCategories);
 router.patch(
 	"/category/:categoryId",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.updateCategory
 );
 router.delete(
 	"/category/:categoryId",
 	authorize,
-	// authorizePermissions("admin"),
+	authorizePermissions("admin"),
 	blogController.deleteCategory
 );
 
