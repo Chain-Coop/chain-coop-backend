@@ -10,7 +10,10 @@ export const getAllBlogs = async (page: number, limit: number) => {
 };
 
 export const getBlogById = async (id: string) => {
-	return await Blog.findById(id);
+	return await Blog.findById(id).populate(
+		"createdBy",
+		"username firstName lastName"
+	);
 };
 
 export const createBlog = async (blogData: Partial<IBlog>) => {
