@@ -12,6 +12,7 @@ export interface IBlog extends Document {
 	createdAt: Date;
 	updatedAt: Date;
 	createdBy: Schema.Types.ObjectId;
+	category: Schema.Types.ObjectId;
 }
 
 const BlogSchema = new Schema<IBlog>(
@@ -29,6 +30,7 @@ const BlogSchema = new Schema<IBlog>(
 			enum: ["publish", "draft"],
 		},
 		createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+		category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
 	},
 
 	{ timestamps: true }

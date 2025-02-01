@@ -6,14 +6,14 @@ export const getAllBlogs = async (page: number, limit: number) => {
 		.skip(skip)
 		.limit(limit)
 		.sort({ createdAt: -1 })
-		.populate("createdBy", "username firstName lastName");
+		.populate("createdBy", "username firstName lastName")
+		.populate("category", "name");
 };
 
 export const getBlogById = async (id: string) => {
-	return await Blog.findById(id).populate(
-		"createdBy",
-		"username firstName lastName"
-	);
+	return await Blog.findById(id)
+		.populate("createdBy", "username firstName lastName")
+		.populate("category", "name");
 };
 
 export const createBlog = async (blogData: Partial<IBlog>) => {
