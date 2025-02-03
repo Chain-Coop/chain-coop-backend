@@ -452,6 +452,7 @@ export const tryRecurringContributions = async () => {
    // },
   }).populate("user");
 
+
   for (let contribution of contributions) {
     const session = await mongoose.startSession();
     try {
@@ -477,7 +478,7 @@ export const tryRecurringContributions = async () => {
           
           if (preferredCard) {
             usableCard = {
-              data: preferredCard.authCode, // ✅ Use `authCode` instead of `data`
+              data: preferredCard.authCode, 
               failedAttempts: preferredCard.failedAttempts,
             };
           }
@@ -493,7 +494,7 @@ export const tryRecurringContributions = async () => {
             data: any;
           };
 
-          console.log("Start 6")
+   
           if (charge.data && charge.data.status === "success") {
             session.startTransaction();
             try {
@@ -506,9 +507,10 @@ export const tryRecurringContributions = async () => {
               contribution.balance += contribution.amount;
 
               // Create contribution history
-              contribution.paymentReference = charge?.data?.data?.reference || `fallback-ref-${new Date().getTime()}`;
+              contribution.paymentReference = charge?.data?.reference ;
               console.log("Final Payment Reference:", contribution.paymentReference);
-              await contribution.save(); // Ensure it's persisted
+
+              await contribution.save(); 
               
               await createContributionHistoryService({
                 contribution: contribution._id as ObjectId,
@@ -522,7 +524,7 @@ export const tryRecurringContributions = async () => {
                 Date: contribution.lastContributionDate!,
                 reference: contribution.paymentReference, 
               });
-              console.log("Reference" + contribution.paymentReference )
+
               await contribution.save();
               await session.commitTransaction();
             } catch (err) {
@@ -568,12 +570,20 @@ export const updateMissedContributions = async () => {
 };
 
 export const paymentforContribution = async (contribution: any) => {
-  //Logic to add unpaid contribution history and update next contribution date
+  // Logic to add unpaid contribution history and update next contribution date
   console.log("Payment for contribution:", contribution._id);
+
+  // Initialize paymentReference if it's not set already
+  if (!contribution.paymentReference) {
+    contribution.paymentReference = `fallback-ref-${new Date().getTime()}`;
+    console.log("Payment Reference initialized:", contribution.paymentReference);
+  }
+
   const session = await mongoose.startSession();
   while (contribution.nextContributionDate < new Date()) {
     try {
       session.startTransaction();
+      
       let nextContributionDate = contribution.nextContributionDate;
       contribution.lastContributionDate = contribution.nextContributionDate;
       contribution.nextContributionDate = calculateNextContributionDate(
@@ -581,8 +591,7 @@ export const paymentforContribution = async (contribution: any) => {
         contribution.contributionPlan
       );
 
-
-        await contribution.save(); 
+      await contribution.save(); 
 
       // Create contribution history
       await createContributionHistoryService({
@@ -608,10 +617,11 @@ export const paymentforContribution = async (contribution: any) => {
       console.log(err);
       await session.abortTransaction();
     }
-
-    session.endSession();
   }
+
+  session.endSession();
 };
+
 
 export const getUnpaidContributionHistory = async (
   contributionId: string,
