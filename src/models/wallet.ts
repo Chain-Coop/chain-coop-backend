@@ -1,6 +1,14 @@
 import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 
+export interface ICard {
+  number: string;
+  authCode: string;
+  isPreferred: boolean;
+  failedAttempts: number;
+  data: string;
+}
+
 export interface WalletDocument extends Document {
   balance: number;
   pin: string;
@@ -18,6 +26,7 @@ export interface WalletDocument extends Document {
     data: string;
     failedAttempts: number;
   };
+  allCards: ICard[];
   hasWithdrawnBefore: boolean;
   bvn?: string;
 }
@@ -42,7 +51,6 @@ const WalletSchema = new Schema<WalletDocument>(
       type: Boolean,
       default: false,
     },
-    // Modified to bankAccounts (array of bank details)
     bankAccounts: [
       {
         accountNumber: String,
@@ -64,7 +72,6 @@ const WalletSchema = new Schema<WalletDocument>(
         _id: false,
       },
     ],
-
     hasWithdrawnBefore: {
       type: Boolean,
       default: false,

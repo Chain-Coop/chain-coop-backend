@@ -82,7 +82,7 @@ cron.schedule("0 0 * * *", () => {
 		.catch((err) => console.error("Error processing circles:", err));
 });
 
-cron.schedule("*/2 * * * *", () => {
+cron.schedule("*/1 * * * *", () => {
   console.log("Running recurring contributions check...");
   tryRecurringContributions()
     .then(() => console.log("Processed recurring contributions."))
