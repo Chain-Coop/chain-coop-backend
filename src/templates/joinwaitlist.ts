@@ -1,4 +1,5 @@
 export const joinWaitingListMail = ({ name }: { name: string }) => {
+  // console.log(name)
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
