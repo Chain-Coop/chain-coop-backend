@@ -45,6 +45,7 @@ export interface iContributionHistory {
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const CONTRIBUTION_CALLBACK_URL = process.env.CONTRIBUTION_CALLBACK_URL;
 
 export const createContributionService = async (data: {
   user: ObjectId;
@@ -123,7 +124,7 @@ export const initializeContributionPayment = async (
         {
           email: user.email,
           amount: contribution.amount * 100,
-          callback_url:`https://chaincoop.org/dashboard/contribution`,
+          callback_url: CONTRIBUTION_CALLBACK_URL,
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
@@ -204,7 +205,7 @@ export const chargeUnpaidContributions = async (
         //@ts-ignore
         email: contribution.user.email,
         amount: amount * 100,
-        callback_url: ` https://chain-coop-backend.onrender.com/dashboard/wallet`,
+        callback_url: CONTRIBUTION_CALLBACK_URL,
         metadata: {
           contributionId: contributionId,
           type: "conunpaid",
