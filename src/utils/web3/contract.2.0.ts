@@ -1,7 +1,7 @@
 import { ethers,Contract } from "ethers";
 import { LISKRPC_TESTNET } from "../../constant/rpcs";
 import erc20abi from "../../constant/abi/abi.json"
-import savingabi from "../../constant/abi/ChainCoopSaving.json"
+import savingabi from "../../constant/abi/ChainCoopSaving.2.0.json"
 import { Signer } from "../../utils/web3/createSingner";
 import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET,CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2 } from "../../constant/contract/ChainCoopSaving";
 
