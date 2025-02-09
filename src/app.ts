@@ -40,6 +40,9 @@ import balanceRouter from "./routes/web3/balanceRoutes";
 import chainCoopManagementRouter from "./routes/web3/chaincoopSaving/managementRoutes";
 import chaincoopSavingRoute from "./routes/web3/chaincoopSaving/savingRoutes";
 import transactionHistory from "./routes/web3/transactionHistoryRoutes";
+//version 2.0
+import chainCoopManagementRouter_2 from "./routes/web3/chaincoopSaving.2.0/managementRoutes";
+import chaincoopSavingRoute_2 from "./routes/web3/chaincoopSaving.2.0/savingRoutes"
 //import
 import logger from "./utils/logger";
 import { webhookController } from "./controllers/webhookController";
@@ -137,8 +140,15 @@ app.use("/api/v1/web3/management", chainCoopManagementRouter);
 app.use("/api/v1/web3/saving", chaincoopSavingRoute);
 app.use("/api/v1/web3/transaction", transactionHistory);
 
+//web3_version 2.0
+app.use("/api/v1/web3/v2/management", chainCoopManagementRouter_2);
+app.use("/api/v1/web3/v2/saving", chaincoopSavingRoute_2);
+
+
 app.use("/api/v1/savingcircle", savingCircleRoutes);
 app.use("/api/v1/blog", blogRoutes);
+
+
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
