@@ -41,6 +41,7 @@ export interface iContributionHistory {
   status: string;
   withdrawalDate?: Date;
   reference?: string;
+  savingsType?: string;
 }
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
@@ -408,6 +409,7 @@ export const verifyContributionPayment = async (reference: string) => {
         user: user._id as ObjectId,
         amount: contribution.amount,
         currency: contribution.currency,
+        savingsType: contribution.savingsType,
         type: "Credit",
         balance: contribution.balance,
         status: "Completed",
@@ -524,6 +526,7 @@ export const tryRecurringContributions = async () => {
                 status: "Completed",
                 Date: contribution.lastContributionDate!,
                 reference: contribution.paymentReference, 
+                savingsType: contribution.savingsType,
               });
 
               await contribution.save();
