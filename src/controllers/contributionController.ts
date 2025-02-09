@@ -38,6 +38,7 @@ export interface iContribution {
   _id?: ObjectId;
   user: ObjectId;
   contributionPlan: string;
+  savingsType: string,
   amount: number;
   currency: string;
   status?: string;
@@ -228,6 +229,7 @@ export const getContributionHistory = async (req: Request, res: Response) => {
     const formattedHistory = paginatedHistory.map((contribution) => ({
       historyEntryId: contribution._id,
       contributionId: contribution.contribution,
+      savingsType: contribution.savingsType,
       user: contribution.user,
       amount: contribution.amount,
       Date: contribution.Date,
@@ -289,6 +291,7 @@ export const newgetContributionHistory = async (
             balance,
             currency,
             startDate,
+            savingsType,
             nextContributionDate,
             withdrawalDate,
             savingsCategory,
@@ -317,6 +320,7 @@ export const newgetContributionHistory = async (
             contributionPlan,
             currency,
             savingsCategory,
+            savingsType,
             startDate,
             nextContributionDate,
             withdrawalDate,
