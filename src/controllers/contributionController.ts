@@ -50,10 +50,11 @@ export interface iContribution {
   categoryBalances?: Map<string, number>;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
+  contributionType?: string; 
 }
 
 export const createContribution = async (req: Request, res: Response) => {
-  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate, savingsType, } = req.body;
+  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate, savingsType, contributionType} = req.body;
 
   //@ts-ignore
   const email = req.user.email;
@@ -69,7 +70,8 @@ export const createContribution = async (req: Request, res: Response) => {
     !savingsCategory ||
     !startDate ||
     !endDate  ||
-    !savingsType
+    !savingsType ||
+    !contributionType
   ) {
     throw new BadRequestError("All fields are required");
   }
@@ -84,7 +86,8 @@ export const createContribution = async (req: Request, res: Response) => {
       endDate,
       email,
       user: userId,
-      savingsType
+      savingsType,
+      contributionType,
     });
 
     // Respond with the created contribution data
@@ -296,6 +299,7 @@ export const newgetContributionHistory = async (
             withdrawalDate,
             savingsCategory,
             contributionPlan,
+            contributionType,
         } = contribution;
 
         // Fetch the total history length
@@ -321,6 +325,7 @@ export const newgetContributionHistory = async (
             currency,
             savingsCategory,
             savingsType,
+            contributionType,
             startDate,
             nextContributionDate,
             withdrawalDate,
