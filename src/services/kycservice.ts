@@ -4,6 +4,7 @@ import { findWalletService } from "./walletService";
 import { findUser } from "./authService";
 import { createToken } from "../utils/createToken";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
+import qs from "qs";
 
 interface VerifyBVNParams {
   countryCode: string;
@@ -173,3 +174,47 @@ export {
   verifyBVN,
   BVNWebhook,
 };
+
+
+// TIER 2 KYC Verification
+const getClientToken = async () => {
+  const clientID = process.env.CLIENT_ID;
+  const clientSecret = process.env.CLIENT_SECRET;
+  const encodedCredentials = Buffer.from(`${clientID}:${clientSecret}`).toString('base64');
+
+  const response = await axios.post(
+    'https://apx.didit.me/auth/v2/token/',
+    qs.stringify({ grant_type: 'client_credentials' }),
+    {
+      headers: {
+        Authorization: `Basic ${encodedCredentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+    //@ts-ignorex
+  return response.data.access_token;
+};
+
+const createKycSession = async (callbackUrl: any, vendorData: any) => {
+  const token = await getClientToken();
+
+  const response = await axios.post(
+    'https://verification.didit.me/v1/session/',
+    {
+      callback: callbackUrl,
+      features: 'OCR + FACE', // Adjust features as needed
+      vendor_data: vendorData,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data;
+};
+
+module.exports = { createKycSession };

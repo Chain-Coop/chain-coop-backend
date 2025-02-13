@@ -11,6 +11,7 @@ export interface UserDocument extends Document {
   Tier: 0 | 1 | 2;
   isVerified: boolean;
   isCrypto: boolean;
+  kycSessionId: string,
 }
 
 const UserSchema: Schema = new Schema({
@@ -34,7 +35,7 @@ const UserSchema: Schema = new Schema({
     default: "not_started",
   },
   membershipType: {
-    type: String, // Adjust this if there are specific membership types
+    type: String, 
     enum: ["Explorer", "Pioneer", "Voyager"],
     required: false,
   },
@@ -56,6 +57,7 @@ const UserSchema: Schema = new Schema({
     type: Boolean,
     default: false,
   },
+  kycSessionId: String, 
 });
 
 const User =

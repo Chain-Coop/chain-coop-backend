@@ -123,6 +123,52 @@ const verifyBVNController = async (req: Request, res: Response) => {
   return res.status(200).json(isSet);
 };
 
+const initiateKyc = async (req, res) => {
+  const userId = req.params.userId;
+  const callbackUrl = `${process.env.BASE_URL}/kyc/callback`;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.Tier !== 2) {
+      return res.status(400).json({ message: 'KYC is only required for Tier 2 users' });
+    }
+
+    const kycSession = await createKycSession(callbackUrl, user.id);
+    user.kycSessionId = kycSession.session_id;
+    await user.save();
+
+    res.json({ verificationUrl: kycSession.url });
+  } catch (error) {
+    res.status(500).json({ message: 'Error initiating KYC process', error: error.message });
+  }
+};
+
+const handleKycCallback = async (req, res) => {
+  const { session_id, status } = req.body;
+
+  try {
+    const user = await User.findOne({ kycSessionId: session_id });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (status === 'verified') {
+      user.isVerified = true;
+      await user.save();
+    }
+
+    res.status(200).json({ message: 'KYC callback processed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error processing KYC callback', error: error.message });
+  }
+};
+
+
+
 export {
   sendOTP,
   verifyOTPController,
@@ -130,4 +176,6 @@ export {
   verifyBVNController,
   sendWhatsappOTPController,
   verifyWhatsappOTPController,
+  initiateKyc,
+  handleKycCallback
 };
