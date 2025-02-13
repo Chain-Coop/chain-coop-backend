@@ -4,12 +4,15 @@ import {
   setBVN,
   verifyBVN,
   verifyOTP,
+  createKycSession,
 } from "../services/kycservice";
 import { Request, Response } from "express";
 import { findWalletService } from "../services/walletService";
 import { decrypt } from "../services/encryption";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
 import { findOtpPhone } from "../services/otpService";
+import User from '../models/user';
+
 interface CustomRequest extends Request {
   user: {
     id: string;
@@ -123,50 +126,43 @@ const verifyBVNController = async (req: Request, res: Response) => {
   return res.status(200).json(isSet);
 };
 
-const initiateKyc = async (req, res) => {
-  const userId = req.params.userId;
-  const callbackUrl = `${process.env.BASE_URL}/kyc/callback`;
-
+export const initiateTier2Kyc = async (req: Request, res: Response) => {
+  const { userId } = req.params;
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        status: 404,
+        message: "User not found" 
+      });
+    }
+    // Ensure the user is Tier 1 before Tier 2 KYC can be initiated.
+    if (user.Tier !== 1) {
+      return res.status(400).json({ 
+        status: 400,
+        message: "User must be a Tier 1 user to initiate Tier 2 KYC" 
+      });
     }
 
-    if (user.Tier !== 2) {
-      return res.status(400).json({ message: 'KYC is only required for Tier 2 users' });
-    }
+    // Create the KYC session using the Didit API.
+    const sessionData = await createKycSession(userId);
 
-    const kycSession = await createKycSession(callbackUrl, user.id);
-    user.kycSessionId = kycSession.session_id;
-    await user.save();
-
-    res.json({ verificationUrl: kycSession.url });
-  } catch (error) {
-    res.status(500).json({ message: 'Error initiating KYC process', error: error.message });
+    // Success response with the verification URL
+    return res.status(200).json({
+      status: 200,
+      message: "KYC Tier 2 session created successfully",
+      //@ts-ignore
+      verificationUrl: sessionData?.url, // URL for the user to complete the verification
+    });
+  } catch (error: any) {
+    // Handle any internal server errors
+    return res.status(500).json({ 
+      status: 500,
+      message: "Error initiating Tier 2 KYC",
+      error: error.message 
+    });
   }
 };
-
-const handleKycCallback = async (req, res) => {
-  const { session_id, status } = req.body;
-
-  try {
-    const user = await User.findOne({ kycSessionId: session_id });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (status === 'verified') {
-      user.isVerified = true;
-      await user.save();
-    }
-
-    res.status(200).json({ message: 'KYC callback processed' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error processing KYC callback', error: error.message });
-  }
-};
-
 
 
 export {
@@ -176,6 +172,4 @@ export {
   verifyBVNController,
   sendWhatsappOTPController,
   verifyWhatsappOTPController,
-  initiateKyc,
-  handleKycCallback
 };

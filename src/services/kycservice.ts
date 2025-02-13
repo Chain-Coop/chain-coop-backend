@@ -166,6 +166,67 @@ const BVNWebhook = async (data: any) => {
   return "success";
 };
 
+
+// TIER 2 KYC Verification
+const DIDIT_AUTH_URL = "https://apx.didit.me/auth/v2/token/";
+const DIDIT_VERIFICATION_BASE_URL = "https://verification.didit.me";
+
+export const getClientToken = async (): Promise<string> => {
+  const clientID = process.env.NEXT_PUBLIC_DIDIT_CLIENT_ID;
+  const clientSecret = process.env.CLIENT_SECRET;
+  if (!clientID || !clientSecret) {
+    throw new Error("Didit client credentials not set in environment variables.");
+  }
+
+  const encodedCredentials = Buffer.from(`${clientID}:${clientSecret}`).toString("base64");
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
+
+  try {
+    const response = await axios.post(DIDIT_AUTH_URL, params, {
+      headers: {
+        Authorization: `Basic ${encodedCredentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+    //@ts-ignore
+    return response.data.access_token;
+  } catch (error: any) {
+    console.error("Error fetching client token:", error.message);
+    throw error;
+  }
+};
+
+export const createKycSession = async (vendorData: string) => {
+  // Use your callback URL from environment variables
+  const callback = process.env.KYC_CALLBACK_URL;
+  const features = "OCR + NFC + FACE"; 
+
+  try {
+    const token = await getClientToken();
+    const response = await axios.post(
+      `${DIDIT_VERIFICATION_BASE_URL}/v1/session/`,
+      {
+        callback,
+        features,
+        vendor_data: vendorData,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data; 
+  } catch (error: any) {
+    console.error("Error creating KYC session:", error.message);
+    throw error;
+  }
+};
+
+
+
 export {
   sendSMSOTP,
   verifyOTP,
@@ -176,45 +237,3 @@ export {
 };
 
 
-// TIER 2 KYC Verification
-const getClientToken = async () => {
-  const clientID = process.env.CLIENT_ID;
-  const clientSecret = process.env.CLIENT_SECRET;
-  const encodedCredentials = Buffer.from(`${clientID}:${clientSecret}`).toString('base64');
-
-  const response = await axios.post(
-    'https://apx.didit.me/auth/v2/token/',
-    qs.stringify({ grant_type: 'client_credentials' }),
-    {
-      headers: {
-        Authorization: `Basic ${encodedCredentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    }
-  );
-    //@ts-ignorex
-  return response.data.access_token;
-};
-
-const createKycSession = async (callbackUrl: any, vendorData: any) => {
-  const token = await getClientToken();
-
-  const response = await axios.post(
-    'https://verification.didit.me/v1/session/',
-    {
-      callback: callbackUrl,
-      features: 'OCR + FACE', // Adjust features as needed
-      vendor_data: vendorData,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  return response.data;
-};
-
-module.exports = { createKycSession };
