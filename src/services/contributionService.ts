@@ -477,9 +477,23 @@ export const tryRecurringContributions = async () => {
   const contributions = await Contribution.find({
     contributionType: "auto",
     status: "Completed",
+    //endDate: { $gte: new Date() },
+    //startDate: { $lte: new Date() },
+    //nextContributionDate: { $lt: new Date() },
+    // lastChargeDate: {
+   //  $lt: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+   // },
   }).populate("user");
 
   for (let contribution of contributions) {
+    // If the contribution's end date has been reached, skip recurring charges.
+    if (contribution.endDate && new Date() >= contribution.endDate) {
+      console.log(
+        `Skipping recurring charge for contribution ${contribution._id} because end date has been reached.`
+      );
+      continue;
+    }
+
     const session = await mongoose.startSession();
     try {
       contribution.lastChargeDate = new Date();
@@ -508,10 +522,12 @@ export const tryRecurringContributions = async () => {
           }
         }
 
-        // Process recurring charges for auto-savings contributions
+        // Process recurring charges only if nextContributionDate exists,
+        // is in the past, and the current date is still before endDate.
         while (
           contribution.nextContributionDate &&
-          contribution.nextContributionDate < new Date()
+          contribution.nextContributionDate < new Date() &&
+          (!contribution.endDate || new Date() < contribution.endDate)
         ) {
           const charge = (await chargeCardService(
             usableCard.data,
@@ -577,6 +593,7 @@ export const tryRecurringContributions = async () => {
     }
   }
 };
+
 
 
 //Update all missed contributions by creating a contribution history and updating the next contribution date
