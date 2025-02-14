@@ -382,6 +382,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   const currentDate = new Date();
   const endDate = new Date(contribution.withdrawalDate);
+  const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   // Handle savingsType: Flexible
   if (contribution.savingsType === "Flexible") {
@@ -394,9 +395,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   
     contribution.balance -= amount;
     wallet.balance += amount;
-  
-    const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-  
+    
     const historyPayload: iWalletHistory = {
       amount: amount,
       label: "Withdrawal from Flexible Contribution",
@@ -420,6 +419,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
         status: "success",
         reference: reference, // Include unique reference
         withdrawalDate: currentDate,
+        savingsType: contribution.savingsType,
       });
   
       await contribution.save();
@@ -477,7 +477,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
       type: "debit",
       balance: contribution.balance,
       status: "success",
+      reference: reference, 
       withdrawalDate: currentDate,
+      savingsType: contribution.savingsType,
     });
 
     await contribution.save();
@@ -573,7 +575,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     type: "debit",
     balance: contribution.balance,
     status: "success",
+    reference: reference, 
     withdrawalDate: currentDate,
+    savingsType: contribution.savingsType,
   });
 
   await contribution.save();
