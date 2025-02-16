@@ -17,6 +17,7 @@ export interface ContributionDocument extends Document {
   status: string;
   paymentReference?: string;
   lastChargeDate?: Date;
+  contributionType: "one-time" | "auto";
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -83,6 +84,11 @@ const ContributionSchema = new Schema<ContributionDocument>(
     lastChargeDate: {
       type: Date,
       default: Date.now(),
+    },
+    contributionType: {
+      type: String,
+      enum: ["one-time", "auto"],
+      required: true,
     },
   },
   { timestamps: true }
