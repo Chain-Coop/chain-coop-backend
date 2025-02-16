@@ -187,6 +187,6 @@ router.post("/sendwaotp", authorize, sendWhatsappOTPController);
 router.post("/verifywaotp", authorize, verifyWhatsappOTPController);
 
 //TIER 2 Verification routes
-router.post('/tier2/:userId', initiateTier2Kyc);
+router.post('/tier1/:userId', initiateTier2Kyc);
 
 export default router;
