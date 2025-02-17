@@ -51,6 +51,7 @@ export interface iContribution {
   nextContributionDate?: Date;
   lastContributionDate?: Date;
   contributionType?: string; 
+  savingsDuration?: number;
 }
 
 export const createContribution = async (req: Request, res: Response) => {
@@ -76,6 +77,19 @@ export const createContribution = async (req: Request, res: Response) => {
     throw new BadRequestError("All fields are required");
   }
 
+    // Enforce the rule: savingsType "Strict" must have contributionType "one-time"
+    if (savingsType === "Strict" && contributionType !== "one-time") {
+      throw new BadRequestError(
+        "For 'Strict' savingsType, contributionType must be 'one-time'."
+      );
+    }
+  
+
+  // Validate that contributionPlan is provided when savingsType is not "Strict"
+  if (savingsType !== "Strict" && !contributionPlan) {
+    throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
+  }
+
   try {
     const result = await createContributionService({
       amount,
@@ -91,7 +105,9 @@ export const createContribution = async (req: Request, res: Response) => {
     });
 
     // Respond with the created contribution data
-    res.status(StatusCodes.OK).json({ result });
+    res.status(StatusCodes.OK).json({ 
+      result,
+     });
   } catch (error: any) {
     console.error("Error in createContribution:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
