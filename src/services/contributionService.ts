@@ -28,6 +28,7 @@ export interface iContribution {
   nextContributionDate?: Date;
   lastContributionDate?: Date;
   paymentReference?: string;
+  contributionType: "one-time" | "auto";
 }
 
 export interface iContributionHistory {
@@ -41,6 +42,7 @@ export interface iContributionHistory {
   status: string;
   withdrawalDate?: Date;
   reference?: string;
+  savingsType?: string;
 }
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
@@ -57,17 +59,57 @@ export const createContributionService = async (data: {
   startDate: Date;
   endDate: Date;
   email: string;
+  contributionType: "one-time" | "auto";
 }) => {
   try {
-    // Set nextContributionDate
-    const nextContributionDate = calculateNextContributionDate(
-      data.startDate,
-      data.contributionPlan
-    );
 
-    // Set withdrawal date to 1 day after endDate
-    const withdrawalDate = new Date(data.endDate);
-    withdrawalDate.setDate(withdrawalDate.getDate() + 1);
+    // Enforce the rule that "Strict" savingsType must have contributionType "one-time"
+    if (data.savingsType === "Strict" && data.contributionType !== "one-time") {
+      throw new BadRequestError(
+        "For 'Strict' savingsType, contributionType must be 'one-time'."
+      );
+    }
+    
+    // Calculate savings duration (endDate - startDate in days)
+    const savingsDuration =
+      (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24);
+
+    if (data.contributionType === "one-time") {
+      const contribution = await Contribution.create({
+        user: data.user,
+        contributionPlan: data.contributionPlan,
+        amount: data.amount,
+        savingsType: data.savingsType,
+        currency: data.currency,
+        savingsCategory: data.savingsCategory,
+        startDate: new Date(data.startDate),
+        savingsDuration,
+        endDate: new Date(data.endDate),
+        nextContributionDate: null,
+        lastContributionDate: new Date(data.startDate),
+        withdrawalDate: new Date(data.endDate),
+        contributionType: data.contributionType,
+        balance: 0,
+        status: "Completed",
+      });
+      logger.info("Created one-time Contribution ID:", contribution._id);
+      return {
+        contributionId: contribution._id,
+        withdrawalDate: contribution.withdrawalDate,
+        savingsDuration: contribution.savingsDuration,
+      };
+
+    } else { 
+
+        // Set nextContributionDate
+        const nextContributionDate = calculateNextContributionDate(
+          data.startDate,
+          data.contributionPlan
+        );
+    
+        // Set withdrawal date to 1 day after endDate
+        const withdrawalDate = new Date(data.endDate);
+        withdrawalDate.setDate(withdrawalDate.getDate() + 1);
 
     const contribution = await Contribution.create({
       user: data.user,
@@ -83,13 +125,15 @@ export const createContributionService = async (data: {
       withdrawalDate,
       balance: 0,
       status: "Completed",
+      contributionType: data.contributionType,
     });
-    logger.info("Created Contribution ID:", contribution._id);
-
+    logger.info("Created Auto-savings Contribution ID:", contribution._id);
     return {
       contributionId: contribution._id,
       withdrawalDate: contribution.withdrawalDate,
     };
+   }
+
   } catch (error: any) {
     console.error("Error creating contribution:", error);
     throw new BadRequestError(
@@ -408,6 +452,7 @@ export const verifyContributionPayment = async (reference: string) => {
         user: user._id as ObjectId,
         amount: contribution.amount,
         currency: contribution.currency,
+        savingsType: contribution.savingsType,
         type: "Credit",
         balance: contribution.balance,
         status: "Completed",
@@ -442,8 +487,9 @@ export const verifyContributionPayment = async (reference: string) => {
 };
 
 export const tryRecurringContributions = async () => {
-
+  // Process only auto-savings contributions; one-time contributions are skipped.
   const contributions = await Contribution.find({
+    contributionType: "auto",
     status: "Completed",
     //endDate: { $gte: new Date() },
     //startDate: { $lte: new Date() },
@@ -453,13 +499,19 @@ export const tryRecurringContributions = async () => {
    // },
   }).populate("user");
 
-
   for (let contribution of contributions) {
+    // If the contribution's end date has been reached, skip recurring charges.
+    if (contribution.endDate && new Date() >= contribution.endDate) {
+      console.log(
+        `Skipping recurring charge for contribution ${contribution._id} because end date has been reached.`
+      );
+      continue;
+    }
+
     const session = await mongoose.startSession();
     try {
       contribution.lastChargeDate = new Date();
       const user = contribution.user;
-      // Check if the user is present; skip iteration if user is null
       if (!user) {
         console.warn(
           `Skipping contribution ${contribution._id} as user ${contribution.user} is null`
@@ -472,64 +524,67 @@ export const tryRecurringContributions = async () => {
 
       if (wallet?.Card?.data) {
         let usableCard = wallet.Card;
-        
+
         // If the preferred card has failed 3 times, try another card
         if (wallet?.allCards && wallet.allCards.length > 0) {
           const preferredCard = wallet.allCards.find(card => card.isPreferred);
-          
           if (preferredCard) {
             usableCard = {
-              data: preferredCard.authCode, 
+              data: preferredCard.authCode,
               failedAttempts: preferredCard.failedAttempts,
             };
           }
         }
-        
-        while (contribution.nextContributionDate! < new Date()) {
+
+        // Process recurring charges only if nextContributionDate exists,
+        // is in the past, and the current date is still before endDate.
+        while (
+          contribution.nextContributionDate &&
+          contribution.nextContributionDate < new Date() &&
+          (!contribution.endDate || new Date() < contribution.endDate)
+        ) {
           const charge = (await chargeCardService(
             usableCard.data,
             //@ts-ignore
             user.email,
             contribution.amount
-          )) as {
-            data: any;
-          };
+          )) as { data: any };
 
-   
           if (charge.data && charge.data.status === "success") {
             session.startTransaction();
             try {
-              contribution.lastContributionDate =
-                contribution.nextContributionDate;
+              // Update contribution dates and balance for auto-savings
+              contribution.lastContributionDate = contribution.nextContributionDate;
               contribution.nextContributionDate = calculateNextContributionDate(
                 contribution.nextContributionDate!,
                 contribution.contributionPlan
               );
               contribution.balance += contribution.amount;
 
-              // Create contribution history
-              contribution.paymentReference = charge?.data?.reference ;
+              // Set payment reference and log it
+              contribution.paymentReference = charge.data.reference;
               console.log("Final Payment Reference:", contribution.paymentReference);
 
-              await contribution.save(); 
-              
+              await contribution.save();
+
               await createContributionHistoryService({
-                contribution: contribution._id as ObjectId,
+                contribution: contribution._id as any,
                 //@ts-ignore
-                user: user._id as ObjectId,
+                user: user._id as any,
                 amount: contribution.amount,
                 currency: contribution.currency,
                 type: "Credit",
                 balance: contribution.balance,
                 status: "Completed",
                 Date: contribution.lastContributionDate!,
-                reference: contribution.paymentReference, 
+                reference: contribution.paymentReference,
+                savingsType: contribution.savingsType,
               });
 
               await contribution.save();
               await session.commitTransaction();
             } catch (err) {
-              console.log(err);
+              console.error(err);
               await session.abortTransaction();
             }
             session.endSession();
@@ -544,15 +599,16 @@ export const tryRecurringContributions = async () => {
           }
         }
       } else {
-        console.log("No card found");
+        console.log("No card found for recurring charge");
         await paymentforContribution(contribution);
       }
     } catch (err) {
-      console.log(err);
+      console.error("Error processing recurring contribution:", err);
     }
   }
-  
 };
+
+
 
 //Update all missed contributions by creating a contribution history and updating the next contribution date
 export const updateMissedContributions = async () => {

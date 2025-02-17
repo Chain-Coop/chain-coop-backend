@@ -9,6 +9,7 @@ export interface ContributionDocument extends Document {
   currency: string; 
   startDate?: Date;
   endDate?: Date;
+  savingsDuration?: number;
   categoryBalances: Record<string, number>;
   balance: number;
   nextContributionDate?: Date;
@@ -17,6 +18,7 @@ export interface ContributionDocument extends Document {
   status: string;
   paymentReference?: string;
   lastChargeDate?: Date;
+  contributionType: "one-time" | "auto";
 }
 
 const ContributionSchema = new Schema<ContributionDocument>(
@@ -29,7 +31,9 @@ const ContributionSchema = new Schema<ContributionDocument>(
     contributionPlan: {
       type: String,
       enum: ["Daily", "Weekly", "Monthly", "Yearly", "5Minutes"],
-      required: true,
+      required: function () {
+        return this.savingsType !== "Strict";
+      },
     },
     savingsCategory: {
       type: String,
@@ -65,6 +69,9 @@ const ContributionSchema = new Schema<ContributionDocument>(
     endDate: {
       type: Date,
     },
+    savingsDuration: {
+      type: Number,
+    },
     nextContributionDate: {
       type: Date,
     },
@@ -84,8 +91,27 @@ const ContributionSchema = new Schema<ContributionDocument>(
       type: Date,
       default: Date.now(),
     },
+    contributionType: {
+      type: String,
+      enum: ["one-time", "auto"],
+      required: true,
+    },
   },
   { timestamps: true }
 );
+
+// Pre-save middleware to calculate savingsDuration
+ContributionSchema.pre<ContributionDocument>("save", function (next) {
+  if (this.savingsType === "Strict") {
+    if (this.startDate && this.endDate) {
+      const durationInMilliseconds = this.endDate.getTime() - this.startDate.getTime();
+      this.savingsDuration = durationInMilliseconds / (1000 * 60 * 60 * 24); // Convert to days
+    } else {
+      const err = new Error("Both startDate and endDate must be provided for Strict savingsType.");
+      return next(err);
+    }
+  }
+  next();
+});
 
 export default model<ContributionDocument>("Contribution", ContributionSchema);

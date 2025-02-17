@@ -4,12 +4,15 @@ import {
   setBVN,
   verifyBVN,
   verifyOTP,
+  createKycSession,
 } from "../services/kycservice";
 import { Request, Response } from "express";
 import { findWalletService } from "../services/walletService";
 import { decrypt } from "../services/encryption";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
 import { findOtpPhone } from "../services/otpService";
+import User from '../models/user';
+
 interface CustomRequest extends Request {
   user: {
     id: string;
@@ -122,6 +125,45 @@ const verifyBVNController = async (req: Request, res: Response) => {
   });
   return res.status(200).json(isSet);
 };
+
+export const initiateTier2Kyc = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        status: 404,
+        message: "User not found" 
+      });
+    }
+    // Ensure the user is Tier 1 before Tier 2 KYC can be initiated.
+    if (user.Tier !== 0) {
+      return res.status(400).json({ 
+        status: 400,
+        message: "User must be a Tier 0 user to initiate Tier 1 KYC" 
+      });
+    }
+
+    // Create the KYC session using the Didit API.
+    const sessionData = await createKycSession(userId);
+
+    // Success response with the verification URL
+    return res.status(200).json({
+      status: 200,
+      message: "KYC Tier 1 session created successfully",
+      //@ts-ignore
+      verificationUrl: sessionData?.url, // URL for the user to complete the verification
+    });
+  } catch (error: any) {
+    // Handle any internal server errors
+    return res.status(500).json({ 
+      status: 500,
+      message: "Error initiating Tier 2 KYC",
+      error: error.message 
+    });
+  }
+};
+
 
 export {
   sendOTP,
