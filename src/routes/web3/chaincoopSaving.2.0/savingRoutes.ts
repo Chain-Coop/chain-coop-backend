@@ -5,6 +5,9 @@ import {
   allUserPools,
   totalNumberPoolCreated,
   updatePoolWithAmount,
+  restartPoolForSaving,
+  stopSavingForPool,
+  allUserPoolsContributions
 } from "../../../controllers/web3/chaincoopSaving.2.0/savingcontroller";
 import { authorize } from "../../../middlewares/authorization";
 const router = Router();
@@ -270,7 +273,10 @@ const router = Router();
 router.post("/openPool", authorize, openSavingPool);
 router.post("/updatePool", authorize, updatePoolWithAmount);
 router.post("/withdraw", authorize, withdrawFromPoolByID);
+router.post("/stopPool", authorize, stopSavingForPool);
+router.post("/restartPool", authorize, restartPoolForSaving);
 router.get("/userPools", authorize, allUserPools);
 router.get("/totalPools", authorize, totalNumberPoolCreated);
+router.get("/userPoolContributions", authorize, allUserPoolsContributions);
 
 export default router;

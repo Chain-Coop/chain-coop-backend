@@ -27,7 +27,7 @@ const allowStableTokenAddressfForSaving = asyncHandler(
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const tx = await addSupportedTokenAddress(
-        stableTokenAddress,
+        stableTokenAddress,      
         userPrivateKey
       );
       if (!tx) {

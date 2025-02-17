@@ -1,15 +1,17 @@
-import {chainCoopSavingcontract } from "../../../utils/web3/contract";
+
 import { ethers, formatEther, parseEther } from "ethers";
 import { approveTokenTransfer } from "../accountService";
 import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2 } from "../../../constant/contract/ChainCoopSaving";
 import { getTokenAddressSymbol } from "../accountService";
+import { signPermit,submitPermitAndTransfer,chainCoopSavingcontract } from "../../../utils/web3/contract.2.0";
 
 //NB DURATION IS IN SECONDS
 //lisk, usdc
-
+//openSavingPool(address _tokenTosaveWith,uint256 _savedAmount,string calldata _reason,LockingType _locktype,uint256 _duration)
 const openPool = async(tokenAddressToSaveWith:string,initialSaveAmount:string,reasonForSaving:string,
   lockType:number,duration:number,userPrivateKey:string)=>{
     try{
+      
         const approveTx = await approveTokenTransfer(tokenAddressToSaveWith,CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,initialSaveAmount,userPrivateKey);
         if(!approveTx){
             throw Error("Failed to approve transfer")
@@ -27,6 +29,7 @@ const openPool = async(tokenAddressToSaveWith:string,initialSaveAmount:string,re
    
 
 }
+//updateSaving(bytes32 _poolId,uint256 _amount)
 
 const updatePoolAmount = async(poolId_bytes:string,amount:string,tokenAddressToSaveWith:string,userPrivateKey:string)=>{
     try{
