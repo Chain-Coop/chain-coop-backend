@@ -697,7 +697,7 @@ export const chargeCardforContribution = async (
     balance: contribution.balance,
     status: "success",
     savingsType: contribution.savingsType,
-    reference: reference
+    reference: reference,
   });
 
   await contribution.save();
