@@ -652,7 +652,7 @@ export const chargeCardforContribution = async (
     cardAuthCode,
     //@ts-ignore
     contribution.user.email,
-    contribution.amount,
+    contribution.amount
   );
 
   //@ts-ignore
@@ -668,14 +668,6 @@ export const chargeCardforContribution = async (
     new Date(),
     contribution.contributionPlan
   );
-
-
-    // Initialize paymentReference if it's not set already
-    if (!contribution.paymentReference) {
-      contribution.paymentReference = `fallback-ref-${new Date().getTime()}`;
-      console.log("Payment Reference initialized:", contribution.paymentReference);
-    }
-
   contribution.balance += contribution.amount;
 
   await createContributionHistoryService({
@@ -687,8 +679,6 @@ export const chargeCardforContribution = async (
     type: "credit",
     balance: contribution.balance,
     status: "success",
-    savingsType: contribution.savingsType,
-    reference: contribution.paymentReference, 
   });
 
   await contribution.save();
