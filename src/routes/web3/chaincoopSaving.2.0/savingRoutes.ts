@@ -270,6 +270,170 @@ const router = Router();
  *                   type: string
  *                   example: internal server error
  */
+
+/**
+ * @swagger
+ * /web3/saving/stopPool:
+ *   post:
+ *     summary: Stop saving for a pool
+ *     description: Stops a user's saving process for a specific pool.
+ *     tags: [Web3]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - poolId_bytes
+ *             properties:
+ *               poolId_bytes:
+ *                 type: string
+ *                 description: The unique identifier of the pool in bytes.
+ *     responses:
+ *       200:
+ *         description: Successfully stopped saving for the pool.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: string
+ *                   description: Transaction hash of the operation.
+ *       400:
+ *         description: Bad request due to missing or invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Provide all required values poolId_bytes"
+ *       401:
+ *         description: Unauthorized, token missing or invalid.
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "internal server error {error message}"
+ */
+
+/**
+ * @swagger
+ * /web3/saving/restartPool:
+ *   post:
+ *     summary: Restart saving for a pool
+ *     description: Restarts a user's saving process for a specific pool.
+ *     tags: [Web3]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - poolId_bytes
+ *             properties:
+ *               poolId_bytes:
+ *                 type: string
+ *                 description: The unique identifier of the pool in bytes.
+ *     responses:
+ *       200:
+ *         description: Successfully restarted saving for the pool.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: string
+ *                   description: Transaction hash of the operation.
+ *       400:
+ *         description: Bad request due to missing or invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Provide all required values poolId_bytes"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "internal server error {error message}"
+ */
+
+/**
+ * @swagger
+ * /web3/saving/userPoolContributions:
+ *   get:
+ *     summary: Get all user pool contributions
+ *     description: Retrieves all contributions made by the authenticated user to various pools.
+ *     tags: [Web3]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user contributions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   description: List of user contributions.
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request if the user's wallet is not activated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Please activate wallet"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "internal server error {error message}"
+ */
+
 router.post("/openPool", authorize, openSavingPool);
 router.post("/updatePool", authorize, updatePoolWithAmount);
 router.post("/withdraw", authorize, withdrawFromPoolByID);
