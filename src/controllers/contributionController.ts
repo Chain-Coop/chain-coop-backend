@@ -685,7 +685,7 @@ export const chargeCardforContribution = async (
     contribution.contributionPlan
   );
   contribution.balance += contribution.amount;
-  const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`; 
 
   await createContributionHistoryService({
     contribution: contributionId,
