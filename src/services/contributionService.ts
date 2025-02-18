@@ -830,6 +830,9 @@ export const calculateNextContributionDate = (
     case "5Minutes":
       date.setMinutes(date.getMinutes() + 2);
       break; 
+      case "Hourly":
+    date.setHours(date.getHours() + 1);
+    break;
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
   }
