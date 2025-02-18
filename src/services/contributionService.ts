@@ -62,6 +62,18 @@ export const createContributionService = async (data: {
   contributionType: "one-time" | "auto";
 }) => {
   try {
+
+    // Enforce the rule that "Strict" savingsType must have contributionType "one-time"
+    if (data.savingsType === "Strict" && data.contributionType !== "one-time") {
+      throw new BadRequestError(
+        "For 'Strict' savingsType, contributionType must be 'one-time'."
+      );
+    }
+    
+    // Calculate savings duration (endDate - startDate in days)
+    const savingsDuration =
+      (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24);
+
     if (data.contributionType === "one-time") {
       const contribution = await Contribution.create({
         user: data.user,
@@ -71,6 +83,7 @@ export const createContributionService = async (data: {
         currency: data.currency,
         savingsCategory: data.savingsCategory,
         startDate: new Date(data.startDate),
+        savingsDuration,
         endDate: new Date(data.endDate),
         nextContributionDate: null,
         lastContributionDate: new Date(data.startDate),
@@ -83,6 +96,7 @@ export const createContributionService = async (data: {
       return {
         contributionId: contribution._id,
         withdrawalDate: contribution.withdrawalDate,
+        savingsDuration: contribution.savingsDuration,
       };
 
     } else { 

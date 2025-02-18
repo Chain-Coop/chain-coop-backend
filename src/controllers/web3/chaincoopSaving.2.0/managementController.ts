@@ -4,7 +4,7 @@ import {
   flagRemoveTokens,
   transferOwnership,
   setAddressForFeeCollection,
-} from "../../../services/web3/chaincoopSaving/managementService";
+} from "../../../services/web3/chaincoopSaving.2.0/managementService";
 import { Request, Response } from "express"; 
 import { getUserWeb3Wallet } from "../../../services/web3/accountService";
 
@@ -27,7 +27,7 @@ const allowStableTokenAddressfForSaving = asyncHandler(
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const tx = await addSupportedTokenAddress(
-        stableTokenAddress,      
+        stableTokenAddress,
         userPrivateKey
       );
       if (!tx) {

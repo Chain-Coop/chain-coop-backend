@@ -6,6 +6,7 @@ import {
   verifyBVNController,
   verifyOTPController,
   verifyWhatsappOTPController,
+  initiateTier2Kyc
 } from "../controllers/kycontroller";
 import { authorize } from "../middlewares/authorization";
 
@@ -184,5 +185,8 @@ router.post("/set-bvn", authorize, setBVNController);
 router.post("/verify-bvn", authorize, verifyBVNController);
 router.post("/sendwaotp", authorize, sendWhatsappOTPController);
 router.post("/verifywaotp", authorize, verifyWhatsappOTPController);
+
+//TIER 2 Verification routes
+router.post('/tier1/:userId', initiateTier2Kyc);
 
 export default router;
