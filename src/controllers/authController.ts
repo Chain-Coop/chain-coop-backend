@@ -17,7 +17,7 @@ import {
   ForbiddenError,
 } from "../errors";
 import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
-import { generateAndSendOtp } from "../utils/sendOtp";
+import { generateAndSendOtp, generateAndSendOtpWA, generateAndSendOtpSMS } from "../utils/sendOtp";
 import {
   createWalletService,
   findWalletService,
@@ -34,7 +34,7 @@ const register = async (req: Request, res: Response) => {
   let user: any = null;
   try {
     //registerValidator(req);
-    const { email } = req.body;
+    const { email, whatsappNumber, phoneNumber } = req.body;
     const legacyUser = await findUser("email", email!);
     if (legacyUser) {
       throw new ConflictError("User with this email already exists");
@@ -49,11 +49,31 @@ const register = async (req: Request, res: Response) => {
       req.body.lastName
     );
 
+    // email otp generator
     await generateAndSendOtp({
       email: email!,
       message: "Your OTP to verify your account is",
       subject: "Email verification",
     });
+
+    // whatsapp otp generator
+    await generateAndSendOtpWA(whatsappNumber)
+      .then((response) => {
+        console.log("OTP sent successfully to whatsapp:", response);
+      })
+      .catch((error) => {
+        console.error("Error sending OTP to whatsapp:", error);
+      });
+
+    // phone-number otp generator
+    await generateAndSendOtpSMS(phoneNumber)
+      .then((response) => {
+        console.log("OTP sent successfully to sms:", response);
+      })
+      .catch((error) => {
+        console.error("Error sending OTP to sms:", error);
+      });
+
 
     const walletPayload: iWallet = {
       balance: 0,
@@ -66,7 +86,7 @@ const register = async (req: Request, res: Response) => {
     await createWalletService(walletPayload);
     await logUserOperation(user?.id, req, "REGISTER", "Success");
     res.status(StatusCodes.CREATED).json({
-      msg: "Registration successful, enter the OTP sent to your email",
+      msg: "Registration successful, proceed to OTP verification", // enter the OTP sent to your email
       user: { _id: user._id, email: user.email, token },
     });
   } catch (error) {

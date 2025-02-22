@@ -47,3 +47,32 @@ export const generateAndSendOtpWA = async (phone: string) => {
     return err;
   }
 };
+
+export const generateAndSendOtpSMS = async (phone: string) => {
+  const otp = await createToken({ count: 6, numeric: true });
+  console.log(otp);
+  await createOtpPhone(phone, otp);
+
+  try {
+    const result = await axios.post(
+      "https://my.kudisms.net/api/otp",
+      {
+        token: process.env.KUDI_API,
+        senderId: "octopus mfb",
+        recipients: phone,
+        otp: otp,
+        appnamecode: "6264483761",
+        templatecode: "4674358581",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return result.data;
+  } catch (err) {
+    console.log(err);
+    return err;
+  }
+};
