@@ -65,6 +65,11 @@ const findOtpPhone = async (phoneNumber: string, otpValue: string) => {
   return await OTP.findOne({ phoneNumber, otp: otpValue, type: "sms" });
 };
 
+const findOtpByPhone = async (phoneNumber: string) => {
+  return await OTP.findOne({ phoneNumber, type: "sms" });
+};
+
+
 const deleteOtpPhone = async (phoneNumber: string) => {
   return await OTP.findOneAndDelete({ phoneNumber, type: "sms" });
 };
@@ -75,6 +80,10 @@ const createOtpWhatsApp = async (whatsappNumber: string, otp: string) => {
 
 const findOtpWhatsApp = async (whatsappNumber: string, otpValue: string) => {
   return await OTP.findOne({ whatsappNumber, otp: otpValue, type: "whatsapp" });
+};
+
+const findOtpByWhatsApp = async (whatsappNumber: string) => {
+  return await OTP.findOne({ whatsappNumber, type: "whatsapp" });
 };
 
 const deleteOtpWhatsApp = async (whatsappNumber: string) => {
@@ -88,8 +97,10 @@ export {
   findOtpByEmail,
   createOtpPhone,
   findOtpPhone,
+  findOtpByPhone,
   deleteOtpPhone,
   createOtpWhatsApp,
   findOtpWhatsApp,
+  findOtpByWhatsApp,
   deleteOtpWhatsApp,
 };

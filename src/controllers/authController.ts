@@ -18,7 +18,7 @@ import {
   UnauthenticatedError,
   ForbiddenError,
 } from "../errors";
-import { deleteOtp, deleteOtpPhone, deleteOtpWhatsApp, findOtp, findOtpByEmail, findOtpPhone, findOtpWhatsApp } from "../services/otpService";
+import { deleteOtp, deleteOtpPhone, deleteOtpWhatsApp, findOtp, findOtpByEmail, findOtpByPhone, findOtpByWhatsApp, findOtpPhone, findOtpWhatsApp } from "../services/otpService";
 import { generateAndSendOtp, generateAndSendOtpWA, generateAndSendOtpSMS } from "../utils/sendOtp";
 import {
   createWalletService,
@@ -195,6 +195,70 @@ const resendOtp = async (req: Request, res: Response) => {
   });
 };
 
+// Resend OTP for phone number verification through SMS
+const resendOtpSms = async (req: Request, res: Response) => {
+  const { phoneNumber } = req.body;
+
+  if (!phoneNumber) {
+    throw new BadRequestError("Phone number is required");
+  }
+
+  const isOtp = await findOtpByPhone(phoneNumber);
+  if (isOtp) {
+    await deleteOtpPhone(phoneNumber);
+  }
+
+  const user = await findUser("phoneNumber", phoneNumber);
+  if (!user) {
+    throw new NotFoundError("User with this phone number does not exist");
+  }
+
+  try {
+    await generateAndSendOtpSMS(phoneNumber);
+    console.log("OTP sent successfully to SMS:", phoneNumber);
+    res.status(StatusCodes.CREATED).json({
+      msg: "OTP successfully sent to your phone via SMS",
+    });
+  } catch (error) {
+    console.error("Error sending OTP to SMS:", error);
+    throw new BadRequestError("Failed to send OTP via SMS. Please try again.");
+  }
+};
+
+// Resend OTP for phone number verification through WhatsApp
+const resendOtpWhatsApp = async (req: Request, res: Response) => {
+  const { whatsappNumber } = req.body;
+
+  if (!whatsappNumber) {
+    throw new BadRequestError("WhatsApp number is required");
+  }
+
+  const isOtp = await findOtpByWhatsApp(whatsappNumber);
+  if (isOtp) {
+    await deleteOtpWhatsApp(whatsappNumber);
+  }
+
+  const user = await findUser("whatsappNumber", whatsappNumber);
+  if (!user) {
+    throw new NotFoundError("User with this WhatsApp number does not exist");
+  }
+
+  try {
+    await generateAndSendOtpWA(whatsappNumber);
+    console.log("OTP sent successfully to WhatsApp:", whatsappNumber);
+    res.status(StatusCodes.CREATED).json({
+      msg: "OTP successfully sent to your WhatsApp",
+    });
+  } catch (error) {
+    console.error("Error sending OTP to WhatsApp:", error);
+    throw new BadRequestError(
+      "Failed to send OTP via WhatsApp. Please try again."
+    );
+  }
+};
+
+
+
 // Updated login method to include membership payment and status check
 const login = async (req: Request, res: Response) => {
   let user: any = null;
@@ -324,7 +388,11 @@ const resetPassword = async (req: Request, res: Response) => {
 export {
   register,
   verifyOtp,
+  verifyPhoneOtp,
+  verifyWhatsAppOtp,
   resendOtp,
+  resendOtpSms,
+  resendOtpWhatsApp,
   login,
   forgetPassword,
   resetPassword,
