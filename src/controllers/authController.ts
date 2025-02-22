@@ -59,19 +59,19 @@ const register = async (req: Request, res: Response) => {
     // whatsapp otp generator
     await generateAndSendOtpWA(whatsappNumber)
       .then((response) => {
-        console.log("OTP sent successfully to whatsapp:", response);
+        console.log("OTP sent successfully to WhatSapp:", response);
       })
       .catch((error) => {
-        console.error("Error sending OTP to whatsapp:", error);
+        console.error("Error sending OTP to WhatSapp:", error);
       });
 
     // phone-number otp generator
     await generateAndSendOtpSMS(phoneNumber)
       .then((response) => {
-        console.log("OTP sent successfully to sms:", response);
+        console.log("OTP sent successfully to SMS:", response);
       })
       .catch((error) => {
-        console.error("Error sending OTP to sms:", error);
+        console.error("Error sending OTP to SMS:", error);
       });
 
 
