@@ -16,6 +16,7 @@ export interface UserDocument extends Document {
 	username: String;
 	firstName: string;
 	lastName: string;
+	whatsappNumber: string;
 	phoneNumber: string;
 	isVerified: boolean;
 	Tier: number;
@@ -58,6 +59,10 @@ const UserSchema = new Schema(
 		username: {
 			type: String,
 			required: [true, "Username is required"],
+		},
+
+		whatsappNumber: {
+			type: String,
 		},
 
 		phoneNumber: {

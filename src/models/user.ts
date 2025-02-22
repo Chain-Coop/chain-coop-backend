@@ -7,6 +7,7 @@ export interface UserDocument extends Document {
   membershipStatus: "active" | "pending" | "inactive";
   membershipPaymentStatus: "paid" | "in-progress" | "not_started";
   membershipType: "Explorer" | "Pioneer" | "Voyager";
+  whatsappNumber: string;
   phoneNumber: string;
   Tier: 0 | 1 | 2;
   isVerified: boolean;
@@ -36,6 +37,10 @@ const UserSchema: Schema = new Schema({
   membershipType: {
     type: String, // Adjust this if there are specific membership types
     enum: ["Explorer", "Pioneer", "Voyager"],
+    required: false,
+  },
+  whatsappNumber: {
+    type: String,
     required: false,
   },
   phoneNumber: {
