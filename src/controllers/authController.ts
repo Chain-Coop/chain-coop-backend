@@ -8,6 +8,8 @@ import {
   resetUserPassword,
   updateUserByEmail,
   updateUserById,
+  updateUserByPhone,
+  updateUserByWhatsApp,
 } from "../services/authService";
 import {
   BadRequestError,
@@ -16,7 +18,7 @@ import {
   UnauthenticatedError,
   ForbiddenError,
 } from "../errors";
-import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
+import { deleteOtp, deleteOtpPhone, deleteOtpWhatsApp, findOtp, findOtpByEmail, findOtpPhone, findOtpWhatsApp } from "../services/otpService";
 import { generateAndSendOtp, generateAndSendOtpWA, generateAndSendOtpSMS } from "../utils/sendOtp";
 import {
   createWalletService,
@@ -59,10 +61,10 @@ const register = async (req: Request, res: Response) => {
     // whatsapp otp generator
     await generateAndSendOtpWA(whatsappNumber)
       .then((response) => {
-        console.log("OTP sent successfully to WhatSapp:", response);
+        console.log("OTP sent successfully to WhatsApp:", response);
       })
       .catch((error) => {
-        console.error("Error sending OTP to WhatSapp:", error);
+        console.error("Error sending OTP to WhatsApp:", error);
       });
 
     // phone-number otp generator
@@ -114,6 +116,60 @@ const verifyOtp = async (req: Request, res: Response) => {
     .status(StatusCodes.OK)
     .json({ msg: "Your account has been activated", newUser });
 };
+
+// Verify OTP through sms
+const verifyPhoneOtp = async (req: Request, res: Response) => {
+  const { phoneNumber, phoneNumberOtp } = req.body;
+
+  if (!phoneNumber || !phoneNumberOtp) {
+    throw new BadRequestError("Phone number and OTP are required");
+  }
+
+  const validOtp = await findOtpPhone(phoneNumber, phoneNumberOtp);
+  if (!validOtp) {
+    throw new UnauthenticatedError("Failed to validate phone OTP");
+  }
+
+  await deleteOtpPhone(phoneNumber);
+
+  const newUser = await updateUserByPhone(phoneNumber, { isVerified: true });
+  if (!newUser) {
+    throw new NotFoundError("User not found");
+  }
+
+  res.status(StatusCodes.OK).json({
+    msg: "Phone number verified successfully",
+    newUser,
+  });
+};
+
+// Verify OTP through whatsApp
+const verifyWhatsAppOtp = async (req: Request, res: Response) => {
+  const { whatsappNumber, whatsappOtp } = req.body;
+
+  if (!whatsappNumber || !whatsappOtp) {
+    throw new BadRequestError("WhatsApp number and OTP are required");
+  }
+
+  const validOtp = await findOtpWhatsApp(whatsappNumber, whatsappOtp);
+  if (!validOtp) {
+    throw new UnauthenticatedError("Failed to validate WhatsApp OTP");
+  }
+
+  await deleteOtpWhatsApp(whatsappNumber);
+
+  const newUser = await updateUserByWhatsApp(whatsappNumber, { isVerified: true });
+  if (!newUser) {
+    throw new NotFoundError("User not found");
+  }
+
+  res.status(StatusCodes.OK).json({
+    msg: "WhatsApp number verified successfully",
+    newUser,
+  });
+};
+
+
 
 // Resend OTP for email verification
 const resendOtp = async (req: Request, res: Response) => {

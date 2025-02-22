@@ -29,6 +29,19 @@ const updateUserByEmail = async (email: string, payload: any) =>
     runValidators: true,
   });
 
+const updateUserByPhone = async (phoneNumber: string, payload: any) =>
+  await User.findOneAndUpdate({ phoneNumber }, payload, {
+    new: true,
+    runValidators: true,
+  });
+
+const updateUserByWhatsApp = async (whatsappNumber: string, payload: any) =>
+  await User.findOneAndUpdate({ whatsappNumber }, payload, {
+    new: true,
+    runValidators: true,
+  });
+  
+  
 const updateUserById = async (id: string, payload: any) =>
   await User.findOneAndUpdate({ _id: id }, payload, {
     new: true,
@@ -44,6 +57,8 @@ export {
   createUser,
   findUser,
   updateUserByEmail,
+  updateUserByPhone,
+  updateUserByWhatsApp,
   updateUserById,
   getUserDetails,
   resetUserPassword,
