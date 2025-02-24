@@ -1,4 +1,4 @@
-import { createOtp, createOtpPhone } from "../services/otpService";
+import { createOtp, createOtpPhone, createOtpWhatsApp } from "../services/otpService";
 import { createToken } from "./createToken";
 import { sendEmail } from "./sendEmail";
 import axios from "axios";
@@ -25,7 +25,7 @@ export const generateAndSendOtp = async ({
 export const generateAndSendOtpWA = async (phone: string) => {
   const otp = await createToken({ count: 6, numeric: true });
   console.log(otp);
-  await createOtpPhone(phone, otp);
+  await createOtpWhatsApp(phone, otp);
   try {
     const result = await axios.post(
       "https://my.kudisms.net/api/whatsapp",
