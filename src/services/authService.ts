@@ -8,6 +8,10 @@ const findUser = async (by: string, val: string) =>
     ? await User.findOne({ email: val })
     : by === "id"
     ? await User.findOne({ _id: val })
+    : by === "phoneNumber"
+    ? await User.findOne({ phoneNumber: val })
+    : by === "whatsappNumber"
+    ? await User.findOne({ whatsappNumber: val })
     : "";
 
 const findExistingUser = async (email: string, phone: string) => {
