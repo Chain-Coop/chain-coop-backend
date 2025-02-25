@@ -53,16 +53,15 @@ export const generateAndSendOtpSMS = async (phone: string) => {
   console.log(otp);
   await createOtpPhone(phone, otp);
 
+  console.log(process.env.KUDI_API, "kudi parameters")
   try {
     const result = await axios.post(
-      "https://my.kudisms.net/api/otp",
+      "https://my.kudisms.net/api/sms",
       {
         token: process.env.KUDI_API,
-        senderId: "octopus mfb",
+        senderID: "neo",
         recipients: phone,
-        otp: otp,
-        appnamecode: "6264483761",
-        templatecode: "4674358581",
+        message: otp,
       },
       {
         headers: {
