@@ -4,6 +4,8 @@ export interface SavingCircleDocument extends Document {
   name: string;
   description: string;
   status: "pending" | "active" | "completed";
+  groupType: "open" | "closed";
+  inviteCode?: string;
   members: Array<{
     userId: Schema.Types.ObjectId;
     contribution: number;
@@ -11,6 +13,8 @@ export interface SavingCircleDocument extends Document {
     cardData?: string;
     failures?: number;
   }>;
+  invitedUsers?: Schema.Types.ObjectId[];
+  createdBy: Schema.Types.ObjectId;
   createdDate: Date;
   updatedDate: Date;
   currency: string;
@@ -18,7 +22,7 @@ export interface SavingCircleDocument extends Document {
   balance: number;
   duration: number;
   frequency: number;
-  nextContributionDate: Date;
+  nextContributionDate?: Date;
   progress?: number;
   startDate?: Date;
   endDate?: Date;
@@ -26,116 +30,62 @@ export interface SavingCircleDocument extends Document {
   interestAmount?: number;
   goalAmount?: number;
   currentIndividualTotal?: number;
-  type?: string;
-  createdBy?: Schema.Types.ObjectId;
+  type?: "free" | "time";
 }
 
-const SavingCircleSchema = new Schema(
+const SavingCircleSchema = new Schema<SavingCircleDocument>(
   {
-    name: {
-      type: String,
-      required: [true, "Circle name is required"],
+    name: { type: String, required: [true, "Circle name is required"] },
+    description: { type: String, required: [true, "Circle description is required"] },
+    status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
+    groupType: { type: String, enum: ["open", "closed"], required: true, default: "closed" },
+    inviteCode: { 
+      type: String, 
+      required: function (this: SavingCircleDocument) {
+        return this.groupType === "closed";
+      },
     },
-    description: {
-      type: String,
-      required: [true, "Circle description is required"],
-    },
-    status: {
-      type: String,
-      enum: ["pending", "active", "completed"],
-      default: "pending",
-    },
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "User ID is required"],
-    },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: [true, "User ID is required"] },
     members: [
       {
-        userId: {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-          required: [true, "User ID is required"],
-        },
-        contribution: {
-          type: Number,
-          required: [true, "Contribution is required"],
-        },
-        status: {
-          type: String,
-          enum: ["pending", "active", "completed"],
-          default: "pending",
-        },
-        cardData: {
-          type: String,
-        },
-        failures: {
-          type: Number,
-          default: 0,
-        },
+        userId: { type: Schema.Types.ObjectId, ref: "User", required: [true, "User ID is required"] },
+        contribution: { type: Number, required: [true, "Contribution is required"] },
+        status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
+        cardData: { type: String },
+        failures: { type: Number, default: 0 },
       },
     ],
-    type: {
-      type: String,
-      enum: ["free", "time"],
-      default: "time",
-    },
-    createdDate: {
+    invitedUsers: [{ type: Schema.Types.ObjectId, ref: "User" }], 
+    type: { type: String, enum: ["free", "time"], default: "time" },
+    createdDate: { type: Date, default: Date.now },
+    updatedDate: { type: Date, default: Date.now },
+    currency: { type: String, required: [true, "Currency is required"] },
+    balance: { type: Number, default: 0 },
+    duration: { type: Number },
+    frequency: { type: Number },
+    nextContributionDate: { 
       type: Date,
-      default: Date.now,
-    },
-    updatedDate: {
+      default: function (this: SavingCircleDocument) {
+        return this.frequency
+          ? new Date(Date.now() + this.frequency * 24 * 60 * 60 * 1000)
+          : null;
+      },
+    }, 
+    amount: { type: Number, required: [true, "Amount is required"] },
+    progress: { type: Number, default: 0 },
+    startDate: { type: Date, default: Date.now },
+    endDate: { 
       type: Date,
-      default: Date.now,
-    },
-    currency: {
-      type: String,
-      required: [true, "Currency is required"],
-    },
-    balance: {
-      type: Number,
-      default: 0,
-    },
-    duration: {
-      type: Number,
-    },
-    frequency: {
-      type: Number,
-    },
-    nextContributionDate: {
-      type: Date,
-    },
-    amount: {
-      type: Number,
-      required: [true, "Amount is required"],
-    },
-    progress: {
-      type: Number,
-      default: 0,
-    },
-    startDate: {
-      type: Date,
-      default: Date.now,
-    },
-    endDate: {
-      type: Date,
-    },
-    interestRate: {
-      type: Number,
-      default: 0,
-    },
-    interestAmount: {
-      type: Number,
-      default: 0,
-    },
-    goalAmount: {
-      type: Number,
-      default: 0,
-    },
-    currentIndividualTotal: {
-      type: Number,
-      default: 0,
-    },
+      default: function (this: SavingCircleDocument) {
+        return this.duration
+          ? new Date(Date.now() + this.duration * 24 * 60 * 60 * 1000)
+          : null;
+      },
+    }, 
+    interestRate: { type: Number, default: 0 },
+    interestAmount: { type: Number, default: 0 },
+    goalAmount: { type: Number, default: 0 },
+    currentIndividualTotal: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
