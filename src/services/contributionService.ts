@@ -90,7 +90,7 @@ export const createContributionService = async (data: {
         withdrawalDate: new Date(data.endDate),
         contributionType: data.contributionType,
         balance: 0,
-        status: "Completed",
+        status: "Pending",
       });
       logger.info("Created one-time Contribution ID:", contribution._id);
       return {
@@ -124,7 +124,7 @@ export const createContributionService = async (data: {
       lastContributionDate: new Date(),
       withdrawalDate,
       balance: 0,
-      status: "Completed",
+      status: "Pending",
       contributionType: data.contributionType,
     });
     logger.info("Created Auto-savings Contribution ID:", contribution._id);
@@ -420,6 +420,7 @@ export const verifyContributionPayment = async (reference: string) => {
         throw new BadRequestError("Wallet not found");
       }
 
+      // Save card details if not already saved
       if (!wallet.Card?.data) {
         //@ts-ignore
         wallet.Card = {
@@ -428,7 +429,7 @@ export const verifyContributionPayment = async (reference: string) => {
         };
         wallet.markModified("Card");
         await wallet.save();
-      }  
+      }
 
       const contribution = await Contribution.findOne({
         _id: paymentData.metadata.contributionId,
@@ -440,13 +441,17 @@ export const verifyContributionPayment = async (reference: string) => {
 
       // Skip balance update for non-NGN currencies
       if (contribution.currency !== "NGN") {
-        logger.info(`Payment made with ${contribution.currency}, skipping balance update.`);
+        logger.info(
+          `Payment made with ${contribution.currency}, skipping balance update.`
+        );
       } else {
         contribution.balance += amount / 100;
       }
 
       contribution.paymentReference = paymentData.reference;
+      contribution.status = "Completed"; // Ensure status is updated
 
+      // Create Contribution History Entry
       await createContributionHistoryService({
         contribution: contribution._id as ObjectId,
         user: user._id as ObjectId,
@@ -460,12 +465,7 @@ export const verifyContributionPayment = async (reference: string) => {
         reference: contribution.paymentReference,
       });
 
-      await updateContributionStatusService(
-        contribution._id as string,
-        "Completed"
-      );
-
-      await contribution.save();
+      await contribution.save(); // Ensure the updated status is persisted
 
       return {
         message: "Payment verified successfully",
@@ -473,6 +473,7 @@ export const verifyContributionPayment = async (reference: string) => {
           contributionId: contribution._id,
           amount: contribution.amount,
           balance: contribution.balance,
+          status: contribution.status, // Return updated status
         },
       };
     } else {
@@ -485,6 +486,7 @@ export const verifyContributionPayment = async (reference: string) => {
     );
   }
 };
+
 
 export const tryRecurringContributions = async () => {
   // Process only auto-savings contributions; one-time contributions are skipped.
@@ -715,6 +717,7 @@ export const updateContributionStatusService = async (
     { status }
   );
 };
+
 
 export const updateContributionService = async (
   id: ObjectId,
