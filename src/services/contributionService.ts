@@ -63,12 +63,12 @@ export const createContributionService = async (data: {
 }) => {
   try {
 
-    // Enforce the rule that "Strict" savingsType must have contributionType "one-time"
-    if (data.savingsType === "Strict" && data.contributionType !== "one-time") {
-      throw new BadRequestError(
-        "For 'Strict' savingsType, contributionType must be 'one-time'."
-      );
-    }
+    // // Enforce the rule that "Strict" savingsType must have contributionType "one-time"
+    // if (data.savingsType === "Strict" && data.contributionType !== "one-time") {
+    //   throw new BadRequestError(
+    //     "For 'Strict' savingsType, contributionType must be 'one-time'."
+    //   );
+    // }
     
     // Calculate savings duration (endDate - startDate in days)
     const savingsDuration =
@@ -143,6 +143,40 @@ export const createContributionService = async (data: {
 };
 
 
+// Define an interface for the AML response from YouVerify
+interface AMLResponse {
+  riskRating: number;
+  // add other expected fields from the API response here, e.g.:
+  // message?: string;
+  // status?: string;
+}
+
+// Helper function to perform AML check with a typed response
+const performAMLCheck = async (user: any, contribution: any): Promise<AMLResponse> => {
+  const payload = {
+    email: user.email,
+    amount: contribution.amount,
+    currency: contribution.currency,
+    contributionId: contribution._id,
+    // Include any additional fields required by YouVerify
+  };
+
+  // Use axios.post with the generic type parameter
+  const amlResponse = await axios.post<AMLResponse>(
+    'https://api.youverify.co/v1/aml', // Replace with the actual endpoint
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.YOUVERIFY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return amlResponse.data;
+};
+
+// In your initializeContributionPayment, call performAMLCheck and use the typed response
 export const initializeContributionPayment = async (
   contributionId: string,
   paymentType: string,
@@ -161,18 +195,25 @@ export const initializeContributionPayment = async (
       throw new BadRequestError("Contribution not found");
     }
 
+    // Perform AML and transaction risk check via YouVerify API with a typed response
+    const amlResult = await performAMLCheck(user, contribution);
+    // Now, amlResult is of type AMLResponse
+    if (amlResult.riskRating > 5) {
+      throw new BadRequestError("Transaction risk too high – please contact support.");
+    }
+
     let response: any;
     if (paymentType === "paystack") {
       response = await axios.post(
         `${PAYSTACK_BASE_URL}/transaction/initialize`,
         {
           email: user.email,
-          amount: contribution.amount * 100,
+          amount: contribution.amount * 100, // converting to kobo if NGN
           callback_url: CONTRIBUTION_CALLBACK_URL,
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
-          }, 
+          },
         },
         {
           headers: {
@@ -190,7 +231,7 @@ export const initializeContributionPayment = async (
           type: "conpayment",
         }
       );
-      if (!response.data.status && response.data.status !== "success") {
+      if (!response.data.status || response.data.status !== "success") {
         throw new BadRequestError(response.data.message);
       }
 
@@ -222,6 +263,7 @@ export const initializeContributionPayment = async (
     );
   }
 };
+
 
 //Service to charge unpaid contributions
 export const chargeUnpaidContributions = async (
@@ -852,6 +894,7 @@ export const getAllUserContributionsService = async (
   skip = 0
 ) => {
   return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
+    .sort({ createdAt: -1 }) 
     .limit(limit)
     .skip(skip);
 };

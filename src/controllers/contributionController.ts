@@ -78,11 +78,11 @@ export const createContribution = async (req: Request, res: Response) => {
   }
 
     // Enforce the rule: savingsType "Strict" must have contributionType "one-time"
-    if (savingsType === "Strict" && contributionType !== "one-time") {
-      throw new BadRequestError(
-        "For 'Strict' savingsType, contributionType must be 'one-time'."
-      );
-    }
+    // if (savingsType === "Strict" && contributionType !== "one-time") {
+    //   throw new BadRequestError(
+    //     "For 'Strict' savingsType, contributionType must be 'one-time'."
+    //   );
+    // }
   
 
   // Validate that contributionPlan is provided when savingsType is not "Strict"
