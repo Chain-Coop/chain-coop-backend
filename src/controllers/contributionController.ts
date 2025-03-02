@@ -668,7 +668,8 @@ export const chargeCardforContribution = async (
     cardAuthCode,
     //@ts-ignore
     contribution.user.email,
-    contribution.amount
+    contribution.amount,
+    { contributionId }
   );
 
   //@ts-ignore
@@ -680,6 +681,8 @@ export const chargeCardforContribution = async (
   }
 
   contribution.lastContributionDate = new Date();
+    // Update status to "Completed" as the payment was successful
+    contribution.status = "Completed";
   contribution.nextContributionDate = calculateNextContributionDate(
     new Date(),
     contribution.contributionPlan
@@ -707,6 +710,8 @@ export const chargeCardforContribution = async (
     message: "Payment successful. Contribution has been made.",
   });
 };
+
+
 export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
