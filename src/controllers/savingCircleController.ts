@@ -9,6 +9,7 @@ import {
   paymentCircleService,
   unpaidCircleService,
   tryRecurringCircleService,
+  verifyPaymentService,
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
 
@@ -24,10 +25,6 @@ export const createCircleController = async (req: Request, res: Response) => {
     }
     //@ts-ignore
     circleData.createdBy = req.user.userId;
-
-    if (!["open", "closed"].includes(circleData.visibility)) {
-      throw new BadRequestError('Visibility must be either "open" or "closed".');
-    }
 
     if (circleData.type === "time") {
       const frequencyInDays = Number(req.body.frequencyInDays);
@@ -197,5 +194,39 @@ export const recurringCircleController = async (req: Request, res: Response) => 
 
   } catch (error: any) {
     res.status(error.status || 500).json({ message: error.message || "Failed to trigger recurring contributions" });
+  }
+};
+
+// Controller for verifying the payment
+export const verifyPaymentController = async (req: Request, res: Response) => {
+  try {
+    const { reference } = req.query;
+
+    if (!reference) {
+      return res.status(400).json({
+        statusCode: 400,
+        data: { message: "Reference is required." },
+      });
+    }
+
+    // Call the service to verify the payment
+    const paymentDetails = await verifyPaymentService(reference as string);
+
+    return res.status(200).json({
+      statusCode: 200,
+      data: {
+        message: "Payment verified successfully",
+        data: paymentDetails,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error in payment verification controller:", error.message || error);
+
+    return res.status(500).json({
+      statusCode: 500,
+      data: {
+        message: error.message || "Payment verification failed.",
+      },
+    });
   }
 };
