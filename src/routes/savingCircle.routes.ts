@@ -77,13 +77,13 @@ router.post("/create", authorize, createCircleController);
  * /api//savingcircle/join:
  *   post:
  *     summary: Join an existing saving circle
- *     description: Allows a user to join an existing saving circle.
+ *     description: Allows a user to join an existing saving circle using an invite code.
  *     tags:
  *       - Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       description: The circle ID to join.
+ *       description: The details to join a saving circle.
  *       required: true
  *       content:
  *         application/json:
@@ -92,11 +92,18 @@ router.post("/create", authorize, createCircleController);
  *             properties:
  *               circleId:
  *                 type: string
+ *                 example: "67ca3141d5c1f8b000b9f0ae"
+ *               userId:
+ *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
+ *               inviteCode:
+ *                 type: string
+ *                 example: "8C55AC3E1ACB"
  *     responses:
  *       200:
  *         description: Successfully joined the saving circle
  *       404:
- *         description: Circle not found
+ *         description: Circle or invite code not found
  */
 router.post("/join", authorize, joinCircleController);
 
@@ -278,10 +285,13 @@ router.post("/initialize", authorize, initializeCircleController);
  *             properties:
  *               circleId:
  *                 type: string
- *               amount:
- *                 type: number
- *               paymentMethod:
+ *                 example: "67ca3f0bf79e925aca8e4507"
+ *               userId:
  *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
+ *               paymentType:
+ *                 type: string
+ *                 example: "paystack"
  *     responses:
  *       200:
  *         description: Payment successfully processed
