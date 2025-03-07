@@ -20,7 +20,7 @@ const router = Router();
  * /api/savingCircles/create:
  *   post:
  *     summary: Create a new saving circle
- *     description: Allows a user to create a new saving circle.
+ *     description: Allows a user to create a new saving circle with specified attributes.
  *     tags:
  *       - Saving Circles
  *     security:
@@ -35,13 +35,36 @@ const router = Router();
  *             properties:
  *               circleName:
  *                 type: string
+ *                 example: "Monthly Savings Circle"
+ *               description:
+ *                 type: string
+ *                 example: "A circle for monthly savings"
  *               targetAmount:
  *                 type: number
  *                 format: float
- *               frequency:
+ *                 example: 5000
+ *               currency:
  *                 type: string
- *               description:
+ *                 example: "USD"
+ *               duration:
+ *                 type: integer
+ *                 example: 90
+ *               frequencyInDays:
+ *                 type: integer
+ *                 example: 30
+ *               type:
  *                 type: string
+ *                 example: "time"
+ *               goalAmount:
+ *                 type: number
+ *                 format: float
+ *                 example: 100000
+ *               groupType:
+ *                 type: string
+ *                 example: "closed"
+ *               userId:
+ *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
  *     responses:
  *       200:
  *         description: Successfully created saving circle
@@ -49,7 +72,6 @@ const router = Router();
  *         description: Invalid input
  */
 router.post("/create", authorize, createCircleController);
-
 /**
  * @swagger
  * /api/savingCircles/join:
