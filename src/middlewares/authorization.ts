@@ -1,6 +1,6 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { ForbiddenError, UnauthenticatedError } from "../errors";
-import { NextFunction, Request, Response } from "express";
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { ForbiddenError, UnauthenticatedError } from '../errors';
+import { NextFunction, Request, Response } from 'express';
 
 type PayloadType = {
   user: {
@@ -17,11 +17,11 @@ export const authorize = (
 ): void => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new UnauthenticatedError("Not authorized");
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new UnauthenticatedError('Not authorized');
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const payload = jwt.verify(
@@ -33,7 +33,7 @@ export const authorize = (
     req.user = payload.user;
     next();
   } catch (error) {
-    throw new UnauthenticatedError("Authentication invalid");
+    throw new UnauthenticatedError('Authentication invalid');
   }
 };
 
@@ -42,7 +42,7 @@ export const authorizePermissions =
   (req: Request, res: Response, next: NextFunction): void => {
     // @ts-ignore
     if (!req.user || !roles.includes(req.user.role)) {
-      throw new ForbiddenError("Access denied");
+      throw new ForbiddenError('Access denied');
     }
     next();
   };
