@@ -19,7 +19,7 @@ const router = Router();
  *     summary: Create a new saving circle
  *     description: Creates a new saving circle with specified members, deposit amount, token, deposit interval, and maximum deposits
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -88,7 +88,7 @@ router.post('/createCircle', authorize, createCircles);
  *     summary: Deposit to a saving circle
  *     description: Deposits the specified amount to a saving circle
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -135,7 +135,7 @@ router.post('/depositCircle', authorize, depositToCircle);
  *     summary: Withdraw from a saving circle
  *     description: Withdraws funds from a specified saving circle
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -167,7 +167,7 @@ router.post('/withdrawCircle', authorize, withdrawFromCircle);
  *     summary: Set token allowance for saving circles
  *     description: Sets whether a token is allowed for use in saving circles
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -203,7 +203,7 @@ router.post('/setAllowedTOken', authorize, setSavingTokenAllowed);
  *     summary: Decommission a saving circle
  *     description: Decommissions a specified saving circle
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -235,7 +235,7 @@ router.post('/deleteCircle', authorize, decommissionSavingCircle);
  *     summary: Get member balances for a circle
  *     description: Retrieves all member balances for a specified circle
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -263,7 +263,7 @@ router.get('/memberBalance/:id', authorize, getSavingMemberBalances);
  *     summary: Get user's saving circles
  *     description: Retrieves all saving circle ids the user is a member of
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -283,7 +283,7 @@ router.get('/memberCircles', authorize, getSavingMemberCircles);
  *     summary: Get details of a saving circle
  *     description: Retrieves detailed information about a specific saving circle
  *     tags:
- *       - Saving Circles
+ *       - Web3 Saving Circles
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -43,7 +43,7 @@ import transactionHistory from './routes/web3/transactionHistoryRoutes';
 //version 2.0
 import chainCoopManagementRouter_2 from './routes/web3/chaincoopSaving.2.0/managementRoutes';
 import chaincoopSavingRoute_2 from './routes/web3/chaincoopSaving.2.0/savingRoutes';
-import web3SavingCircle from './routes/web3/savingCircles/SavingCircleRoutes2';
+import web3SavingCircle from './routes/web3/savingCircles/savingCircleRoutes2';
 //import
 import logger from './utils/logger';
 import { webhookController } from './controllers/webhookController';
