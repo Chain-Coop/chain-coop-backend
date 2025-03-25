@@ -51,7 +51,7 @@ const router = Router();
 
 /**
  * @swagger
- * /notifications:
+ * /notification:
  *   post:
  *     summary: Create a new global notification
  *     tags: [Notifications]
@@ -85,7 +85,7 @@ const router = Router();
 
 /**
  * @swagger
- * /notifications:
+ * /notification:
  *   get:
  *     summary: Get a paginated list of notifications for the user
  *     tags: [Notifications]
@@ -155,7 +155,7 @@ const router = Router();
 
 /**
  * @swagger
- * /notifications/read/{notificationId}:
+ * /notification/read/{notificationId}:
  *   post:
  *     summary: Mark a notification as read
  *     tags: [Notifications]

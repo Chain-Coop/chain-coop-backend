@@ -16,7 +16,7 @@ export interface iContribution {
   savingsCategory: string;
   _id?: ObjectId;
   user: ObjectId;
-  contributionPlan: string;
+  contributionPlan?: string;
   amount: number;
   currency: string;
   status?: string;
@@ -559,7 +559,7 @@ export const tryRecurringContributions = async () => {
               contribution.lastContributionDate = contribution.nextContributionDate;
               contribution.nextContributionDate = calculateNextContributionDate(
                 contribution.nextContributionDate!,
-                contribution.contributionPlan
+                contribution.contributionPlan!
               );
               contribution.balance += contribution.amount;
 

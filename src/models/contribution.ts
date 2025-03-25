@@ -2,9 +2,9 @@ import { Schema, model, Document } from "mongoose";
 
 export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
-  contributionPlan: string;
+  contributionPlan?: string;
   savingsCategory: string;
-  savingsType: "Flexible" | "Lock" | "Strict"; 
+  savingsType?: "Flexible" | "Lock" | "Strict"; 
   amount: number;
   currency: string; 
   startDate?: Date;
@@ -31,9 +31,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     contributionPlan: {
       type: String,
       enum: ["Daily", "Weekly", "Monthly", "Yearly", "5Minutes", "Hourly"],
-      required: function () {
-        return this.savingsType !== "Strict";
-      },
+      required: false,
     },
     savingsCategory: {
       type: String,
@@ -41,7 +39,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     savingsType: {
       type: String,
       enum: ["Flexible", "Lock", "Strict"],
-      required: true,
+      required: false,
     },
     amount: {
       type: Number,
