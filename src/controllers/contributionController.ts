@@ -67,11 +67,11 @@ export const createContribution = async (req: Request, res: Response) => {
     !amount ||
     !currency ||
     !email ||
-    !contributionPlan ||
+    // !contributionPlan || 
     !savingsCategory ||
     !startDate ||
     !endDate  ||
-    !savingsType ||
+    // !savingsType ||
     !contributionType
   ) {
     throw new BadRequestError("All fields are required");
@@ -685,7 +685,7 @@ export const chargeCardforContribution = async (
     contribution.status = "Completed";
   contribution.nextContributionDate = calculateNextContributionDate(
     new Date(),
-    contribution.contributionPlan
+    contribution.contributionPlan!
   );
   contribution.balance += contribution.amount;
   const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`; 
