@@ -14,7 +14,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/openPool:
+ * /web3/v2/saving/openPool:
  *   post:
  *     summary: Open a new saving pool
  *     tags: [Web3]
@@ -80,7 +80,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/updatePool:
+ * /web3/v2/saving/updatePool:
  *   post:
  *     summary: Update a saving pool with amount
  *     tags: [Web3]
@@ -140,7 +140,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/withdraw:
+ * /web3/v2/saving/withdraw:
  *   post:
  *     summary: Withdraw from a saving pool by ID
  *     tags: [Web3]
@@ -194,7 +194,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/userPools:
+ * /web3/v2/saving/userPools:
  *   get:
  *     summary: Get all user pools
  *     tags: [Web3]
@@ -239,7 +239,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/totalPools:
+ * /web3/v2/saving/totalPools:
  *   get:
  *     summary: Get total number of pools created
  *     tags: [Web3]
@@ -273,7 +273,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/stopPool:
+ * /web3/v2/saving/stopPool:
  *   post:
  *     summary: Stop saving for a pool
  *     description: Stops a user's saving process for a specific pool.
@@ -332,7 +332,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/restartPool:
+ * /web3/v2/saving/restartPool:
  *   post:
  *     summary: Restart saving for a pool
  *     description: Restarts a user's saving process for a specific pool.
@@ -389,7 +389,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/userPoolContributions:
+ * /web3/v2/saving/userPoolContributions:
  *   get:
  *     summary: Get all user pool contributions
  *     description: Retrieves all contributions made by the authenticated user to various pools.

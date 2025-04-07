@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/management/allow:
+ * /web3/v2/management/allow:
  *   post:
  *     summary: Allow a stable token address for saving
  *     tags: [Web3]
@@ -64,7 +64,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/management/feeCollection:
+ * /web3/v2/management/feeCollection:
  *   post:
  *     summary: Set fee collection address
  *     tags: [Web3]
@@ -118,7 +118,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/management/changeOwnership:
+ * /web3/v2/management/changeOwnership:
  *   post:
  *     summary: Change saving contract ownership
  *     tags: [Web3]
@@ -172,7 +172,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/management/unlist:
+ * /web3/v2/management/unlist:
  *   post:
  *     summary: Unlist a stable token address for saving
  *     tags: [Web3]

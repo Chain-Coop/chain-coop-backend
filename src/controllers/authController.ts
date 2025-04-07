@@ -17,7 +17,7 @@ import {
   ForbiddenError,
 } from "../errors";
 import { deleteOtp, findOtp, findOtpByEmail } from "../services/otpService";
-import { generateAndSendOtp } from "../utils/sendOtp";
+import { generateAndSendOtp, generateAndSendOtpWA } from "../utils/sendOtp";
 import {
   createWalletService,
   findWalletService,
@@ -54,6 +54,9 @@ const register = async (req: Request, res: Response) => {
       message: "Your OTP to verify your account is",
       subject: "Email verification",
     });
+
+    await generateAndSendOtpWA(req.body.phoneNumber); // sends WhatsApp OTP on user registering
+
 
     const walletPayload: iWallet = {
       balance: 0,
