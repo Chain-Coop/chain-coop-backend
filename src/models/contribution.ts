@@ -4,7 +4,7 @@ export interface ContributionDocument extends Document {
   user: Schema.Types.ObjectId;
   contributionPlan?: string;
   savingsCategory: string;
-  savingsType?: "Flexible" | "Lock" | "Strict"; 
+  savingsType?: "Flexible" | "Lock" | "Strict" | "One-time"; 
   amount: number;
   currency: string; 
   startDate?: Date;
@@ -38,7 +38,7 @@ const ContributionSchema = new Schema<ContributionDocument>(
     },
     savingsType: {
       type: String,
-      enum: ["Flexible", "Lock", "Strict"],
+      enum: ["Flexible", "Lock", "Strict", "One-time"],
       required: false,
     },
     amount: {
