@@ -86,7 +86,7 @@ export const createContribution = async (req: Request, res: Response) => {
   
 
   // Validate that contributionPlan is provided when savingsType is not "Strict"
-  if (savingsType !== "Strict" && !contributionPlan) {
+  if (savingsType !== "Strict"  && savingsType !== "One-time" && !contributionPlan) {
     throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
   }
 
