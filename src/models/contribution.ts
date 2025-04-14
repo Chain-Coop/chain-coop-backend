@@ -32,9 +32,10 @@ const ContributionSchema = new Schema<ContributionDocument>(
       type: String,
       enum: ["Daily", "Weekly", "Monthly", "Yearly", "5Minutes", "Hourly"],
       required: function () {
-        return this.savingsType !== "Strict";
+        return this.contributionType === "auto";
       },
     },
+    
     savingsCategory: {
       type: String,
     },
