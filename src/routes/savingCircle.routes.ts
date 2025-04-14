@@ -17,10 +17,10 @@ const router = Router();
 
 /**
  * @swagger
- * /api/savingCircles/create:
+ * /api/savingcircle/create:
  *   post:
  *     summary: Create a new saving circle
- *     description: Allows a user to create a new saving circle.
+ *     description: Allows a user to create a new saving circle with specified attributes.
  *     tags:
  *       - Saving Circles
  *     security:
@@ -35,13 +35,36 @@ const router = Router();
  *             properties:
  *               circleName:
  *                 type: string
+ *                 example: "Monthly Savings Circle"
+ *               description:
+ *                 type: string
+ *                 example: "A circle for monthly savings"
  *               targetAmount:
  *                 type: number
  *                 format: float
- *               frequency:
+ *                 example: 5000
+ *               currency:
  *                 type: string
- *               description:
+ *                 example: "USD"
+ *               duration:
+ *                 type: integer
+ *                 example: 90
+ *               frequencyInDays:
+ *                 type: integer
+ *                 example: 30
+ *               type:
  *                 type: string
+ *                 example: "time"
+ *               goalAmount:
+ *                 type: number
+ *                 format: float
+ *                 example: 100000
+ *               groupType:
+ *                 type: string
+ *                 example: "closed"
+ *               userId:
+ *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
  *     responses:
  *       200:
  *         description: Successfully created saving circle
@@ -49,19 +72,18 @@ const router = Router();
  *         description: Invalid input
  */
 router.post("/create", authorize, createCircleController);
-
 /**
  * @swagger
- * /api/savingCircles/join:
+ * /api//savingcircle/join:
  *   post:
  *     summary: Join an existing saving circle
- *     description: Allows a user to join an existing saving circle.
+ *     description: Allows a user to join an existing saving circle using an invite code.
  *     tags:
  *       - Saving Circles
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       description: The circle ID to join.
+ *       description: The details to join a saving circle.
  *       required: true
  *       content:
  *         application/json:
@@ -70,17 +92,24 @@ router.post("/create", authorize, createCircleController);
  *             properties:
  *               circleId:
  *                 type: string
+ *                 example: "67ca3141d5c1f8b000b9f0ae"
+ *               userId:
+ *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
+ *               inviteCode:
+ *                 type: string
+ *                 example: "8C55AC3E1ACB"
  *     responses:
  *       200:
  *         description: Successfully joined the saving circle
  *       404:
- *         description: Circle not found
+ *         description: Circle or invite code not found
  */
 router.post("/join", authorize, joinCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/user/{userId}:
+ * /api//savingcircle/user/{userId}:
  *   get:
  *     summary: Get all saving circles for a user
  *     description: Fetch all saving circles associated with a particular user.
@@ -116,7 +145,7 @@ router.get("/user/:userId", authorize, getUserCirclesController);
 
 /**
  * @swagger
- * /api/savingCircles/verify:
+ * /api//savingcircle/verify:
  *   get:
  *     summary: Verify payment
  *     description: Verifies a payment using a reference number.
@@ -141,7 +170,7 @@ router.get("/verify", authorize, verifyPaymentController);
 
 /**
  * @swagger
- * /api/savingCircles/{circleId}:
+ * /api//savingcircle/{circleId}:
  *   get:
  *     summary: Get a saving circle by its ID
  *     description: Retrieve a specific saving circle by its ID.
@@ -166,7 +195,7 @@ router.get("/:circleId", authorize, getCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/{circleId}:
+ * /api//savingcircle/{circleId}:
  *   patch:
  *     summary: Update a saving circle by its ID
  *     description: Update the details of an existing saving circle.
@@ -210,7 +239,7 @@ router.patch("/:circleId", authorize, updateCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/initialize:
+ * /api//savingcircle/initialize:
  *   post:
  *     summary: Initialize a circle for payment
  *     description: Initializes a circle to be ready for accepting payments.
@@ -238,7 +267,7 @@ router.post("/initialize", authorize, initializeCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/payment:
+ * /api//savingcircle/payment:
  *   post:
  *     summary: Make a payment in a saving circle
  *     description: Allows a user to make a payment into a saving circle.
@@ -256,10 +285,13 @@ router.post("/initialize", authorize, initializeCircleController);
  *             properties:
  *               circleId:
  *                 type: string
- *               amount:
- *                 type: number
- *               paymentMethod:
+ *                 example: "67ca3f0bf79e925aca8e4507"
+ *               userId:
  *                 type: string
+ *                 example: "675cd8dc1ced747022d5f333"
+ *               paymentType:
+ *                 type: string
+ *                 example: "paystack"
  *     responses:
  *       200:
  *         description: Payment successfully processed
@@ -270,7 +302,7 @@ router.post("/payment", authorize, paymentCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/unpaid/{circleId}/{userId}:
+ * /api//savingcircle/unpaid/{circleId}/{userId}:
  *   get:
  *     summary: Get the unpaid amount for a user in a circle
  *     description: Fetch the unpaid balance of a user in a specific saving circle.
@@ -297,7 +329,7 @@ router.get("/unpaid/:circleId/:userId", authorize, unpaidCircleController);
 
 /**
  * @swagger
- * /api/savingCircles/recurring:
+ * /api//savingcircle/recurring:
  *   post:
  *     summary: Trigger recurring contributions for circles
  *     description: Triggers recurring payments for saving circles.

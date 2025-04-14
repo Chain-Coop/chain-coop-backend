@@ -67,11 +67,11 @@ export const createContribution = async (req: Request, res: Response) => {
     !amount ||
     !currency ||
     !email ||
-    !contributionPlan ||
+    // !contributionPlan || 
     !savingsCategory ||
     !startDate ||
     !endDate  ||
-    !savingsType ||
+    // !savingsType ||
     !contributionType
   ) {
     throw new BadRequestError("All fields are required");
@@ -86,7 +86,7 @@ export const createContribution = async (req: Request, res: Response) => {
   
 
   // Validate that contributionPlan is provided when savingsType is not "Strict"
-  if (savingsType !== "Strict" && !contributionPlan) {
+  if (savingsType !== "Strict"  && savingsType !== "One-time" && !contributionPlan) {
     throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
   }
 
@@ -685,7 +685,7 @@ export const chargeCardforContribution = async (
     contribution.status = "Completed";
   contribution.nextContributionDate = calculateNextContributionDate(
     new Date(),
-    contribution.contributionPlan
+    contribution.contributionPlan!
   );
   contribution.balance += contribution.amount;
   const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`; 
