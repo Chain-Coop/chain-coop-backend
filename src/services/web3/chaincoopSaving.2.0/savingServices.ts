@@ -135,7 +135,8 @@ interface SavingPool {
   saver: string;
   tokenToSaveWith: string;
   Reason: string;
-  poolIndex: string; // bytes32 can be converted to a string
+  poolIndex: string;
+  startDate: string; // bytes32 can be converted to a string
   locktype: number; // Convert BigInt to string for JSON compatibility
   Duration: string; // Convert BigInt to string
   amountSaved: string; // Convert BigInt to string
@@ -162,7 +163,7 @@ const userPools = async (userAddress: string): Promise<SavingPool[]> => {
         symbol: await getTokenAddressSymbol(pool[1]),
         Reason: pool[2],
         poolIndex: pool[3],
-        //goalAmount: formatEther(pool.goalAmount.toString()),
+        startDate: pool[4].toString(),
         locktype: pool[7],
         Duration: pool[5].toString(),
         amountSaved: formatEther(pool[6].toString()),
