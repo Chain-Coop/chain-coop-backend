@@ -14,7 +14,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/openPool:
+ * /web3/v2/saving/openPool:
  *   post:
  *     summary: Open a new saving pool
  *     tags: [Web3]
@@ -29,13 +29,13 @@ const router = Router();
  *             properties:
  *               tokenId:
  *                 type: string
- *                 description: The token ID (1 for USDC, 2 for Lisk Token)
+ *                 description: The token ID (1 for USDC, 2 for Lisk Token,3 for WUSDC)
  *               initialSaveAmount:
- *                 type: number
+ *                 type: string
  *                 description: Initial amount to save
- *               goalAmount:
+ *               lockedType:
  *                 type: number
- *                 description: Goal amount to save
+ *                 description: Type of lock (0-Flexible, 1-Lock, or 2-StrictLock)
  *               reasonForSaving:
  *                 type: string
  *                 description: Reason for saving
@@ -65,7 +65,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Provide all required values initialSaveAmount,goalAmount,reasonForSaving,duration
+ *                   example: Provide all required values initialSaveAmount,lockedType,reasonForSaving,duration
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -80,7 +80,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/updatePool:
+ * /web3/v2/saving/updatePool:
  *   post:
  *     summary: Update a saving pool with amount
  *     tags: [Web3]
@@ -96,9 +96,9 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
- *               tokenAddressToSaveWith:
+ *               tokenId:
  *                 type: string
- *                 description: Token address to save with
+ *                 description: Token ID (1 for USDC, 2 for Lisk Token,3 for WUSDC)
  *               amount:
  *                 type: number
  *                 description: Amount to update the pool with
@@ -125,7 +125,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Provide all required values poolId_bytes,tokenAddressToSaveWith,amount
+ *                   example: Provide all required values poolId_bytes,tokenId,amount
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -140,7 +140,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/withdraw:
+ * /web3/v2/saving/withdraw:
  *   post:
  *     summary: Withdraw from a saving pool by ID
  *     tags: [Web3]
@@ -194,7 +194,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/userPools:
+ * /web3/v2/saving/userPools:
  *   get:
  *     summary: Get all user pools
  *     tags: [Web3]
@@ -239,7 +239,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/totalPools:
+ * /web3/v2/saving/totalPools:
  *   get:
  *     summary: Get total number of pools created
  *     tags: [Web3]
@@ -273,7 +273,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/stopPool:
+ * /web3/v2/saving/stopPool:
  *   post:
  *     summary: Stop saving for a pool
  *     description: Stops a user's saving process for a specific pool.
@@ -332,7 +332,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/restartPool:
+ * /web3/v2/saving/restartPool:
  *   post:
  *     summary: Restart saving for a pool
  *     description: Restarts a user's saving process for a specific pool.
@@ -389,7 +389,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/saving/userPoolContributions:
+ * /web3/v2/saving/userPoolContributions:
  *   get:
  *     summary: Get all user pool contributions
  *     description: Retrieves all contributions made by the authenticated user to various pools.

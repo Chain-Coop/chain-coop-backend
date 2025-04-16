@@ -1,13 +1,22 @@
-import asyncHandler from "express-async-handler";
-import { Request, Response } from "express";
-import { getUserWeb3Wallet } from "../../../services/web3/accountService";
-import { getTokenAddressSymbol } from "../../../services/web3/accountService";
-import { createTransactionHistory } from "../../../services/web3/historyService";
+import asyncHandler from 'express-async-handler';
+import { Request, Response } from 'express';
+import { getUserWeb3Wallet } from '../../../services/web3/accountService';
+import { getTokenAddressSymbol } from '../../../services/web3/accountService';
+import { createTransactionHistory } from '../../../services/web3/historyService';
 
-import { decrypt } from "../../../services/encryption";
+import { decrypt } from '../../../services/encryption';
 
-import { tokenAddress } from "../../../utils/web3/tokenaddress";
-import { openPool,userPools,totalPoolCreated,withdrawFromPool,updatePoolAmount,stopSaving,restartSaving,getUserContributions } from "../../../services/web3/chaincoopSaving.2.0/savingServices";
+import { tokenAddress } from '../../../utils/web3/tokenaddress';
+import {
+  openPool,
+  userPools,
+  totalPoolCreated,
+  withdrawFromPool,
+  updatePoolAmount,
+  stopSaving,
+  restartSaving,
+  getUserContributions,
+} from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
   const { tokenId, initialSaveAmount, lockedType, reasonForSaving, duration } =
@@ -15,49 +24,58 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
   const userId = req.user.userId;
   try {
-    if (!initialSaveAmount || lockedType === undefined || !reasonForSaving || !duration) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Provide all required values initialSaveAmount,lockType,reasonForSaving,duration",
-        });
+    if (
+      !initialSaveAmount ||
+      lockedType === undefined ||
+      !reasonForSaving ||
+      !duration
+    ) {
+      res.status(400).json({
+        message:
+          'Provide all required values initialSaveAmount,lockType,reasonForSaving,duration',
+      });
       return;
     }
     if (![0, 1, 2].includes(lockedType)) {
       res.status(400).json({
-        message: "Invalid lockType. It should be 0, 1, or 2.",
+        message: 'Invalid lockType. It should be 0, 1, or 2.',
       });
       return;
     }
     const tokenIdNum = parseInt(tokenId, 10);
     if (isNaN(tokenIdNum)) {
-      res.status(400).json({ message: "Invalid tokenId" });
+      res.status(400).json({ message: 'Invalid tokenId' });
       return;
     }
     const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
-      res.status(400).json({ message: "Please activate wallet" });
+      res.status(400).json({ message: 'Please activate wallet' });
       return;
     }
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    
+
     const tx = await openPool(
       tokenAddressToSaveWith,
-      initialSaveAmount,      
+      initialSaveAmount,
       reasonForSaving,
       lockedType,
       duration,
       userPrivateKey
     );
     if (!tx) {
-      res.status(400).json({ message: "Failed to open a pool" });
+      res.status(400).json({ message: 'Failed to open a pool' });
       return;
     }
-    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith)
-     await createTransactionHistory(userId,parseFloat(initialSaveAmount),"SAVE",tx.hash,tokenSymbol)
-    res.status(200).json({ message: "Success", data: tx.hash });
+    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+    await createTransactionHistory(
+      userId,
+      parseFloat(initialSaveAmount),
+      'SAVE',
+      tx.hash,
+      tokenSymbol
+    );
+    res.status(200).json({ message: 'Success', data: tx.hash });
     return;
   } catch (error: any) {
     console.log(error);
@@ -67,25 +85,29 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
 
 const updatePoolWithAmount = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, tokenAddressToSaveWith, amount } = req.body;
+    const { poolId_bytes, tokenId, amount } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
-      if (!poolId_bytes || !tokenAddressToSaveWith || !amount) {
-        res
-          .status(400)
-          .json({
-            message:
-              "Provide all required values poolId_bytes,tokenAddressToSaveWith,amount",
-          });
+      if (!poolId_bytes || !tokenId || !amount) {
+        res.status(400).json({
+          message:
+            'Provide all required values poolId_bytes,tokenAddressToSaveWith,amount',
+        });
+        return;
+      }
+      const tokenIdNum = parseInt(tokenId, 10);
+      if (isNaN(tokenIdNum)) {
+        res.status(400).json({ message: 'Invalid tokenId' });
+        return;
+      }
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+      const wallet = await getUserWeb3Wallet(userId);
+      if (!wallet) {
+        res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
 
-      const wallet = await getUserWeb3Wallet(userId);
-      if (!wallet) {
-        res.status(400).json({ message: "Please activate wallet" });
-        return;
-      }
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const tx = await updatePoolAmount(
         poolId_bytes,
@@ -99,9 +121,15 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to update a pool ${poolId_bytes}` });
         return;
       }
-      const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith)
-      await createTransactionHistory(userId,parseFloat(amount),"SAVE",tx.hash,tokenSymbol)
-      res.status(200).json({ message: "Success", data: tx.hash });
+      const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+      await createTransactionHistory(
+        userId,
+        parseFloat(amount),
+        'SAVE',
+        tx.hash,
+        tokenSymbol
+      );
+      res.status(200).json({ message: 'Success', data: tx.hash });
       return;
     } catch (error: any) {
       console.log(error);
@@ -121,13 +149,13 @@ const withdrawFromPoolByID = asyncHandler(
       if (!poolId_bytes) {
         res
           .status(400)
-          .json({ message: "Provide all required values poolId_bytes" });
+          .json({ message: 'Provide all required values poolId_bytes' });
         return;
       }
 
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
-        res.status(400).json({ message: "Please activate wallet" });
+        res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
@@ -138,8 +166,8 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
-      
-      res.status(200).json({ message: "Success", data: tx.hash });
+
+      res.status(200).json({ message: 'Success', data: tx.hash });
       return;
     } catch (error: any) {
       console.log(error);
@@ -150,43 +178,39 @@ const withdrawFromPoolByID = asyncHandler(
   }
 );
 //Stop saving pool
-const stopSavingForPool = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { poolId_bytes } = req.body;
-    //@ts-ignore
-    const userId = req.user.userId;
-    try {
-      if (!poolId_bytes) {
-        res
-          .status(400)
-          .json({ message: "Provide all required values poolId_bytes" });
-        return;
-      }
-
-      const wallet = await getUserWeb3Wallet(userId);
-      if (!wallet) {
-        res.status(400).json({ message: "Please activate wallet" });
-        return;
-      }
-      const userPrivateKey = decrypt(wallet.encryptedKey);
-      const tx = await stopSaving(poolId_bytes, userPrivateKey);
-      if (!tx) {
-        res
-          .status(400)
-          .json({ message: `Failed to stop a pool for saving ${poolId_bytes}` });
-        return;
-      }
-      
-      res.status(200).json({ message: "Success", data: tx.hash });
-      return;
-    } catch (error: any) {
-      console.log(error);
+const stopSavingForPool = asyncHandler(async (req: Request, res: Response) => {
+  const { poolId_bytes } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    if (!poolId_bytes) {
       res
-        .status(500)
-        .json({ message: `internal server error${error.message}` });
+        .status(400)
+        .json({ message: 'Provide all required values poolId_bytes' });
+      return;
     }
+
+    const wallet = await getUserWeb3Wallet(userId);
+    if (!wallet) {
+      res.status(400).json({ message: 'Please activate wallet' });
+      return;
+    }
+    const userPrivateKey = decrypt(wallet.encryptedKey);
+    const tx = await stopSaving(poolId_bytes, userPrivateKey);
+    if (!tx) {
+      res
+        .status(400)
+        .json({ message: `Failed to stop a pool for saving ${poolId_bytes}` });
+      return;
+    }
+
+    res.status(200).json({ message: 'Success', data: tx.hash });
+    return;
+  } catch (error: any) {
+    console.log(error);
+    res.status(500).json({ message: `internal server error${error.message}` });
   }
-);
+});
 //restart for saving
 const restartPoolForSaving = asyncHandler(
   async (req: Request, res: Response) => {
@@ -197,13 +221,13 @@ const restartPoolForSaving = asyncHandler(
       if (!poolId_bytes) {
         res
           .status(400)
-          .json({ message: "Provide all required values poolId_bytes" });
+          .json({ message: 'Provide all required values poolId_bytes' });
         return;
       }
 
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
-        res.status(400).json({ message: "Please activate wallet" });
+        res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
@@ -211,11 +235,13 @@ const restartPoolForSaving = asyncHandler(
       if (!tx) {
         res
           .status(400)
-          .json({ message: `Failed to restart pool for saving ${poolId_bytes}` });
+          .json({
+            message: `Failed to restart pool for saving ${poolId_bytes}`,
+          });
         return;
       }
-      
-      res.status(200).json({ message: "Success", data: tx.hash });
+
+      res.status(200).json({ message: 'Success', data: tx.hash });
       return;
     } catch (error: any) {
       console.log(error);
@@ -232,13 +258,13 @@ const allUserPools = asyncHandler(async (req: Request, res: Response) => {
   try {
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
-      res.status(400).json({ message: "Please activate wallet" });
+      res.status(400).json({ message: 'Please activate wallet' });
       return;
     }
 
     const pools = await userPools(wallet.address);
 
-    res.status(200).json({ message: "Success", data: pools });
+    res.status(200).json({ message: 'Success', data: pools });
     return;
   } catch (error: any) {
     console.log(error);
@@ -246,25 +272,29 @@ const allUserPools = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-const allUserPoolsContributions = asyncHandler(async (req: Request, res: Response) => {
-  //@ts-ignore
-  const userId = req.user.userId;
-  try {
-    const wallet = await getUserWeb3Wallet(userId);
-    if (!wallet) {
-      res.status(400).json({ message: "Please activate wallet" });
+const allUserPoolsContributions = asyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      const wallet = await getUserWeb3Wallet(userId);
+      if (!wallet) {
+        res.status(400).json({ message: 'Please activate wallet' });
+        return;
+      }
+
+      const contributions = await getUserContributions(wallet.address);
+
+      res.status(200).json({ message: 'Success', data: contributions });
       return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
     }
-
-    const contributions = await getUserContributions(wallet.address);
-
-    res.status(200).json({ message: "Success", data: contributions });
-    return;
-  } catch (error: any) {
-    console.log(error);
-    res.status(500).json({ message: `internal server error${error.message}` });
   }
-});
+);
 
 const totalNumberPoolCreated = asyncHandler(
   async (req: Request, res: Response) => {
@@ -273,7 +303,7 @@ const totalNumberPoolCreated = asyncHandler(
     try {
       const totalpools = await totalPoolCreated();
 
-      res.status(200).json({ message: "Success", data: totalpools });
+      res.status(200).json({ message: 'Success', data: totalpools });
       return;
     } catch (error: any) {
       console.log(error);
@@ -292,5 +322,5 @@ export {
   openSavingPool,
   restartPoolForSaving,
   stopSavingForPool,
-  allUserPoolsContributions
+  allUserPoolsContributions,
 };
