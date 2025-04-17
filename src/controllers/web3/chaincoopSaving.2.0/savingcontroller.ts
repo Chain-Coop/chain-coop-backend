@@ -85,23 +85,18 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
 
 const updatePoolWithAmount = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, tokenId, amount } = req.body;
+    const { poolId_bytes, tokenAddressToSaveWith, amount } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
-      if (!poolId_bytes || !tokenId || !amount) {
+      if (!poolId_bytes || !tokenAddressToSaveWith || !amount) {
         res.status(400).json({
           message:
             'Provide all required values poolId_bytes,tokenAddressToSaveWith,amount',
         });
         return;
       }
-      const tokenIdNum = parseInt(tokenId, 10);
-      if (isNaN(tokenIdNum)) {
-        res.status(400).json({ message: 'Invalid tokenId' });
-        return;
-      }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+      
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
         res.status(400).json({ message: 'Please activate wallet' });
