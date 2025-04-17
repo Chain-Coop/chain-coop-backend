@@ -29,13 +29,13 @@ const router = Router();
  *             properties:
  *               tokenId:
  *                 type: string
- *                 description: The token ID (1 for USDC, 2 for Lisk Token)
+ *                 description: The token ID (1 for USDC, 2 for Lisk Token,3 for WUSDC)
  *               initialSaveAmount:
- *                 type: number
+ *                 type: string
  *                 description: Initial amount to save
- *               goalAmount:
+ *               lockedType:
  *                 type: number
- *                 description: Goal amount to save
+ *                 description: Type of lock (0-Flexible, 1-Lock, or 2-StrictLock)
  *               reasonForSaving:
  *                 type: string
  *                 description: Reason for saving
@@ -65,7 +65,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Provide all required values initialSaveAmount,goalAmount,reasonForSaving,duration
+ *                   example: Provide all required values initialSaveAmount,lockedType,reasonForSaving,duration
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -96,9 +96,9 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
- *               tokenAddressToSaveWith:
+ *               tokenId:
  *                 type: string
- *                 description: Token address to save with
+ *                 description: Token ID (1 for USDC, 2 for Lisk Token,3 for WUSDC)
  *               amount:
  *                 type: number
  *                 description: Amount to update the pool with
@@ -125,7 +125,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Provide all required values poolId_bytes,tokenAddressToSaveWith,amount
+ *                   example: Provide all required values poolId_bytes,tokenId,amount
  *       500:
  *         description: Internal Server Error
  *         content:
