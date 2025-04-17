@@ -816,7 +816,7 @@ export const updateContributionBankDetails = async (
 
 export const calculateNextContributionDate = (
   startDate: Date,
-  frequency: string
+  frequency: string | null | undefined
 ): Date => {
   const date = new Date();
 
@@ -836,6 +836,9 @@ export const calculateNextContributionDate = (
       case "Hourly":
     date.setHours(date.getHours() + 1);
     break;
+    case null:
+    case undefined:
+      return new Date();
     default:
       throw new Error(`Invalid contribution frequency: ${frequency}`);
   }
