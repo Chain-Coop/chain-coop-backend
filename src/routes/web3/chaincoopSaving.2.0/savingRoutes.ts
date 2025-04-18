@@ -279,7 +279,7 @@ const router = Router();
  *     description: Stops a user's saving process for a specific pool.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -338,7 +338,7 @@ const router = Router();
  *     description: Restarts a user's saving process for a specific pool.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -395,7 +395,7 @@ const router = Router();
  *     description: Retrieves all contributions made by the authenticated user to various pools.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved user contributions.

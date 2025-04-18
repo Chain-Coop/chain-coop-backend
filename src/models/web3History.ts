@@ -18,7 +18,7 @@ const WebHistorySchema: Schema = new Schema(
     },
     transactionType: {
       type: String,
-      enum: ['SEND', 'SAVE', 'TRANSFER', 'WITHDRAW'],
+      enum: ['SEND', 'SAVE', 'TRANSFER', 'WITHDRAW','UPDATE'],
       required: true,
     },
     amount: {
