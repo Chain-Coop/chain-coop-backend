@@ -177,9 +177,37 @@ const userPools = async (userAddress: string): Promise<SavingPool[]> => {
     throw new Error('Failed to fetch user pools');
   }
 };
-
+const userPoolsByPoolId = async (poolId: string): Promise<SavingPool> => {
+  try {
+    const con_tract = await chainCoopSavingcontract();
+    const rawUserPools = await con_tract.poolSavingPool(poolId);
+    const rawPools = JSON.parse(
+      JSON.stringify(rawUserPools, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      )
+    );
+    // Map rawUserPools to a serializable format
+    const formattedPool: SavingPool = {
+      saver: rawPools[0],
+      tokenToSaveWith: rawPools[1],
+      Reason: rawPools[2],
+      poolIndex: rawPools[3],
+      startDate: rawPools[4].toString(),
+      locktype: rawPools[7],
+      Duration: rawPools[5].toString(),
+      amountSaved: formatEther(rawPools[6].toString()),
+      isGoalAccomplished: rawPools[8],
+      symbol: await getTokenAddressSymbol(rawPools[1]),
+    };
+    return formattedPool;
+  } catch (error) {
+    console.error('Error fetching user pools:', error);
+    throw new Error('Failed to fetch user pools');
+  }
+};
 export {
   userPools,
+  userPoolsByPoolId,
   totalPoolCreated,
   withdrawFromPool,
   updatePoolAmount,

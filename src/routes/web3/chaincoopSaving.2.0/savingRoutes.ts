@@ -96,11 +96,11 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
- *               tokenId:
+ *               tokenAddressToSaveWith:
  *                 type: string
- *                 description: Token ID (1 for USDC, 2 for Lisk Token,3 for WUSDC)
+ *                 description: Token address to save with
  *               amount:
- *                 type: number
+ *                 type: string
  *                 description: Amount to update the pool with
  *     responses:
  *       200:
@@ -125,7 +125,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Provide all required values poolId_bytes,tokenId,amount
+ *                   example: Provide all required values poolId_bytes,tokenAddressToSaveWith,amount
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -279,7 +279,7 @@ const router = Router();
  *     description: Stops a user's saving process for a specific pool.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -338,7 +338,7 @@ const router = Router();
  *     description: Restarts a user's saving process for a specific pool.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -395,7 +395,7 @@ const router = Router();
  *     description: Retrieves all contributions made by the authenticated user to various pools.
  *     tags: [Web3]
  *     security:
- *       - BearerAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved user contributions.

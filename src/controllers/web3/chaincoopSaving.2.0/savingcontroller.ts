@@ -10,6 +10,7 @@ import { tokenAddress } from '../../../utils/web3/tokenaddress';
 import {
   openPool,
   userPools,
+  userPoolsByPoolId,
   totalPoolCreated,
   withdrawFromPool,
   updatePoolAmount,
@@ -85,23 +86,18 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
 
 const updatePoolWithAmount = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, tokenId, amount } = req.body;
+    const { poolId_bytes, tokenAddressToSaveWith, amount } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
-      if (!poolId_bytes || !tokenId || !amount) {
+      if (!poolId_bytes || !tokenAddressToSaveWith || !amount) {
         res.status(400).json({
           message:
             'Provide all required values poolId_bytes,tokenAddressToSaveWith,amount',
         });
         return;
       }
-      const tokenIdNum = parseInt(tokenId, 10);
-      if (isNaN(tokenIdNum)) {
-        res.status(400).json({ message: 'Invalid tokenId' });
-        return;
-      }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
         res.status(400).json({ message: 'Please activate wallet' });
@@ -125,7 +121,7 @@ const updatePoolWithAmount = asyncHandler(
       await createTransactionHistory(
         userId,
         parseFloat(amount),
-        'SAVE',
+        'UPDATE',
         tx.hash,
         tokenSymbol
       );
@@ -159,6 +155,13 @@ const withdrawFromPoolByID = asyncHandler(
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
+      const pool = await userPoolsByPoolId(poolId_bytes);
+      if (!pool) {
+        res
+          .status(400)
+          .json({ message: `Failed to get a pool ${poolId_bytes}` });
+        return;
+      }
       const tx = await withdrawFromPool(poolId_bytes, userPrivateKey);
       if (!tx) {
         res
@@ -166,6 +169,16 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
+      const tokenAddressToSaveWith = pool.tokenToSaveWith;
+      const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+      const amount = pool.amountSaved;
+      await createTransactionHistory(
+        userId,
+        parseFloat(amount),
+        'WITHDRAW',
+        tx.hash,
+        tokenSymbol
+      );
 
       res.status(200).json({ message: 'Success', data: tx.hash });
       return;
@@ -233,11 +246,9 @@ const restartPoolForSaving = asyncHandler(
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const tx = await restartSaving(poolId_bytes, userPrivateKey);
       if (!tx) {
-        res
-          .status(400)
-          .json({
-            message: `Failed to restart pool for saving ${poolId_bytes}`,
-          });
+        res.status(400).json({
+          message: `Failed to restart pool for saving ${poolId_bytes}`,
+        });
         return;
       }
 
