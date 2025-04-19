@@ -716,30 +716,49 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5, sort = "desc" } = req.query;
+    const { page = 1, limit = 5, sort = "desc", search = "" } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
-    const conLength = await getUserContributionsLengthService(userId);
-
-    // Fetch contributions and await the result
-    let contributions = await getAllUserContributionsService(
-      userId,
-      Number(limit),
-      skip
-    );
-
-    // Sort after fetching if necessary
     const sortOrder = sort === "asc" ? 1 : -1;
-    contributions = contributions.sort((a: any, b: any) =>
-      sortOrder === 1 ? a.createdAt - b.createdAt : b.createdAt - a.createdAt
-    );
+
+    let contributions;
+    let conLength;
+
+    // If there's a search term, perform a filtered search
+    if (search) {
+      const regex = new RegExp(String(search), "i");
+      contributions = await Contribution.find({
+        user: userId,
+        savingsCategory: { $regex: regex },
+        status: { $ne: "Pending" },
+      })
+        .sort({ createdAt: sortOrder })
+        .skip(skip)
+        .limit(Number(limit));
+
+      conLength = await Contribution.countDocuments({
+        user: userId,
+        savingsCategory: { $regex: regex },
+        status: { $ne: "Pending" },
+      });
+    } else {
+      contributions = await Contribution.find({
+        user: userId,
+        status: { $ne: "Pending" },
+      })
+        .sort({ createdAt: sortOrder })
+        .skip(skip)
+        .limit(Number(limit));
+
+      conLength = await getUserContributionsLengthService(userId);
+    }
 
     const totalPages = Math.ceil(conLength / Number(limit));
 
     res.status(StatusCodes.OK).json({
-      contributions: contributions,
+      contributions,
       totalPages,
-      currentPage: page,
+      currentPage: Number(page),
     });
   } catch (error) {
     console.error("Error fetching user contributions:", error);
@@ -748,6 +767,7 @@ export const getUserContributions = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const getUnpaidContributions = async (req: Request, res: Response) => {
   const { contributionId } = req.query;
