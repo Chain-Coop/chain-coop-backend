@@ -1,7 +1,10 @@
 import asyncHandler from 'express-async-handler';
 import { Request, Response } from 'express';
 import { getUserWeb3Wallet } from '../../../services/web3/accountService';
-import { getTokenAddressSymbol } from '../../../services/web3/accountService';
+import {
+  getTokenAddressSymbol,
+  checkStableUserBalance,
+} from '../../../services/web3/accountService';
 import { createTransactionHistory } from '../../../services/web3/historyService';
 
 import { decrypt } from '../../../services/encryption';
@@ -54,6 +57,15 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Please activate wallet' });
       return;
     }
+    const { bal: balance }: { bal: number; symbol: string } =
+      await checkStableUserBalance(wallet.address, tokenAddressToSaveWith);
+    if (balance < parseFloat(initialSaveAmount)) {
+      res.status(400).json({
+        message: `Insufficient balance. Your balance is ${balance} and you need ${initialSaveAmount}`,
+      });
+      return;
+    }
+
     const userPrivateKey = decrypt(wallet.encryptedKey);
 
     const tx = await openPool(
@@ -101,6 +113,15 @@ const updatePoolWithAmount = asyncHandler(
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
         res.status(400).json({ message: 'Please activate wallet' });
+        return;
+      }
+
+      const { bal: balance }: { bal: number; symbol: string } =
+        await checkStableUserBalance(wallet.address, tokenAddressToSaveWith);
+      if (balance < parseFloat(amount)) {
+        res.status(400).json({
+          message: `Insufficient balance. Your balance is ${balance} and you need ${amount}`,
+        });
         return;
       }
 
