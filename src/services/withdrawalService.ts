@@ -16,12 +16,13 @@ export const LimitChecker = async (user: UserDocument, amount: number) => {
 
   let limit = 0;
 
+  // Check for pin first
   switch (user.Tier) {
     case 0:
-      limit = 500;
+      limit = 10000;
       break;
     case 1:
-      limit = 20000;
+      limit = 50000;
       break;
     case 2:
       limit = 200000;

@@ -88,7 +88,7 @@ const verifyOtp = async (req: Request, res: Response) => {
   if (!validOtp) {
     throw new UnauthenticatedError("Failed to validate OTP");
   }
-  const newUser = await updateUserByEmail(email, { status: "active" });
+  const newUser = await updateUserByEmail(email, { status: "active", isVerified: "true"  });
   if (!newUser) {
     throw new NotFoundError("User not found");
   }
