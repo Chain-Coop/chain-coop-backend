@@ -34,7 +34,7 @@ export const LimitChecker = async (user: UserDocument, amount: number) => {
       break;
   }
   if ((total?.withdrawal || 0) + amount > limit) {
-    throw new BadRequestError("Withdrawal limit exceeded");
+    throw new BadRequestError("The amount you requested exceeded the limit for your tier, verify your details to withdraw a higher amount.");
   }
 };
 export const createWithdrawalRequest = async (
