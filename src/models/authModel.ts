@@ -2,6 +2,7 @@ import { CallbackError, Document, Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { encrypt } from "../services/encryption";
+import { WalletDocument } from "./wallet";
 
 export interface UserDocument extends Document {
 	email: string;
@@ -25,6 +26,7 @@ export interface UserDocument extends Document {
 	isWalletActivated: boolean;
 	createdAt: Date; // added createdAt
 	updatedAt: Date; // added updatedAt
+	wallet?: WalletDocument; 
 }
 
 const UserSchema = new Schema(
@@ -100,6 +102,17 @@ const UserSchema = new Schema(
 	},
 	{ timestamps: true }
 ); // added timestamps
+
+UserSchema.virtual("wallet", {
+	ref: "Wallet", // The model to use
+	localField: "_id", // Find wallets where 'localField'
+	foreignField: "user", // is equal to foreignField
+	justOne: true, // Only one wallet per user
+  });
+
+UserSchema.set("toObject", { virtuals: true });
+UserSchema.set("toJSON", { virtuals: true });
+
 
 UserSchema.pre("save", async function (next) {
 	if (this.isModified("password")) {
