@@ -14,6 +14,7 @@ import {
   DeleteCard,
   GetCards,
   verifyAccountDetailsHandler,
+  validateOtp,
 } from "../controllers/walletController";
 import { authorize } from "../middlewares/authorization";
 
@@ -224,6 +225,7 @@ router.post("/create-pin", authorize, setWalletPin);
 router.post("/upload-receipt", authorize, uploadReceipt);
 router.post("/generate-pin-otp", authorize, GeneratePinOtp);
 router.post("/change-pin", authorize, ChangePin);
+router.post("/validate-otp", authorize, validateOtp);
 
 router.post("/fund-wallet", authorize, fundWallet);
 
