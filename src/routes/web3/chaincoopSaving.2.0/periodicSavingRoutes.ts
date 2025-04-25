@@ -1,7 +1,7 @@
 // routes/periodicSavingRoutes.ts
 import express from 'express';
 import { PeriodicSavingController } from '../../../controllers/web3/chaincoopSaving.2.0/periodicSavingController';
-import { authorize } from '../../../middlewares/authorization'; // Your authentication middleware
+import { authorize, verifyPin } from '../../../middlewares/authorization'; // Your authentication middleware
 
 const router = express.Router();
 
@@ -9,6 +9,7 @@ const router = express.Router();
 router.post(
   '/openPeriodicPool',
   authorize,
+  verifyPin,
   PeriodicSavingController.createPeriodicSaving
 );
 
