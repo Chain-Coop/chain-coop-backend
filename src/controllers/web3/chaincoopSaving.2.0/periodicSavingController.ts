@@ -173,7 +173,7 @@ export class PeriodicSavingController {
         return;
       }
       // Check if user owns this saving
-      if (saving[0].userId.toString() !== userId) {
+      if (saving.userId.toString() !== userId) {
         res
           .status(403)
           .json({ success: false, message: 'Unauthorized access' });
@@ -216,7 +216,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      if (saving[0].userId.toString() !== userId) {
+      if (saving.userId.toString() !== userId) {
         res
           .status(403)
           .json({ success: false, message: 'Unauthorized access' });
@@ -261,7 +261,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      if (saving[0].userId.toString() !== userId) {
+      if (saving.userId.toString() !== userId) {
         res
           .status(403)
           .json({ success: false, message: 'Unauthorized access' });
@@ -312,7 +312,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      if (saving[0].userId.toString() !== userId) {
+      if (saving.userId.toString() !== userId) {
         res
           .status(403)
           .json({ success: false, message: 'Unauthorized access' });
@@ -361,21 +361,21 @@ export class PeriodicSavingController {
         return;
       }
 
-      if (saving[0].userId.toString() !== userId) {
+      if (saving.userId.toString() !== userId) {
         res
           .status(403)
           .json({ success: false, message: 'Unauthorized access' });
         return;
       }
 
-      if (!saving[0].isActive) {
+      if (!saving.isActive) {
         res
           .status(400)
           .json({ success: false, message: 'Cannot execute inactive saving' });
         return;
       }
 
-      await periodicSavingService.executeSaving(saving[0]);
+      await periodicSavingService.executeSaving(saving);
 
       res.status(200).json({
         success: true,
