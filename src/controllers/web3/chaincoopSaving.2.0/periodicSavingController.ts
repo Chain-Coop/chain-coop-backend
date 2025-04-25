@@ -12,10 +12,6 @@ import { tokenAddress } from '../../../utils/web3/tokenaddress';
 import { createTransactionHistory } from '../../../services/web3/historyService';
 
 export class PeriodicSavingController {
-  /**
-   * Create a new periodic saving pool
-   * @route POST /api/periodic-savings
-   */
   public static async createPeriodicSaving(
     req: Request,
     res: Response
@@ -123,10 +119,6 @@ export class PeriodicSavingController {
     }
   }
 
-  /**
-   * Get all periodic savings for current user
-   * @route GET /api/periodic-savings
-   */
   public static async getUserPeriodicSavings(
     req: Request,
     res: Response
