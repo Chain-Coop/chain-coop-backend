@@ -42,6 +42,9 @@ const router = Router();
  *               duration:
  *                 type: number
  *                 description: Duration in seconds
+ *               pin:
+ *                  type: string
+ *                  description: User's pin for authorization
  *     responses:
  *       200:
  *         description: Success
