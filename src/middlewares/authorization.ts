@@ -1,7 +1,9 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { ForbiddenError, UnauthenticatedError } from '../errors';
 import { NextFunction, Request, Response } from 'express';
-
+import bcrypt from 'bcryptjs';
+import ts from 'typescript';
+import User from '../models/authModel';
 type PayloadType = {
   user: {
     email: string;
@@ -35,6 +37,25 @@ export const authorize = (
   } catch (error) {
     throw new UnauthenticatedError('Authentication invalid');
   }
+};
+
+export const verifyPin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { pin } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  const user = await User.findById(userId).populate('wallet');
+  if (!user?.wallet || !user.wallet.pin) {
+    throw new Error('Wallet or PIN not found.');
+  }
+  const isMatch = await bcrypt.compare(pin, user.wallet.pin);
+  if (!isMatch) {
+    throw new ForbiddenError('Invalid pin');
+  }
+  next();
 };
 
 export const authorizePermissions =

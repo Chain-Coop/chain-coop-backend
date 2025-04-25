@@ -23,8 +23,13 @@ import {
 } from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
-  const { tokenId, initialSaveAmount, lockedType, reasonForSaving, duration } =
-    req.body; //1 is for usdc , 2 for Lisk Token  -> duration is in seconds
+  const {
+    tokenId,
+    initialSaveAmount,
+    lockedType,
+    reasonForSaving,
+    duration,
+  } = req.body; //1 is for usdc , 2 for Lisk Token  -> duration is in seconds
   //@ts-ignore
   const userId = req.user.userId;
   try {
