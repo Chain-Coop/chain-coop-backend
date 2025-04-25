@@ -208,11 +208,11 @@ class PeriodicSavingService {
   }
 
   async stopPeriodicSaving(poolId: string): Promise<any> {
-    const saving = await PeriodicSaving.find({ poolId });
+    const saving = await PeriodicSaving.findOne({ poolId });
     if (!saving) throw new Error('Saving not found');
 
-    saving[0].isActive = false;
-    await saving[0].save();
+    saving.isActive = false;
+    await saving.save();
 
     const job = this.cronJobs.get(poolId);
     if (job) {
@@ -220,28 +220,28 @@ class PeriodicSavingService {
       this.cronJobs.delete(poolId);
     }
 
-    return saving[0];
+    return saving;
   }
 
   async resumePeriodicSaving(poolId: string): Promise<any> {
-    const saving = await PeriodicSaving.find({ poolId });
+    const saving = await PeriodicSaving.findOne({ poolId });
     if (!saving) throw new Error('Saving not found');
 
-    saving[0].isActive = true;
-    await saving[0].save();
+    saving.isActive = true;
+    await saving.save();
 
-    this.scheduleIndividualSaving(saving[0]);
-    return saving[0];
+    this.scheduleIndividualSaving(saving);
+    return saving;
   }
 
   async updateSavingAmount(poolId: string, newAmount: string): Promise<any> {
-    const saving = await PeriodicSaving.find({ poolId });
+    const saving = await PeriodicSaving.findOne({ poolId });
     if (!saving) throw new Error('Saving not found');
 
-    saving[0].periodicAmount = newAmount;
-    await saving[0].save();
+    saving.periodicAmount = newAmount;
+    await saving.save();
 
-    return saving[0];
+    return saving;
   }
 
   async getUserPeriodicSavings(userId: string): Promise<any[]> {
@@ -249,7 +249,7 @@ class PeriodicSavingService {
   }
 
   async getPeriodicSaving(poolId: string): Promise<any> {
-    return PeriodicSaving.find({ poolId });
+    return PeriodicSaving.findOne({ poolId });
   }
 }
 
