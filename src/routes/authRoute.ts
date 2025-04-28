@@ -9,6 +9,7 @@ import {
 	getUser,
 	resendOtpWhatsApp,
 	verifyOtpWA,
+	changePhoneNumber,
 } from "../controllers/authController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 const router = Router();
@@ -305,6 +306,7 @@ router.post("/resend_whatsapp_otp", resendOtpWhatsApp);
 router.post("/login", login);
 router.post("/forget_password", forgetPassword);
 router.post("/reset_password", resetPassword);
+router.put("/change_phone_number", changePhoneNumber)
 
 router.patch("/reactivate/:id", authorize, authorizePermissions("admin"));
 
