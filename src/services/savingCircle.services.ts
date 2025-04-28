@@ -15,36 +15,78 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 /**
  * Create a new saving circle
  */
+
+
 export const createCircleService = async (circleData: any) => {
   try {
-    const { userId, name, groupType, amount, currency, description, goalAmount, duration} = circleData;
+    const {
+      userId, 
+      name, 
+      groupType, 
+      depositAmount, 
+      currency, 
+      description, 
+      goalAmount, 
+      savingFrequency, 
+      startDate, 
+      endDate, 
+      imageUrl,  
+      imagePublicId 
+    } = circleData;
 
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
-    if (!amount) throw new Error("Amount is required.");
     if (!currency) throw new Error("Currency is required.");
     if (!description) throw new Error("Circle description is required.");
+    if (!savingFrequency) throw new Error("Saving frequency is required.");
+    if (!startDate || !endDate) throw new Error("Start Date and End Date are required.");
+    if (!goalAmount) throw new Error("Goal Amount is required!");
 
-    // ✅ Create new saving circle
-    const newCircle = new savingCircleModel({
+    // Convert string dates to Date objects if needed
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error("Invalid date format for start or end date.");
+    }
+
+    // Validate that goalAmount and depositAmount are valid numbers
+    if (goalAmount <= 0) throw new Error("Goal Amount should be greater than 0.");
+    if (depositAmount && depositAmount <= 0) throw new Error("Deposit Amount should be greater than 0.");
+
+    // ✅ Create new saving circle object
+    const newCircleData = {
       name,
       groupType,
-      amount,
+      depositAmount,
       currency,
       description,
       createdBy: userId,
       goalAmount,
-      duration,
+      savingFrequency,
+      startDate: start,
+      endDate: end,
       members: [{ userId, contribution: 0, role: "admin" }], // Creator is added as admin
-    });
+      imageUrl,
+      imagePublicId 
+    };
 
+  
+    if (imageUrl && imagePublicId) {
+      newCircleData.imageUrl = imageUrl;
+      newCircleData.imagePublicId = imagePublicId;
+    }
+
+
+    // ✅ Create and save the new saving circle
+    const newCircle = new savingCircleModel(newCircleData);
     return await newCircle.save();
+    
   } catch (error) {
-    throw error;
+    // Handle errors appropriately
+    //@ts-ignore
+    throw new Error(`Failed to create saving circle: ${error.message}`);
   }
 };
-
-
 
 
 /**
@@ -145,7 +187,7 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 /**
  * Initialize a payment for a saving circle
  */
-export const initializeCircleService = async (circleId: string, paymentType: string, userId: string, cardData?: string) => {
+export const initializeCircleService = async (circleId: string, paymentType: string, depositAmount: number, userId: string, cardData?: string) => {
   try {
     // Ensure the user exists
     const user = await findUser("id", userId);
@@ -162,7 +204,7 @@ export const initializeCircleService = async (circleId: string, paymentType: str
     // Calculate unpaid amount
 
 
-    const amount = circle.amount
+    const amount = depositAmount
 
     // Process payment via Paystack or Card
     return await paystackPaymentCircleService({
@@ -312,7 +354,28 @@ export const tryRecurringCircleService = async () => {
       }
     }
 
-    circle.nextContributionDate = new Date(circle.nextContributionDate!.getTime() + circle.frequency * 24 * 60 * 60 * 1000);
+    function mapFrequencyToDays(frequency: "Daily" | "Weekly" | "Monthly" | "Quarterly"): number {
+      switch (frequency) {
+        case "Daily":
+          return 1;
+        case "Weekly":
+          return 7;
+        case "Monthly":
+          return 30;
+        case "Quarterly":
+          return 90;
+        default:
+          return 30; // fallback if not specified
+      }
+    }
+    
+
+    const frequencyInDays = mapFrequencyToDays(circle.depositFrequency);
+
+    circle.nextContributionDate = new Date(
+      circle.nextContributionDate!.getTime() + frequencyInDays * 24 * 60 * 60 * 1000
+    );
+    
     circle.progress = ((circle.currentIndividualTotal! * circle.members.length) / circle.goalAmount!) * 100;
 
     if (circle.progress >= 100) {
@@ -410,5 +473,31 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
   } catch (error: any) {
     console.error("Error verifying payment:", error.response?.data || error.message || error);
     throw new Error(error.response?.data?.message || "An error occurred while verifying payment.");
+  }
+};
+
+/**
+ * Get all saving circles with optional status filtering
+ */
+export const getAllCirclesService = async (status?: string) => {
+  try {
+    // Start with an empty filter object
+    let filter: any = {};
+
+    // If a status query is provided, filter by status
+    if (status) {
+      // Only include valid statuses (active or completed)
+      if (status !== "active" && status !== "completed") {
+        throw new Error("Invalid status. Only 'active' and 'completed' are allowed.");
+      }
+      filter.status = status; // Filter by status if provided
+    }
+
+    // Fetch circles from the database with optional filtering and sort by creation date
+    const circles = await savingCircleModel.find(filter).sort({ createdAt: -1 });
+
+    return circles;
+  } catch (error) {
+    throw error; // Throw error to be handled in controller
   }
 };

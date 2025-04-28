@@ -10,14 +10,27 @@ import {
   unpaidCircleService,
   tryRecurringCircleService,
   verifyPaymentService,
+  getAllCirclesService
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
+import uploadImageFile from "../utils/imageUploader"; 
+import { StatusCodes } from "http-status-codes";
 
 /**
  * Controller to create a new saving circle
  */
 export const createCircleController = async (req: Request, res: Response) => {
   try {
+    let image = null;
+    let imagePublicId = null;
+
+    // Only try upload if there are files
+    if (req.files && req.files.image) {
+      const uploadedImage = await uploadImageFile(req, "image", "image");
+      image = uploadedImage.secure_url;  
+      imagePublicId = uploadedImage.public_id;  
+    }
+
     const circleData = req.body;
     //@ts-ignore
     if (!req.user?.userId) {
@@ -26,22 +39,10 @@ export const createCircleController = async (req: Request, res: Response) => {
     //@ts-ignore
     circleData.createdBy = req.user.userId;
 
-    if (circleData.type === "time") {
-      const frequencyInDays = Number(req.body.frequencyInDays);
-      
-      if (!frequencyInDays || isNaN(frequencyInDays)) {
-        throw new BadRequestError("Frequency in days is required and must be a number.");
-      }
-
-      circleData.nextContributionDate = new Date();
-      circleData.nextContributionDate.setDate(
-        circleData.nextContributionDate.getDate() + frequencyInDays
-      );
-
-      circleData.currentIndividualTotal = circleData.amount;
-      circleData.endDate = new Date(
-        new Date().setDate(new Date().getDate() + circleData.duration)
-      );
+    // Add imageUrl and imagePublicId to the circleData
+    if (image && imagePublicId) {
+      circleData.imageUrl = image;
+      circleData.imagePublicId = imagePublicId;
     }
 
     const circle = await createCircleService(circleData);
@@ -51,6 +52,8 @@ export const createCircleController = async (req: Request, res: Response) => {
     res.status(error.status || 500).json({ message: error.message || "Failed to create saving circle" });
   }
 };
+
+
 
 /**
  * Controller to join an existing saving circle
@@ -143,9 +146,9 @@ export const updateCircleController = async (req: Request, res: Response) => {
  */
 export const initializeCircleController = async (req: Request, res: Response) => {
   try {
-    const { circleId, paymentType, userId, cardData } = req.body;
+    const { circleId, paymentType, depositAmount, userId, cardData } = req.body;
 
-    const response = await initializeCircleService(circleId, paymentType, userId, cardData);
+    const response = await initializeCircleService(circleId, paymentType, depositAmount, userId, cardData);
     res.status(200).json({ message: "Circle initialized for payment successfully", data: response });
 
   } catch (error: any) {
@@ -227,6 +230,33 @@ export const verifyPaymentController = async (req: Request, res: Response) => {
       data: {
         message: error.message || "Payment verification failed.",
       },
+    });
+  }
+};
+
+
+/**
+ * Controller to get all saving circles with optional status filtering
+ */
+export const getAllCirclesController = async (req: Request, res: Response) => {
+  try {
+    // Extract status from query parameters (optional)
+    const { status } = req.query;
+
+    // Call the service function, passing the status query parameter
+    const circles = await getAllCirclesService(status as string | undefined);
+
+    // Return the success response
+    return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
+      message: "Group savings retrieved successfully",
+      data: circles, // Use 'data' as the key for the returned circles
+    });
+  } catch (error) {
+    // Handle errors and return an appropriate response
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      error: error instanceof Error ? error.message : "An error occurred",
     });
   }
 };
