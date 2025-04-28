@@ -8,6 +8,8 @@ import {
   restartPoolForSaving,
   stopSavingForPool,
   allUserPoolsContributions,
+  getManualSaving,
+  getManualSavingByUser
 } from '../../../controllers/web3/chaincoopSaving.2.0/savingcontroller';
 import { authorize, verifyPin } from '../../../middlewares/authorization';
 const router = Router();
@@ -437,6 +439,219 @@ const router = Router();
  *                   example: "internal server error {error message}"
  */
 
+/**
+ * @swagger
+ * /web3/v2/saving/getManualSaving:
+ *   post:
+ *     summary: Get a specific manual saving pool by poolId
+ *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               poolId:
+ *                 type: string
+ *                 description: The ID of the saving pool to retrieve
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: 6447b7e02c4815d3a57d79ba
+ *                     userId:
+ *                       type: string
+ *                       example: 6447b7e02c4815d3a57d79b5
+ *                     poolId:
+ *                       type: string
+ *                       example: pool_123456789
+ *                     tokenAddress:
+ *                       type: string
+ *                       example: 0x1234567890abcdef1234567890abcdef12345678
+ *                     tokenSymbol:
+ *                       type: string
+ *                       example: USDC
+ *                     initialAmount:
+ *                       type: string
+ *                       example: "100"
+ *                     reason:
+ *                       type: string
+ *                       example: "Emergency Fund"
+ *                     lockType:
+ *                       type: number
+ *                       example: 1
+ *                     duration:
+ *                       type: number
+ *                       example: 2592000
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
+ *                     transactions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           txHash:
+ *                             type: string
+ *                             example: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+ *                           amount:
+ *                             type: string
+ *                             example: "50"
+ *                           timestamp:
+ *                             type: string
+ *                             format: date-time
+ *                           status:
+ *                             type: string
+ *                             example: CONFIRMED
+ *                     totalAmount:
+ *                       type: string
+ *                       example: "150"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Provide all required values poolId
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: internal server error
+ */
+
+
+/**
+ * @swagger
+ * /web3/v2/saving/getManualSavingByUser:
+ *   get:
+ *     summary: Get all manual savings for the logged-in user
+ *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: 6447b7e02c4815d3a57d79ba
+ *                       userId:
+ *                         type: string
+ *                         example: 6447b7e02c4815d3a57d79b5
+ *                       poolId:
+ *                         type: string
+ *                         example: pool_123456789
+ *                       tokenAddress:
+ *                         type: string
+ *                         example: 0x1234567890abcdef1234567890abcdef12345678
+ *                       tokenSymbol:
+ *                         type: string
+ *                         example: USDC
+ *                       initialAmount:
+ *                         type: string
+ *                         example: "100"
+ *                       reason:
+ *                         type: string
+ *                         example: "Emergency Fund"
+ *                       lockType:
+ *                         type: number
+ *                         example: 1
+ *                       duration:
+ *                         type: number
+ *                         example: 2592000
+ *                       isActive:
+ *                         type: boolean
+ *                         example: true
+ *                       transactions:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             txHash:
+ *                               type: string
+ *                               example: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+ *                             amount:
+ *                               type: string
+ *                               example: "50"
+ *                             timestamp:
+ *                               type: string
+ *                               format: date-time
+ *                             status:
+ *                               type: string
+ *                               example: CONFIRMED
+ *                       totalAmount:
+ *                         type: string
+ *                         example: "150"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No manual saving found
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: internal server error
+ */
+
 router.post('/openPool', authorize, verifyPin, openSavingPool);
 router.post('/updatePool', authorize, updatePoolWithAmount);
 router.post('/withdraw', authorize, withdrawFromPoolByID);
@@ -445,5 +660,7 @@ router.post('/restartPool', authorize, restartPoolForSaving);
 router.get('/userPools', authorize, allUserPools);
 router.get('/totalPools', authorize, totalNumberPoolCreated);
 router.get('/userPoolContributions', authorize, allUserPoolsContributions);
+router.post('/getManualSaving', authorize, getManualSaving);
+router.get('/getManualSavingByUser', authorize, getManualSavingByUser);
 
 export default router;
