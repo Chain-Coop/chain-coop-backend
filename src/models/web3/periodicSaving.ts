@@ -4,13 +4,13 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 export enum SavingInterval {
   DAILY = 'DAILY',
   WEEKLY = 'WEEKLY',
-  MONTHLY = 'MONTHLY'
+  MONTHLY = 'MONTHLY',
 }
 
 export enum TransactionStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
-  FAILED = 'FAILED'
+  FAILED = 'FAILED',
 }
 
 interface Transaction {
@@ -37,21 +37,18 @@ export interface IPeriodicSaving extends Document {
   nextExecutionTime?: Date;
   encryptedPrivateKey: string;
   transactions: Transaction[];
+  totalAmount: string;
   createdAt: Date;
   updatedAt: Date;
 
   updateLastExecution(): Promise<IPeriodicSaving>;
+  updateTotalAmount(): void;
   addTransaction(
     txHash: string,
     amount: string,
     status?: TransactionStatus,
     error?: string | null
   ): Promise<IPeriodicSaving>;
-  updateTransactionStatus(
-    txHash: string,
-    status: TransactionStatus,
-    error?: string | null
-  ): Promise<IPeriodicSaving | null>;
 }
 
 interface IPeriodicSavingModel extends Model<IPeriodicSaving> {
@@ -68,16 +65,21 @@ const transactionSchema = new Schema<Transaction>(
     status: {
       type: String,
       enum: Object.values(TransactionStatus),
-      default: TransactionStatus.PENDING
+      default: TransactionStatus.PENDING,
     },
-    error: { type: String }
+    error: { type: String },
   },
   { _id: false }
 );
 
 const periodicSavingSchema = new Schema<IPeriodicSaving>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     poolId: { type: String, required: true, unique: true },
     tokenAddress: { type: String, required: true },
     tokenSymbol: { type: String },
@@ -89,13 +91,14 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
     interval: {
       type: String,
       enum: Object.values(SavingInterval),
-      required: true
+      required: true,
     },
     isActive: { type: Boolean, default: true },
     lastExecutionTime: { type: Date, default: Date.now },
     nextExecutionTime: { type: Date },
     encryptedPrivateKey: { type: String, required: true },
-    transactions: [transactionSchema]
+    transactions: [transactionSchema],
+    totalAmount: { type: String, default: '0' },
   },
   { timestamps: true }
 );
@@ -103,7 +106,10 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
 periodicSavingSchema.index({ userId: 1, isActive: 1 });
 periodicSavingSchema.index({ nextExecutionTime: 1, isActive: 1 });
 
-function calculateNextExecutionTime(lastExecution: Date, interval: SavingInterval): Date {
+function calculateNextExecutionTime(
+  lastExecution: Date,
+  interval: SavingInterval
+): Date {
   const next = new Date(lastExecution);
   switch (interval) {
     case SavingInterval.DAILY:
@@ -121,17 +127,44 @@ function calculateNextExecutionTime(lastExecution: Date, interval: SavingInterva
   return next;
 }
 
+periodicSavingSchema.methods.updateTotalAmount = function () {
+  // Start with initial amount
+  let total = parseFloat(this.initialAmount) || 0;
+
+  // Add all confirmed transaction amounts
+  this.transactions.forEach(
+    (tx: { status: TransactionStatus; amount: string }) => {
+      if (tx.status === TransactionStatus.CONFIRMED) {
+        total += parseFloat(tx.amount) || 0;
+      }
+    }
+  );
+
+  // Update the totalAmount field
+  this.totalAmount = total.toString();
+};
+
 periodicSavingSchema.pre<IPeriodicSaving>('save', function (next) {
-  if (this.isModified('interval') || this.isModified('lastExecutionTime') || this.isNew) {
+  if (
+    this.isModified('interval') ||
+    this.isModified('lastExecutionTime') ||
+    this.isNew
+  ) {
     const lastExecution = this.lastExecutionTime || new Date();
-    this.nextExecutionTime = calculateNextExecutionTime(lastExecution, this.interval);
+    this.nextExecutionTime = calculateNextExecutionTime(
+      lastExecution,
+      this.interval
+    );
   }
   next();
 });
 
 periodicSavingSchema.methods.updateLastExecution = async function () {
   this.lastExecutionTime = new Date();
-  this.nextExecutionTime = calculateNextExecutionTime(this.lastExecutionTime, this.interval);
+  this.nextExecutionTime = calculateNextExecutionTime(
+    this.lastExecutionTime,
+    this.interval
+  );
   return this.save();
 };
 
@@ -146,29 +179,18 @@ periodicSavingSchema.methods.addTransaction = async function (
     amount,
     timestamp: new Date(),
     status,
-    error: error ?? undefined
+    error: error ?? undefined,
   });
-  return this.save();
-};
-
-periodicSavingSchema.methods.updateTransactionStatus = async function (
-  txHash: string,
-  status: TransactionStatus,
-  error: string | null = null
-) {
-  const tx = this.transactions.find((t: { txHash: string; }) => t.txHash === txHash);
-  if (tx) {
-    tx.status = status;
-    if (error) tx.error = error;
-    return this.save();
+  if (status === TransactionStatus.CONFIRMED) {
+    this.updateTotalAmount();
   }
-  return null;
+  return this.save();
 };
 
 periodicSavingSchema.statics.findDueExecutions = function () {
   return this.find({
     isActive: true,
-    nextExecutionTime: { $lte: new Date() }
+    nextExecutionTime: { $lte: new Date() },
   }).sort({ nextExecutionTime: 1 });
 };
 
@@ -180,7 +202,7 @@ periodicSavingSchema.statics.findActiveByUser = function (userId: string) {
   return this.find({ userId, isActive: true });
 };
 
-export const PeriodicSaving = mongoose.model<IPeriodicSaving, IPeriodicSavingModel>(
-  'PeriodicSaving',
-  periodicSavingSchema
-);
+export const PeriodicSaving = mongoose.model<
+  IPeriodicSaving,
+  IPeriodicSavingModel
+>('PeriodicSaving', periodicSavingSchema);

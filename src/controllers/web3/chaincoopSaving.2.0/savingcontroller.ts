@@ -6,6 +6,11 @@ import {
   checkStableUserBalance,
 } from '../../../services/web3/accountService';
 import { createTransactionHistory } from '../../../services/web3/historyService';
+import {
+  ManualSaving,
+  TransactionStatus,
+} from '../../../models/web3/manualSaving';
+import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 
 import { decrypt } from '../../../services/encryption';
 
@@ -23,13 +28,8 @@ import {
 } from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
-  const {
-    tokenId,
-    initialSaveAmount,
-    lockedType,
-    reasonForSaving,
-    duration,
-  } = req.body; //1 is for usdc , 2 for Lisk Token  -> duration is in seconds
+  const { tokenId, initialSaveAmount, lockedType, reasonForSaving, duration } =
+    req.body; //1 is for usdc , 2 for Lisk Token  -> duration is in seconds
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -85,6 +85,27 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Failed to open a pool' });
       return;
     }
+    const receipt = await tx.wait();
+    const poolId = periodicSavingService.extractPoolIdFromReceipt(receipt);
+    const saving = new ManualSaving({
+      userId,
+      poolId,
+      tokenAddress: tokenAddressToSaveWith,
+      tokenSymbol: await getTokenAddressSymbol(tokenAddressToSaveWith),
+      initialAmount: 0,
+      reason: reasonForSaving,
+      lockType: lockedType,
+      duration,
+      isActive: true,
+      encryptedPrivateKey: wallet.encryptedKey,
+      totalAmount: initialSaveAmount,
+    });
+    await saving.save();
+    await saving.addTransaction(
+      tx.hash,
+      initialSaveAmount,
+      TransactionStatus.CONFIRMED
+    );
     const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
     await createTransactionHistory(
       userId,
@@ -143,6 +164,14 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to update a pool ${poolId_bytes}` });
         return;
       }
+      const saving = await ManualSaving.findOne({ poolId: poolId_bytes });
+      if (!saving) {
+        res
+          .status(400)
+          .json({ message: `Failed to find a pool ${poolId_bytes}` });
+        return;
+      }
+      saving.addTransaction(tx.hash, amount, TransactionStatus.CONFIRMED);
       const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
       await createTransactionHistory(
         userId,
@@ -350,6 +379,49 @@ const totalNumberPoolCreated = asyncHandler(
     }
   }
 );
+const getManualSaving = asyncHandler(async (req: Request, res: Response) => {
+  const { poolId } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    if (!poolId) {
+      res.status(400).json({ message: 'Provide all required values poolId' });
+      return;
+    }
+    const manualSaving = await ManualSaving.findOne({ poolId });
+    if (!manualSaving) {
+      res.status(400).json({ message: 'No manual saving found' });
+      return;
+    }
+    res.status(200).json({ message: 'Success', data: manualSaving });
+    return;
+  } catch (error: any) {
+    console.log(error);
+    res.status(500).json({ message: `internal server error${error.message}` });
+  }
+});
+const getManualSavingByUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      const manualSaving = await ManualSaving.find({ userId }).sort({
+        createdAt: -1,
+      });
+      if (!manualSaving) {
+        res.status(400).json({ message: 'No manual saving found' });
+        return;
+      }
+      res.status(200).json({ message: 'Success', data: manualSaving });
+      return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
+    }
+  }
+);
 
 export {
   totalNumberPoolCreated,
@@ -360,4 +432,6 @@ export {
   restartPoolForSaving,
   stopSavingForPool,
   allUserPoolsContributions,
+  getManualSaving,
+  getManualSavingByUser,
 };
