@@ -9,7 +9,7 @@ import {
   stopSavingForPool,
   allUserPoolsContributions,
   getManualSaving,
-  getManualSavingByUser
+  getManualSavingByUser,
 } from '../../../controllers/web3/chaincoopSaving.2.0/savingcontroller';
 import { authorize, verifyPin } from '../../../middlewares/authorization';
 const router = Router();
@@ -161,6 +161,10 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
+ *               pin:
+ *                 type: string
+ *                 description: User's pin for authorization
+ *
  *     responses:
  *       200:
  *         description: Success
@@ -549,7 +553,6 @@ const router = Router();
  *                   example: internal server error
  */
 
-
 /**
  * @swagger
  * /web3/v2/saving/getManualSavingByUser:
@@ -654,7 +657,7 @@ const router = Router();
 
 router.post('/openPool', authorize, verifyPin, openSavingPool);
 router.post('/updatePool', authorize, updatePoolWithAmount);
-router.post('/withdraw', authorize, withdrawFromPoolByID);
+router.post('/withdraw', authorize, verifyPin, withdrawFromPoolByID);
 router.post('/stopPool', authorize, stopSavingForPool);
 router.post('/restartPool', authorize, restartPoolForSaving);
 router.get('/userPools', authorize, allUserPools);

@@ -128,8 +128,7 @@ function calculateNextExecutionTime(
 }
 
 periodicSavingSchema.methods.updateTotalAmount = function () {
-  // Start with initial amount
-  let total = parseFloat(this.initialAmount) || 0;
+  let total =0;
 
   // Add all confirmed transaction amounts
   this.transactions.forEach(

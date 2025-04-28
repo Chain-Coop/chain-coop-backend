@@ -92,13 +92,12 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       poolId,
       tokenAddress: tokenAddressToSaveWith,
       tokenSymbol: await getTokenAddressSymbol(tokenAddressToSaveWith),
-      initialAmount: 0,
+      initialAmount: initialSaveAmount,
       reason: reasonForSaving,
       lockType: lockedType,
       duration,
       isActive: true,
       encryptedPrivateKey: wallet.encryptedKey,
-      totalAmount: initialSaveAmount,
     });
     await saving.save();
     await saving.addTransaction(

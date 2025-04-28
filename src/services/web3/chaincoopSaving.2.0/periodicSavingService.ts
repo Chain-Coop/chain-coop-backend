@@ -159,7 +159,7 @@ class PeriodicSavingService {
         poolId,
         tokenAddress,
         tokenSymbol,
-        initialAmount: 0,
+        initialAmount,
         periodicAmount,
         reason,
         lockType,
