@@ -30,6 +30,14 @@ const findOtpPhone = async (phone: string, otpValue: string) => {
   return otp;
 };
 
+const findOtpByPhone = async (phone: string) => {
+  return await OTP.findOne({ phone });
+};
+
+const deleteOtpPhone = async (phone: string) => {
+  return await OTP.findOneAndDelete({ phone });
+};
+
 export {
   createOtp,
   findOtp,
@@ -37,4 +45,6 @@ export {
   findOtpByEmail,
   createOtpPhone,
   findOtpPhone,
+  findOtpByPhone,
+  deleteOtpPhone
 };

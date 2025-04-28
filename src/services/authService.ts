@@ -8,6 +8,8 @@ const findUser = async (by: string, val: string) =>
     ? await User.findOne({ email: val })
     : by === "id"
     ? await User.findOne({ _id: val })
+    : by === "phoneNumber"
+    ? await User.findOne({ phoneNumber: val })
     : "";
 
 const findExistingUser = async (email: string, phone: string) => {
@@ -35,6 +37,12 @@ const updateUserById = async (id: string, payload: any) =>
     runValidators: true,
   });
 
+const updateUserByWhatsApp = async (phoneNumber: string, payload: any) =>
+  await User.findOneAndUpdate({ phoneNumber }, payload, {
+    new: true,
+    runValidators: true,
+  });
+
 const resetUserPassword = async (user: UserDocument, password: string) => {
   user.password = password;
   await user.save();
@@ -45,6 +53,7 @@ export {
   findUser,
   updateUserByEmail,
   updateUserById,
+  updateUserByWhatsApp,
   getUserDetails,
   resetUserPassword,
   getAdminDetails,
