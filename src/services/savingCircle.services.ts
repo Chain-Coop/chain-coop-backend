@@ -70,7 +70,7 @@ export const createCircleService = async (circleData: any) => {
       imagePublicId 
     };
 
-    // Optionally store image URL if uploaded
+  
     if (imageUrl && imagePublicId) {
       newCircleData.imageUrl = imageUrl;
       newCircleData.imagePublicId = imagePublicId;
@@ -473,5 +473,31 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
   } catch (error: any) {
     console.error("Error verifying payment:", error.response?.data || error.message || error);
     throw new Error(error.response?.data?.message || "An error occurred while verifying payment.");
+  }
+};
+
+/**
+ * Get all saving circles with optional status filtering
+ */
+export const getAllCirclesService = async (status?: string) => {
+  try {
+    // Start with an empty filter object
+    let filter: any = {};
+
+    // If a status query is provided, filter by status
+    if (status) {
+      // Only include valid statuses (active or completed)
+      if (status !== "active" && status !== "completed") {
+        throw new Error("Invalid status. Only 'active' and 'completed' are allowed.");
+      }
+      filter.status = status; // Filter by status if provided
+    }
+
+    // Fetch circles from the database with optional filtering and sort by creation date
+    const circles = await savingCircleModel.find(filter).sort({ createdAt: -1 });
+
+    return circles;
+  } catch (error) {
+    throw error; // Throw error to be handled in controller
   }
 };

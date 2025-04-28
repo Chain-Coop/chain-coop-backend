@@ -10,6 +10,7 @@ import {
   unpaidCircleController,
   recurringCircleController,
   verifyPaymentController,
+  getAllCirclesController
 } from "../controllers/savingCircleController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 
@@ -237,6 +238,8 @@ router.get("/:circleId", authorize, getCircleController);
  */
 router.patch("/:circleId", authorize, updateCircleController);
 
+router.get("/circles", authorize, getAllCirclesController);
+
 /**
  * @swagger
  * /api//savingcircle/initialize:
@@ -354,5 +357,8 @@ router.get("/unpaid/:circleId/:userId", authorize, unpaidCircleController);
  *         description: Invalid input
  */
 router.post("/recurring", authorize, recurringCircleController);
+
+
+
 
 export default router;

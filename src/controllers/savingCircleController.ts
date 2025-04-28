@@ -10,9 +10,11 @@ import {
   unpaidCircleService,
   tryRecurringCircleService,
   verifyPaymentService,
+  getAllCirclesService
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
 import uploadImageFile from "../utils/imageUploader"; 
+import { StatusCodes } from "http-status-codes";
 
 /**
  * Controller to create a new saving circle
@@ -228,6 +230,33 @@ export const verifyPaymentController = async (req: Request, res: Response) => {
       data: {
         message: error.message || "Payment verification failed.",
       },
+    });
+  }
+};
+
+
+/**
+ * Controller to get all saving circles with optional status filtering
+ */
+export const getAllCirclesController = async (req: Request, res: Response) => {
+  try {
+    // Extract status from query parameters (optional)
+    const { status } = req.query;
+
+    // Call the service function, passing the status query parameter
+    const circles = await getAllCirclesService(status as string | undefined);
+
+    // Return the success response
+    return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
+      message: "Group savings retrieved successfully",
+      data: circles, // Use 'data' as the key for the returned circles
+    });
+  } catch (error) {
+    // Handle errors and return an appropriate response
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      error: error instanceof Error ? error.message : "An error occurred",
     });
   }
 };
