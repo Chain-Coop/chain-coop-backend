@@ -87,8 +87,8 @@ manualSavingSchema.index({ userId: 1, isActive: 1 });
 
 // Method to recalculate and update total amount
 manualSavingSchema.methods.updateTotalAmount = function () {
-  // Start with initial amount
-  let total = parseFloat(this.initialAmount) || 0;
+  
+  let total = 0;
 
   // Add all confirmed transaction amounts
   this.transactions.forEach(
