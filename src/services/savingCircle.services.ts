@@ -21,11 +21,12 @@ export const createCircleService = async (circleData: any) => {
 
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
-    if (!depositAmount) throw new Error("Deposit amount is required.");
+    //if (!depositAmount) throw new Error("Deposit amount is required.");
     if (!currency) throw new Error("Currency is required.");
     if (!description) throw new Error("Circle description is required.");
     if (!savingFrequency) throw new Error("Saving frequency is required.");
     if (!startDate || !endDate) throw new Error("StartDate and EndDate are required.");
+    if (!goalAmount) throw new Error("Goal Amount is required!")
 
 
     // ✅ Create new saving circle
@@ -148,7 +149,7 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 /**
  * Initialize a payment for a saving circle
  */
-export const initializeCircleService = async (circleId: string, paymentType: string, userId: string, cardData?: string) => {
+export const initializeCircleService = async (circleId: string, paymentType: string, depositAmount: number, userId: string, cardData?: string) => {
   try {
     // Ensure the user exists
     const user = await findUser("id", userId);
@@ -165,7 +166,7 @@ export const initializeCircleService = async (circleId: string, paymentType: str
     // Calculate unpaid amount
 
 
-    const amount = circle.depositAmount
+    const amount = depositAmount
 
     // Process payment via Paystack or Card
     return await paystackPaymentCircleService({

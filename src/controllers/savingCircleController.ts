@@ -125,9 +125,9 @@ export const updateCircleController = async (req: Request, res: Response) => {
  */
 export const initializeCircleController = async (req: Request, res: Response) => {
   try {
-    const { circleId, paymentType, userId, cardData } = req.body;
+    const { circleId, paymentType, depositAmount, userId, cardData } = req.body;
 
-    const response = await initializeCircleService(circleId, paymentType, userId, cardData);
+    const response = await initializeCircleService(circleId, paymentType, depositAmount, userId, cardData);
     res.status(200).json({ message: "Circle initialized for payment successfully", data: response });
 
   } catch (error: any) {
