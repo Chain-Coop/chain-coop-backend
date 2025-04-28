@@ -17,24 +17,29 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
  */
 export const createCircleService = async (circleData: any) => {
   try {
-    const { userId, name, groupType, amount, currency, description, goalAmount, duration} = circleData;
+    const { userId, name, groupType, depositAmount, currency, description, goalAmount, savingFrequency, startDate, endDate} = circleData;
 
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
-    if (!amount) throw new Error("Amount is required.");
+    if (!depositAmount) throw new Error("Deposit amount is required.");
     if (!currency) throw new Error("Currency is required.");
     if (!description) throw new Error("Circle description is required.");
+    if (!savingFrequency) throw new Error("Saving frequency is required.");
+    if (!startDate || !endDate) throw new Error("StartDate and EndDate are required.");
+
 
     // ✅ Create new saving circle
     const newCircle = new savingCircleModel({
       name,
       groupType,
-      amount,
+      depositAmount,
       currency,
       description,
       createdBy: userId,
       goalAmount,
-      duration,
+      savingFrequency,
+      startDate,
+      endDate,
       members: [{ userId, contribution: 0, role: "admin" }], // Creator is added as admin
     });
 
@@ -43,8 +48,6 @@ export const createCircleService = async (circleData: any) => {
     throw error;
   }
 };
-
-
 
 
 /**
@@ -162,7 +165,7 @@ export const initializeCircleService = async (circleId: string, paymentType: str
     // Calculate unpaid amount
 
 
-    const amount = circle.amount
+    const amount = circle.depositAmount
 
     // Process payment via Paystack or Card
     return await paystackPaymentCircleService({
@@ -312,7 +315,28 @@ export const tryRecurringCircleService = async () => {
       }
     }
 
-    circle.nextContributionDate = new Date(circle.nextContributionDate!.getTime() + circle.frequency * 24 * 60 * 60 * 1000);
+    function mapFrequencyToDays(frequency: "Daily" | "Weekly" | "Monthly" | "Quarterly"): number {
+      switch (frequency) {
+        case "Daily":
+          return 1;
+        case "Weekly":
+          return 7;
+        case "Monthly":
+          return 30;
+        case "Quarterly":
+          return 90;
+        default:
+          return 30; // fallback if not specified
+      }
+    }
+    
+
+    const frequencyInDays = mapFrequencyToDays(circle.depositFrequency);
+
+    circle.nextContributionDate = new Date(
+      circle.nextContributionDate!.getTime() + frequencyInDays * 24 * 60 * 60 * 1000
+    );
+    
     circle.progress = ((circle.currentIndividualTotal! * circle.members.length) / circle.goalAmount!) * 100;
 
     if (circle.progress >= 100) {

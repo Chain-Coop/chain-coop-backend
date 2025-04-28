@@ -26,24 +26,6 @@ export const createCircleController = async (req: Request, res: Response) => {
     //@ts-ignore
     circleData.createdBy = req.user.userId;
 
-    if (circleData.type === "time") {
-      const frequencyInDays = Number(req.body.frequencyInDays);
-      
-      if (!frequencyInDays || isNaN(frequencyInDays)) {
-        throw new BadRequestError("Frequency in days is required and must be a number.");
-      }
-
-      circleData.nextContributionDate = new Date();
-      circleData.nextContributionDate.setDate(
-        circleData.nextContributionDate.getDate() + frequencyInDays
-      );
-
-      circleData.currentIndividualTotal = circleData.amount;
-      circleData.endDate = new Date(
-        new Date().setDate(new Date().getDate() + circleData.duration)
-      );
-    }
-
     const circle = await createCircleService(circleData);
     res.status(201).json({ message: "Saving circle created successfully", data: circle });
 
