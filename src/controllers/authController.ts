@@ -328,6 +328,38 @@ const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
+// Change user's phone number
+const changePhoneNumber = async (req: Request, res: Response) => {
+  let user: InstanceType<typeof User> | null = null;
+
+  try {
+    const { userId, otp, newPhoneNumber } = req.body;
+
+    user = await findUser("id", userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const isVerified = await findOtp(user.email, otp);
+    if (!isVerified) {
+      throw new BadRequestError("Invalid OTP provided");
+    }
+
+    user.phoneNumber = newPhoneNumber;
+    await user.save();
+
+    await deleteOtp(user.email);
+    await logUserOperation(user.id, req, "CHANGE_PHONE_NUMBER", "Success");
+
+    res.status(StatusCodes.OK).json({
+      msg: "Phone number successfully updated",
+    });
+  } catch (error) {
+    await logUserOperation(user?.id, req, "CHANGE_PHONE_NUMBER", "Failure");
+    throw error;
+  }
+};
+
 export {
   register,
   verifyOtp,
@@ -337,5 +369,6 @@ export {
   login,
   forgetPassword,
   resetPassword,
+  changePhoneNumber,
   getUser,
 };
