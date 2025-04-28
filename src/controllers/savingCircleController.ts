@@ -25,8 +25,8 @@ export const createCircleController = async (req: Request, res: Response) => {
     // Only try upload if there are files
     if (req.files && req.files.image) {
       const uploadedImage = await uploadImageFile(req, "image", "image");
-      image = uploadedImage.secure_url; // Get the image URL from the response
-      imagePublicId = uploadedImage.public_id; // Get the public_id from the response
+      image = uploadedImage.secure_url;  
+      imagePublicId = uploadedImage.public_id;  
     }
 
     const circleData = req.body;

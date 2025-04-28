@@ -96,8 +96,8 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
       },
     },
 
-    interestRate: { type: Number, default: 0 },
-    interestAmount: { type: Number, default: 0 },
+    //interestRate: { type: Number, default: 0 },
+    //interestAmount: { type: Number, default: 0 },
     goalAmount: { type: Number, default: 0 },
     currentIndividualTotal: { type: Number, default: 0 },
     imageUrl: { type: String }, 
