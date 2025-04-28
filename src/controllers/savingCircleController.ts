@@ -12,12 +12,23 @@ import {
   verifyPaymentService,
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
+import uploadImageFile from "../utils/imageUploader"; 
 
 /**
  * Controller to create a new saving circle
  */
 export const createCircleController = async (req: Request, res: Response) => {
   try {
+    let image = null;
+    let imagePublicId = null;
+
+    // Only try upload if there are files
+    if (req.files && req.files.image) {
+      const uploadedImage = await uploadImageFile(req, "image", "image");
+      image = uploadedImage.secure_url; // Get the image URL from the response
+      imagePublicId = uploadedImage.public_id; // Get the public_id from the response
+    }
+
     const circleData = req.body;
     //@ts-ignore
     if (!req.user?.userId) {
@@ -26,6 +37,12 @@ export const createCircleController = async (req: Request, res: Response) => {
     //@ts-ignore
     circleData.createdBy = req.user.userId;
 
+    // Add imageUrl and imagePublicId to the circleData
+    if (image && imagePublicId) {
+      circleData.imageUrl = image;
+      circleData.imagePublicId = imagePublicId;
+    }
+
     const circle = await createCircleService(circleData);
     res.status(201).json({ message: "Saving circle created successfully", data: circle });
 
@@ -33,6 +50,8 @@ export const createCircleController = async (req: Request, res: Response) => {
     res.status(error.status || 500).json({ message: error.message || "Failed to create saving circle" });
   }
 };
+
+
 
 /**
  * Controller to join an existing saving circle

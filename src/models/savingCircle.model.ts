@@ -30,7 +30,9 @@ export interface SavingCircleDocument extends Document {
   interestAmount?: number;
   goalAmount?: number;
   currentIndividualTotal?: number;
-  duration?: number; // add this
+  duration?: number; 
+  imageUrl?: string;  
+  imagePublicId?: string;
 }
 
 const SavingCircleSchema = new Schema<SavingCircleDocument>(
@@ -98,6 +100,8 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
     interestAmount: { type: Number, default: 0 },
     goalAmount: { type: Number, default: 0 },
     currentIndividualTotal: { type: Number, default: 0 },
+    imageUrl: { type: String }, 
+    imagePublicId: { type: String },
   },
   { timestamps: true }
 );

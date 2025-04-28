@@ -15,22 +15,46 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 /**
  * Create a new saving circle
  */
+
+
 export const createCircleService = async (circleData: any) => {
   try {
-    const { userId, name, groupType, depositAmount, currency, description, goalAmount, savingFrequency, startDate, endDate} = circleData;
+    const {
+      userId, 
+      name, 
+      groupType, 
+      depositAmount, 
+      currency, 
+      description, 
+      goalAmount, 
+      savingFrequency, 
+      startDate, 
+      endDate, 
+      imageUrl,  
+      imagePublicId 
+    } = circleData;
 
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
-    //if (!depositAmount) throw new Error("Deposit amount is required.");
     if (!currency) throw new Error("Currency is required.");
     if (!description) throw new Error("Circle description is required.");
     if (!savingFrequency) throw new Error("Saving frequency is required.");
-    if (!startDate || !endDate) throw new Error("StartDate and EndDate are required.");
-    if (!goalAmount) throw new Error("Goal Amount is required!")
+    if (!startDate || !endDate) throw new Error("Start Date and End Date are required.");
+    if (!goalAmount) throw new Error("Goal Amount is required!");
 
+    // Convert string dates to Date objects if needed
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error("Invalid date format for start or end date.");
+    }
 
-    // ✅ Create new saving circle
-    const newCircle = new savingCircleModel({
+    // Validate that goalAmount and depositAmount are valid numbers
+    if (goalAmount <= 0) throw new Error("Goal Amount should be greater than 0.");
+    if (depositAmount && depositAmount <= 0) throw new Error("Deposit Amount should be greater than 0.");
+
+    // ✅ Create new saving circle object
+    const newCircleData = {
       name,
       groupType,
       depositAmount,
@@ -39,14 +63,28 @@ export const createCircleService = async (circleData: any) => {
       createdBy: userId,
       goalAmount,
       savingFrequency,
-      startDate,
-      endDate,
+      startDate: start,
+      endDate: end,
       members: [{ userId, contribution: 0, role: "admin" }], // Creator is added as admin
-    });
+      imageUrl,
+      imagePublicId 
+    };
 
+    // Optionally store image URL if uploaded
+    if (imageUrl && imagePublicId) {
+      newCircleData.imageUrl = imageUrl;
+      newCircleData.imagePublicId = imagePublicId;
+    }
+
+
+    // ✅ Create and save the new saving circle
+    const newCircle = new savingCircleModel(newCircleData);
     return await newCircle.save();
+    
   } catch (error) {
-    throw error;
+    // Handle errors appropriately
+    //@ts-ignore
+    throw new Error(`Failed to create saving circle: ${error.message}`);
   }
 };
 
