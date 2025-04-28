@@ -44,6 +44,7 @@ import transactionHistory from './routes/web3/transactionHistoryRoutes';
 import chainCoopManagementRouter_2 from './routes/web3/chaincoopSaving.2.0/managementRoutes';
 import chaincoopSavingRoute_2 from './routes/web3/chaincoopSaving.2.0/savingRoutes';
 import web3SavingCircle from './routes/web3/savingCircles/savingCircleRoutes2';
+import periodicSaving from './routes/web3/chaincoopSaving.2.0/periodicSavingRoutes';
 //import
 import logger from './utils/logger';
 import { webhookController } from './controllers/webhookController';
@@ -142,6 +143,7 @@ app.use('/api/v1/web3/transaction', transactionHistory);
 //web3_version 2.0
 app.use('/api/v1/web3/v2/management', chainCoopManagementRouter_2);
 app.use('/api/v1/web3/v2/saving', chaincoopSavingRoute_2);
+app.use('/api/v1/web3/v2/periodicSaving', periodicSaving);
 
 //web3_Saving_circle
 
