@@ -168,6 +168,43 @@ const router = Router();
 
 /**
  * @swagger
+ * /auth/verify_whatsapp_otp:
+ *   post:
+ *     summary: Verify OTP sent to WhatsApp phone number
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 example: "680fb59bc7456789"
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "08456789789"
+ *               otp:
+ *                 type: string
+ *                 example: "889205"
+ *     responses:
+ *       200:
+ *         description: WhatsApp phone number verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: WhatsApp phone number verified successfully
+ *       400:
+ *         description: Invalid OTP or user not found
+ */
+
+/**
+ * @swagger
  * /auth/resend_otp:
  *   post:
  *     summary: Resend OTP for email verification
@@ -196,6 +233,38 @@ const router = Router();
  *       404:
  *         description: User not found
  */
+
+/**
+ * @swagger
+ * /auth/resend_whatsapp_otp:
+ *   post:
+ *     summary: Resend OTP to user's WhatsApp phone number
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "084567890"
+ *     responses:
+ *       200:
+ *         description: OTP resent successfully to WhatsApp
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: OTP resent successfully to WhatsApp
+ *       404:
+ *         description: Phone number not found
+ */
+
 
 /**
  * @swagger
@@ -296,6 +365,42 @@ const router = Router();
  *         description: Unauthorized
  */
 
+/**
+ * @swagger
+ * /auth/change_phone_number:
+ *   put:
+ *     summary: Change user's phone number after OTP verification
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 example: "680fb59bc7134567890"
+ *               otp:
+ *                 type: string
+ *                 example: "379944"
+ *               newPhoneNumber:
+ *                 type: string
+ *                 example: "087546789"
+ *     responses:
+ *       200:
+ *         description: Phone number updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: Phone number updated successfully
+ *       400:
+ *         description: Invalid OTP or user not found
+ */
 
 router.post("/register", register);
 router.get("/user", authorize, getUser);
