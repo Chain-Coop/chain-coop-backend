@@ -9,7 +9,9 @@ import { createTransactionHistory } from '../../../services/web3/historyService'
 import {
   ManualSaving,
   TransactionStatus,
+  DepositType,
 } from '../../../models/web3/manualSaving';
+import { PeriodicSaving } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 
 import { decrypt } from '../../../services/encryption';
@@ -103,7 +105,8 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
     await saving.addTransaction(
       tx.hash,
       initialSaveAmount,
-      TransactionStatus.CONFIRMED
+      TransactionStatus.CONFIRMED,
+      DepositType.SAVE
     );
     const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
     await createTransactionHistory(
@@ -170,7 +173,12 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to find a pool ${poolId_bytes}` });
         return;
       }
-      saving.addTransaction(tx.hash, amount, TransactionStatus.CONFIRMED);
+      saving.addTransaction(
+        tx.hash,
+        amount,
+        TransactionStatus.CONFIRMED,
+        DepositType.UPDATE
+      );
       const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
       await createTransactionHistory(
         userId,
@@ -216,6 +224,10 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to get a pool ${poolId_bytes}` });
         return;
       }
+      const manualSaving = await ManualSaving.findOne({ poolId: poolId_bytes });
+      const periodicSaving = await PeriodicSaving.findOne({
+        poolId: poolId_bytes,
+      });
       const tx = await withdrawFromPool(poolId_bytes, userPrivateKey);
       if (!tx) {
         res
@@ -223,6 +235,15 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
+
+      if (manualSaving) {
+        manualSaving.isActive = false;
+        await manualSaving.save();
+      } else if (periodicSaving) {
+        periodicSaving.isActive = false;
+        await periodicSaving.save();
+      }
+
       const tokenAddressToSaveWith = pool.tokenToSaveWith;
       const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
       const amount = pool.amountSaved;
@@ -421,6 +442,60 @@ const getManualSavingByUser = asyncHandler(
     }
   }
 );
+const getTotalAmountSavedByUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      const manualSaving = await ManualSaving.find({
+        userId,
+        isActive: true,
+      }).sort({ createdAt: -1 });
+      if (!manualSaving) {
+        res.status(400).json({ message: 'No manual saving found' });
+        return;
+      }
+      const totalAmount = manualSaving.reduce((acc, curr) => {
+        return acc + parseFloat(curr.totalAmount);
+      }, 0);
+      res.status(200).json({ message: 'Success', data: totalAmount });
+      return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
+    }
+  }
+);
+const getUserpoolbyReason = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { reason } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      if (!reason) {
+        res.status(400).json({ message: 'Provide all required values reason' });
+        return;
+      }
+      const manualSaving = await ManualSaving.find({
+        reason: { $regex: reason, $options: 'i' },
+        userId,
+      }).sort({ createdAt: -1 });
+      if (!manualSaving) {
+        res.status(400).json({ message: 'No manual saving found' });
+        return;
+      }
+      res.status(200).json({ message: 'Success', data: manualSaving });
+      return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
+    }
+  }
+);
 
 export {
   totalNumberPoolCreated,
@@ -433,4 +508,6 @@ export {
   allUserPoolsContributions,
   getManualSaving,
   getManualSavingByUser,
+  getTotalAmountSavedByUser,
+  getUserpoolbyReason,
 };

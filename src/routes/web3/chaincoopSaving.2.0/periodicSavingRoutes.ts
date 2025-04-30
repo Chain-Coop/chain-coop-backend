@@ -689,5 +689,148 @@ router.post(
   authorize,
   PeriodicSavingController.intializePeriodicSaving
 );
+/**
+ * @swagger
+ * /web3/v2/periodicSaving/totalAmountSaved:
+ *   get:
+ *     summary: Get total amount saved by user
+ *     description: Retrieves the sum of all amounts saved across all periodic saving pools for the authenticated user
+ *     tags: [Web3 Periodic Saving]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved total amount saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: number
+ *                   example: 1050.75
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Failed to fetch total amount saved by user
+ */
+router.get(
+  '/totalAmountSaved',
+  authorize,
+  PeriodicSavingController.getTotalAmountSavedByUser
+);
+
+/**
+ * @swagger
+ * /web3/v2/periodicSaving/getPoolByReason:
+ *   post:
+ *     summary: Get periodic savings by reason
+ *     description: Retrieves all periodic savings that match the provided reason (case insensitive)
+ *     tags: [Web3 Periodic Saving]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: The reason for saving to search for
+ *                 example: House
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved matching periodic savings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: 60d21b4667d0d8992e610c85
+ *                       userId:
+ *                         type: string
+ *                         example: 60d21b4667d0d8992e610c86
+ *                       tokenAddress:
+ *                         type: string
+ *                         example: 0x1234...5678
+ *                       initialAmount:
+ *                         type: string
+ *                         example: 100
+ *                       periodicAmount:
+ *                         type: string
+ *                         example: 50
+ *                       reasonForSaving:
+ *                         type: string
+ *                         example: House Fund
+ *                       lockedType:
+ *                         type: number
+ *                         example: 1
+ *                       duration:
+ *                         type: number
+ *                         example: 31536000
+ *                       interval:
+ *                         type: string
+ *                         example: MONTHLY
+ *                       totalAmount:
+ *                         type: string
+ *                         example: 250
+ *                       poolId:
+ *                         type: string
+ *                         example: 0xabcd...1234
+ *                       isActive:
+ *                         type: boolean
+ *                         example: true
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Provide all required values reason
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: internal server error
+ */
+router.post(
+  '/getPoolByReason',
+  authorize,
+  PeriodicSavingController.getUserPoolbyReason
+);
 
 export default router;
