@@ -6,6 +6,10 @@ export enum SavingInterval {
   WEEKLY = 'WEEKLY',
   MONTHLY = 'MONTHLY',
 }
+export enum DepositType {
+  SAVE = 'SAVE',
+  UPDATE = 'UPDATE',
+}
 
 export enum TransactionStatus {
   PENDING = 'PENDING',
@@ -18,6 +22,7 @@ interface Transaction {
   amount: string;
   timestamp: Date;
   status: TransactionStatus;
+  depositType: DepositType;
   error?: string;
 }
 
@@ -66,6 +71,11 @@ const transactionSchema = new Schema<Transaction>(
       type: String,
       enum: Object.values(TransactionStatus),
       default: TransactionStatus.PENDING,
+    },
+    depositType: {
+      type: String,
+      enum: Object.values(DepositType),
+      required: true,
     },
     error: { type: String },
   },
@@ -128,7 +138,7 @@ function calculateNextExecutionTime(
 }
 
 periodicSavingSchema.methods.updateTotalAmount = function () {
-  let total =0;
+  let total = 0;
 
   // Add all confirmed transaction amounts
   this.transactions.forEach(
@@ -171,6 +181,7 @@ periodicSavingSchema.methods.addTransaction = async function (
   txHash: string,
   amount: string,
   status: TransactionStatus = TransactionStatus.PENDING,
+  depositType: DepositType,
   error: string | null = null
 ) {
   this.transactions.push({
@@ -178,6 +189,7 @@ periodicSavingSchema.methods.addTransaction = async function (
     amount,
     timestamp: new Date(),
     status,
+    depositType,
     error: error ?? undefined,
   });
   if (status === TransactionStatus.CONFIRMED) {

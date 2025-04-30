@@ -6,6 +6,7 @@ import {
   PeriodicSaving,
   SavingInterval,
   TransactionStatus,
+  DepositType,
 } from '../../../models/web3/periodicSaving';
 import {
   openPool,
@@ -110,7 +111,8 @@ class PeriodicSavingService {
       await saving.addTransaction(
         tx.hash,
         saving.periodicAmount,
-        TransactionStatus.CONFIRMED
+        TransactionStatus.CONFIRMED,
+        DepositType.UPDATE
       );
       await saving.updateLastExecution();
 
@@ -173,7 +175,8 @@ class PeriodicSavingService {
       await saving.addTransaction(
         tx.hash,
         initialAmount,
-        TransactionStatus.CONFIRMED
+        TransactionStatus.CONFIRMED,
+        DepositType.SAVE
       );
 
       this.scheduleIndividualSaving(saving);

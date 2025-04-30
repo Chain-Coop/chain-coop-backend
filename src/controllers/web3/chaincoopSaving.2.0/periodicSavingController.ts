@@ -1,6 +1,9 @@
 // controllers/PeriodicSavingController.ts
 import { Request, Response } from 'express';
-import { SavingInterval } from '../../../models/web3/periodicSaving';
+import {
+  PeriodicSaving,
+  SavingInterval,
+} from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 import {
   checkStableUserBalance,
@@ -380,6 +383,63 @@ export class PeriodicSavingController {
         success: false,
         message: error.message || 'Failed to execute periodic saving',
       });
+    }
+  }
+  public static async getTotalAmountSavedByUser(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    try {
+      //@ts-ignore
+      const userId = req.user.userId; // Assuming req.user is set by auth middleware
+      const periodicSavings = await PeriodicSaving.find({
+        userId,
+        isActive: true,
+      }).sort({ createdAt: -1 });
+      const totalAmountSaved = periodicSavings.reduce(
+        (total, saving) => total + parseFloat(saving.totalAmount),
+        0
+      );
+      res.status(200).json({
+        success: true,
+        data: totalAmountSaved,
+      });
+    } catch (error: any) {
+      console.error('Error fetching total amount saved by user:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to fetch total amount saved by user',
+      });
+    }
+  }
+
+  public static async getUserPoolbyReason(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const { reason } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      if (!reason) {
+        res.status(400).json({ message: 'Provide all required values reason' });
+        return;
+      }
+      const periodicSaving = await PeriodicSaving.find({
+        reason: { $regex: reason, $options: 'i' },
+        userId,
+      }).sort({ createdAt: -1 });
+      if (!periodicSaving) {
+        res.status(400).json({ message: 'No periodic saving found' });
+        return;
+      }
+      res.status(200).json({ message: 'Success', data: periodicSaving });
+      return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
     }
   }
 

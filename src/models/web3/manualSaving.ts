@@ -6,12 +6,17 @@ export enum TransactionStatus {
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
 }
+export enum DepositType {
+  SAVE = 'SAVE',
+  UPDATE = 'UPDATE',
+}
 
 interface Transaction {
   txHash: string;
   amount: string;
   timestamp: Date;
   status: TransactionStatus;
+  depositType: DepositType;
   error?: string;
 }
 
@@ -55,6 +60,11 @@ const transactionSchema = new Schema<Transaction>(
       enum: Object.values(TransactionStatus),
       default: TransactionStatus.PENDING,
     },
+    depositType: {
+      type: String,
+      enum: Object.values(DepositType),
+      default: DepositType.SAVE,
+    },
     error: { type: String },
   },
   { _id: false }
@@ -87,7 +97,6 @@ manualSavingSchema.index({ userId: 1, isActive: 1 });
 
 // Method to recalculate and update total amount
 manualSavingSchema.methods.updateTotalAmount = function () {
-  
   let total = 0;
 
   // Add all confirmed transaction amounts
@@ -107,6 +116,7 @@ manualSavingSchema.methods.addTransaction = async function (
   txHash: string,
   amount: string,
   status: TransactionStatus = TransactionStatus.PENDING,
+  depositType: DepositType,
   error: string | null = null
 ) {
   this.transactions.push({
@@ -114,6 +124,7 @@ manualSavingSchema.methods.addTransaction = async function (
     amount,
     timestamp: new Date(),
     status,
+    depositType,
     error: error ?? undefined,
   });
 
