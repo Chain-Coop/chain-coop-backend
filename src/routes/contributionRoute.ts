@@ -28,62 +28,100 @@ const router = Router();
 
 /**
  * @swagger
- * /api/contribute:
- *   post:
- *     summary: Create a new contribution
- *     tags: [Contributions]
- *     requestBody:
- *       description: Data to create a new contribution
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               user:
- *                 type: string
- *                 description: User ID
- *               contributionPlan:
- *                 type: string
- *                 description: Contribution plan (e.g., monthly, weekly)
- *               amount:
- *                 type: number
- *                 description: Contribution amount
- *               currency:
- *                 type: string
- *                 description: Currency for the contribution (e.g., USD, EUR, GBP)
- *               savingsCategory:
- *                 type: string
- *                 description: Savings category
- *               startDate:
- *                 type: string
- *                 format: date
- *                 description: Contribution start date
- *               endDate:
- *                 type: string
- *                 format: date
- *                 description: Contribution end date
- *               email:
- *                 type: string
- *                 description: User's email address
- *     responses:
- *       201:
- *         description: Contribution created successfully
- *       400:
- *         description: Invalid request data
+  /api/v1/savingcircle/create:
+    post:
+      summary: Create a new saving circle
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: name
+          in: formData
+          required: true
+          type: string
+        - name: description
+          in: formData
+          required: true
+          type: string
+        - name: depositAmount
+          in: formData
+          required: true
+          type: number
+        - name: currency
+          in: formData
+          required: true
+          type: string
+        - name: savingFrequency
+          in: formData
+          required: true
+          type: string
+          enum: [Daily, Weekly, Monthly]
+        - name: goalAmount
+          in: formData
+          required: true
+          type: number
+        - name: groupType
+          in: formData
+          required: true
+          type: string
+          enum: [open, closed]
+        - name: startDate
+          in: formData
+          required: true
+          type: string
+          format: date-time
+        - name: endDate
+          in: formData
+          required: true
+          type: string
+          format: date-time
+        - name: userId
+          in: formData
+          required: true
+          type: string
+        - name: image
+          in: formData
+          required: false
+          type: file
+      responses:
+        201:
+          description: Saving circle created successfully
+        400:
+          description: Bad request
+
  */
 
 /**
  * @swagger
- * /api/contribute:
- *   get:
- *     summary: Get contributions of a user
- *     tags: [Contributions]
- *     responses:
- *       200:
- *         description: Contributions found
- *       404:
- *         description: Contributions not found
+  /api/v1/savingcircle/initialize:
+    post:
+      summary: Initialize a payment for a saving circle
+      consumes:
+        - application/json
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                circleId:
+                  type: string
+                  example: "680fd6c2aa5f30e884a11b872"
+                userId:
+                  type: string
+                  example: "6807c036a0425f6d2dee9220"
+                depositAmount:
+                  type: number
+                  example: 3400
+                paymentType:
+                  type: string
+                  enum: [paystack, card]
+      responses:
+        200:
+          description: Payment initialized successfully
+        400:
+          description: Invalid request or payment type
  */
 
 /**
