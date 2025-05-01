@@ -18,7 +18,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/savingcircle/create:
+ * /savingcircle/create:
  *   post:
  *     summary: Create a new saving circle
  *     description: Allows a user to create a new saving circle with specified attributes.
