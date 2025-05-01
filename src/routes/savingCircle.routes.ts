@@ -69,7 +69,7 @@ const router = Router();
  *                 type: string
  *                 example: "6807c036a0425f6d2dee9220"
  *               image:
- *                 type: string
+ *                 type: A binary image file
  *                 format: binary
  *                 description: "A binary image file"
  *     responses:
