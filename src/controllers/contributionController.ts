@@ -716,42 +716,38 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5, sort = "desc", search = "" } = req.query;
+    const { page = 1, limit = 5, sort = "desc", search = "", filter } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
     const sortOrder = sort === "asc" ? 1 : -1;
 
-    let contributions;
-    let conLength;
+    const query: any = {
+      user: userId,
+      status: { $ne: "Pending" },
+    };
 
-    // If there's a search term, perform a filtered search
-    if (search) {
-      const regex = new RegExp(String(search), "i");
-      contributions = await Contribution.find({
-        user: userId,
-        savingsCategory: { $regex: regex },
-        status: { $ne: "Pending" },
-      })
-        .sort({ createdAt: sortOrder })
-        .skip(skip)
-        .limit(Number(limit));
-
-      conLength = await Contribution.countDocuments({
-        user: userId,
-        savingsCategory: { $regex: regex },
-        status: { $ne: "Pending" },
-      });
-    } else {
-      contributions = await Contribution.find({
-        user: userId,
-        status: { $ne: "Pending" },
-      })
-        .sort({ createdAt: sortOrder })
-        .skip(skip)
-        .limit(Number(limit));
-
-      conLength = await getUserContributionsLengthService(userId);
+    // Apply savingsType filter if valid
+    const allowedFilters = ["lock", "strict", "flexible"];
+    if (filter) {
+      const normalizedFilter = String(filter).charAt(0).toUpperCase() + String(filter).slice(1).toLowerCase();
+      const allowedFilters = ["Lock", "Strict", "Flexible", "One-time"];
+      if (allowedFilters.includes(normalizedFilter)) {
+        query.savingsType = normalizedFilter;
+      }
     }
+    
+
+    // Apply search term if present
+    if (search) {
+      query.savingsCategory = { $regex: new RegExp(String(search), "i") };
+    }
+
+    const contributions = await Contribution.find(query)
+      .sort({ createdAt: sortOrder })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const conLength = await Contribution.countDocuments(query);
 
     const totalPages = Math.ceil(conLength / Number(limit));
 
@@ -767,6 +763,7 @@ export const getUserContributions = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 
 export const getUnpaidContributions = async (req: Request, res: Response) => {
