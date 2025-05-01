@@ -81,7 +81,7 @@ const router = Router();
 router.post("/create", authorize, createCircleController);
 /**
  * @swagger
- * /api//savingcircle/join:
+ * /savingcircle/join:
  *   post:
  *     summary: Join an existing saving circle
  *     description: Allows a user to join an existing saving circle using an invite code.
@@ -116,7 +116,7 @@ router.post("/join", authorize, joinCircleController);
 
 /**
  * @swagger
- * /api//savingcircle/user/{userId}:
+ * /savingcircle/user/{userId}:
  *   get:
  *     summary: Get all saving circles for a user
  *     description: Fetch all saving circles associated with a particular user.
@@ -152,7 +152,7 @@ router.get("/user/:userId", authorize, getUserCirclesController);
 
 /**
  * @swagger
- * /api//savingcircle/verify:
+ * /savingcircle/verify:
  *   get:
  *     summary: Verify payment
  *     description: Verifies a payment using a reference number.
@@ -177,7 +177,7 @@ router.get("/verify", authorize, verifyPaymentController);
 
 /**
  * @swagger
- * /api//savingcircle/{circleId}:
+ * /savingcircle/{circleId}:
  *   get:
  *     summary: Get a saving circle by its ID
  *     description: Retrieve a specific saving circle by its ID.
@@ -202,7 +202,7 @@ router.get("/:circleId", authorize, getCircleController);
 
 /**
  * @swagger
- * /api//savingcircle/{circleId}:
+ * /savingcircle/{circleId}:
  *   patch:
  *     summary: Update a saving circle by its ID
  *     description: Update the details of an existing saving circle.
@@ -248,7 +248,7 @@ router.get("/circles", authorize, getAllCirclesController);
 
 /**
  * @swagger
- * /api/savingcircle/initialize:
+ * /savingcircle/initialize:
  *   post:
  *     summary: Initialize a circle for payment
  *     description: Initializes a circle to be ready for accepting payments.
@@ -288,7 +288,7 @@ router.post("/initialize", authorize, initializeCircleController);
 
 /**
  * @swagger
- * /api//savingcircle/payment:
+ * /savingcircle/payment:
  *   post:
  *     summary: Make a payment in a saving circle
  *     description: Allows a user to make a payment into a saving circle.
@@ -323,7 +323,7 @@ router.post("/payment", authorize, paymentCircleController);
 
 /**
  * @swagger
- * /api//savingcircle/unpaid/{circleId}/{userId}:
+ * /savingcircle/unpaid/{circleId}/{userId}:
  *   get:
  *     summary: Get the unpaid amount for a user in a circle
  *     description: Fetch the unpaid balance of a user in a specific saving circle.
@@ -350,7 +350,7 @@ router.get("/unpaid/:circleId/:userId", authorize, unpaidCircleController);
 
 /**
  * @swagger
- * /api//savingcircle/recurring:
+ * /savingcircle/recurring:
  *   post:
  *     summary: Trigger recurring contributions for circles
  *     description: Triggers recurring payments for saving circles.
