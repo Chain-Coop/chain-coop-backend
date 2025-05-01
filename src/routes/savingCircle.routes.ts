@@ -177,6 +177,34 @@ router.get("/verify", authorize, verifyPaymentController);
 
 /**
  * @swagger
+ * /savingcircle/circles:
+ *   get:
+ *     summary: Get all saving circles with optional status filtering
+ *     description: Retrieve all saving circles, optionally filtering by status. Valid statuses include 'active' and 'completed'.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, completed]
+ *         required: false
+ *         description: Filter circles by status (active or completed).
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved saving circles
+ *       400:
+ *         description: Invalid status filter
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/circles", authorize, getAllCirclesController);
+
+/**
+ * @swagger
  * /savingcircle/{circleId}:
  *   get:
  *     summary: Get a saving circle by its ID
@@ -244,7 +272,7 @@ router.get("/:circleId", authorize, getCircleController);
  */
 router.patch("/:circleId", authorize, updateCircleController);
 
-router.get("/circles", authorize, getAllCirclesController);
+
 
 /**
  * @swagger
