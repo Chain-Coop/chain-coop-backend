@@ -34,38 +34,44 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               circleName:
+ *               name:
  *                 type: string
- *                 example: "Monthly Savings Circle"
+ *                 example: "Monthly saving circle"
  *               description:
  *                 type: string
- *                 example: "A circle for monthly savings"
- *               targetAmount:
+ *                 example: "Saving circle for monthly"
+ *               depositAmount:
  *                 type: number
  *                 format: float
- *                 example: 5000
+ *                 example: 3500
  *               currency:
  *                 type: string
- *                 example: "USD"
- *               duration:
- *                 type: integer
- *                 example: 90
- *               frequencyInDays:
- *                 type: integer
- *                 example: 30
- *               type:
+ *                 example: "USDT"
+ *               savingFrequency:
  *                 type: string
- *                 example: "time"
+ *                 example: "Monthly"
  *               goalAmount:
  *                 type: number
  *                 format: float
- *                 example: 100000
+ *                 example: 10000
  *               groupType:
  *                 type: string
  *                 example: "closed"
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-05-26T00:00:00.000Z"
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-08-28T00:00:00.000Z"
  *               userId:
  *                 type: string
- *                 example: "675cd8dc1ced747022d5f333"
+ *                 example: "6807c036a0425f6d2dee9220"
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: "A binary image file"
  *     responses:
  *       200:
  *         description: Successfully created saving circle
@@ -242,7 +248,7 @@ router.get("/circles", authorize, getAllCirclesController);
 
 /**
  * @swagger
- * /api//savingcircle/initialize:
+ * /api/savingcircle/initialize:
  *   post:
  *     summary: Initialize a circle for payment
  *     description: Initializes a circle to be ready for accepting payments.
@@ -260,12 +266,24 @@ router.get("/circles", authorize, getAllCirclesController);
  *             properties:
  *               circleId:
  *                 type: string
+ *                 example: "680f6dc2aa5f30e88a41b872"
+ *               userId:
+ *                 type: string
+ *                 example: "6807c036a0425f6d2dee9220"
+ *               depositAmount:
+ *                 type: number
+ *                 format: float
+ *                 example: 3400
+ *               paymentType:
+ *                 type: string
+ *                 example: "paystack"
  *     responses:
  *       200:
  *         description: Circle successfully initialized for payments
  *       404:
  *         description: Circle not found
  */
+
 router.post("/initialize", authorize, initializeCircleController);
 
 /**
