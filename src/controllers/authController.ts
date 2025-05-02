@@ -247,7 +247,7 @@ const login = async (req: Request, res: Response) => {
     res.status(StatusCodes.OK).json({
       _id: user._id,
       email: user.email,
-
+      phoneNumber: user.phoneNumber,
       token,
       role: user.role,
       //@ts-ignore
