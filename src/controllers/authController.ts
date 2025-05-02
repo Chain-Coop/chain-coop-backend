@@ -130,7 +130,7 @@ const verifyOtpWA = async (req: Request, res: Response) => {
   // Update isVerified only if userId and phoneNumber both match
   const updatedUser = await User.findOneAndUpdate(
     { _id: userId, phoneNumber }, // double check: both user ID and phone must match
-    { isVerified: true },
+    { isVerified: true, Tier: 1 }, // Set Tier to 1 on successful verification
     { new: true }
   );
 
@@ -247,7 +247,7 @@ const login = async (req: Request, res: Response) => {
     res.status(StatusCodes.OK).json({
       _id: user._id,
       email: user.email,
-
+      phoneNumber: user.phoneNumber,
       token,
       role: user.role,
       //@ts-ignore
