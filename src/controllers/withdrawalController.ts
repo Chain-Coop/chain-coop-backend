@@ -74,7 +74,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
     if (user.isVerified === false) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: StatusCodes.BAD_REQUEST,
-        error: "User is not verified",
+        error: "You are not verified to make this transaction.",
       });
     }
 
