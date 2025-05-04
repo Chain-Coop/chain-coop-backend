@@ -5,6 +5,7 @@ import { findUser } from "./authService";
 import { createToken } from "../utils/createToken";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
 import qs from "qs";
+import User from "../models/user";
 
 interface VerifyBVNParams {
   countryCode: string;
@@ -225,6 +226,46 @@ export const createKycSession = async (vendorData: string) => {
   }
 };
 
+export const processKycWebhook = async (payload: any) => {
+  const { status, vendor_data, session_id } = payload;
+
+  // Validate required fields
+  if (!vendor_data || !session_id || !status) {
+    throw new Error("Missing required fields in webhook payload");
+  }
+
+  // Find the user by vendor_data (userId)
+  const user = await User.findById(vendor_data);   
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Check for session ID mismatch (if already set)
+  if (user.kycSessionId && user.kycSessionId !== session_id) {
+    throw new Error("Session ID mismatch for the user");
+  }
+
+  // Handle verified status
+  if (status.toLowerCase() === "verified") {
+    user.Tier = 2;
+    user.isVerified = true;
+  }
+
+  // Store the session ID if not already saved
+  if (!user.kycSessionId) {
+    user.kycSessionId = session_id;
+  }
+
+  // Save updates
+  await user.save();
+
+  return {
+    message: "User KYC verification processed successfully",
+    userId: user._id,
+    status: user.isVerified ? "verified" : "unverified",
+    tier: user.Tier,
+  };
+};
 
 
 export {

@@ -5,6 +5,7 @@ import {
   verifyBVN,
   verifyOTP,
   createKycSession,
+  processKycWebhook,
 } from "../services/kycservice";
 import { Request, Response } from "express";
 import { findWalletService } from "../services/walletService";
@@ -164,6 +165,15 @@ export const initiateTier2Kyc = async (req: Request, res: Response) => {
   }
 };
 
+export const handleKycCallback = async (req: Request, res: Response) => {
+  try {
+    const result = await processKycWebhook(req.body);
+    return res.status(200).json({ message: result.message });
+  } catch (error: any) {
+    console.error("Webhook processing failed:", error.message);
+    return res.status(500).json({ message: "Webhook error", error: error.message });
+  }
+};
 
 export {
   sendOTP,

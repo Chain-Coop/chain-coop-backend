@@ -508,51 +508,52 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     });
   }
 
-  // Handle savingsType: Lock (default behavior)
-  if (!pay) {
-    const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
-    const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
-    const deadline =
-      contribution.withdrawalDate && currentDate < endDate ? 2000 : 0;
-    const charges = 50;
+// Handle savingsType: Lock (default behavior)
+if (!pay) {
+  const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
+  const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
+  const earlyWithdrawalPenalty =
+    contribution.withdrawalDate && currentDate < endDate ? Math.floor(amount * 0.03) : 0;
+  const charges = 50;
 
-    const totalPenalties = membershipFee + deadline + charges + debtfee;
-    const totalToPay = amount - totalPenalties;
+  const totalPenalties = membershipFee + earlyWithdrawalPenalty + charges + debtfee;
+  const totalToPay = amount - totalPenalties;
 
-    if (totalToPay <= 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        message:
-          "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
-        statusCode: StatusCodes.BAD_REQUEST,
-      });
-    }
-
-    return res.status(StatusCodes.OK).json({
-      membership: membershipFee,
-      deadline: deadline,
-      charges: charges,
-      totalPenalties: totalPenalties,
-      totalToPay: totalToPay,
-      debtfee: debtfee,
-      statusCode: StatusCodes.OK,
+  if (totalToPay <= 0) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message:
+        "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
+      statusCode: StatusCodes.BAD_REQUEST,
     });
   }
 
-  let penalties = 0;
+  return res.status(StatusCodes.OK).json({
+    membership: membershipFee,
+    deadline: earlyWithdrawalPenalty,
+    charges: charges,
+    totalPenalties: totalPenalties,
+    totalToPay: totalToPay,
+    debtfee: debtfee,
+    statusCode: StatusCodes.OK,
+  });
+}
 
-  if (currentDate < endDate) {
-    penalties += 2000; // penalty for early withdrawal
-  }
+let penalties = 0;
 
-  penalties += 50; // standard withdrawal fee
+if (currentDate < endDate) {
+  penalties += Math.floor(amount * 0.03); // 3% early withdrawal penalty
+}
 
-  if (user.membershipStatus !== "active") {
-    penalties += 1000; // membership fee
-    user.membershipStatus = "active";
-  }
+penalties += 50; // standard withdrawal fee
 
-  const totalPenalties = penalties;
-  const totalToPay = amount - totalPenalties;
+if (user.membershipStatus !== "active") {
+  penalties += 1000; // membership fee
+  user.membershipStatus = "active";
+}
+
+const totalPenalties = penalties;
+const totalToPay = amount - totalPenalties;
+
 
   if (totalToPay <= 0) {
     return res.status(StatusCodes.BAD_REQUEST).json({
