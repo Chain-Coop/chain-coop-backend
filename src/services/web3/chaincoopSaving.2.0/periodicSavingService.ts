@@ -11,6 +11,7 @@ import {
 import {
   openPool,
   updatePoolAmount,
+  userPoolsByPoolId,
 } from '../chaincoopSaving.2.0/savingServices';
 import { getTokenAddressSymbol } from '../../web3/accountService';
 import { decrypt, encrypt } from '../../../services/encryption';
@@ -100,6 +101,7 @@ class PeriodicSavingService {
         privateKey
       );
       await tx.wait();
+      const pool = await userPoolsByPoolId(saving.poolId);
       await createTransactionHistory(
         saving.userId.toString(),
         saving.periodicAmount,
@@ -112,7 +114,8 @@ class PeriodicSavingService {
         tx.hash,
         saving.periodicAmount,
         TransactionStatus.CONFIRMED,
-        DepositType.UPDATE
+        DepositType.UPDATE,
+        pool.amountSaved
       );
       await saving.updateLastExecution();
 
@@ -120,12 +123,6 @@ class PeriodicSavingService {
         `Successfully executed periodic saving for pool ${saving.poolId}`
       );
     } catch (error: any) {
-      await saving.addTransaction(
-        null,
-        saving.periodicAmount,
-        'FAILED',
-        error.message
-      );
       throw error;
     }
   }
@@ -154,6 +151,8 @@ class PeriodicSavingService {
       );
       const receipt = await tx.wait();
       const poolId = this.extractPoolIdFromReceipt(receipt);
+      const pool = await userPoolsByPoolId(poolId);
+
       const encryptedPrivateKey = encrypt(privateKey);
 
       const saving = new PeriodicSaving({
@@ -176,7 +175,8 @@ class PeriodicSavingService {
         tx.hash,
         initialAmount,
         TransactionStatus.CONFIRMED,
-        DepositType.SAVE
+        DepositType.SAVE,
+        pool.amountSaved
       );
 
       this.scheduleIndividualSaving(saving);

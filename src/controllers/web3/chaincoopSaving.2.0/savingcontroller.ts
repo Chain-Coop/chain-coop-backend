@@ -90,6 +90,11 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
     }
     const receipt = await tx.wait();
     const poolId = periodicSavingService.extractPoolIdFromReceipt(receipt);
+    const pool = await userPoolsByPoolId(poolId);
+    if (!pool) {
+      res.status(400).json({ message: `Failed to get a pool ${poolId}` });
+      return;
+    }
     const saving = new ManualSaving({
       userId,
       poolId,
@@ -107,7 +112,8 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       tx.hash,
       initialSaveAmount,
       TransactionStatus.CONFIRMED,
-      DepositType.SAVE
+      DepositType.SAVE,
+      pool.amountSaved
     );
     const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
     await createTransactionHistory(
@@ -167,6 +173,14 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to update a pool ${poolId_bytes}` });
         return;
       }
+      await tx.wait();
+      const pool = await userPoolsByPoolId(poolId_bytes);
+      if (!pool) {
+        res
+          .status(400)
+          .json({ message: `Failed to get a pool ${poolId_bytes}` });
+        return;
+      }
       const saving = await ManualSaving.findOne({ poolId: poolId_bytes });
       if (!saving) {
         res
@@ -178,7 +192,8 @@ const updatePoolWithAmount = asyncHandler(
         tx.hash,
         amount,
         TransactionStatus.CONFIRMED,
-        DepositType.UPDATE
+        DepositType.UPDATE,
+        pool.amountSaved
       );
       const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
       await createTransactionHistory(
@@ -242,6 +257,7 @@ const withdrawFromPoolByID = asyncHandler(
         timestamp: new Date(),
         status: TransactionStatus.CONFIRMED,
         depositType: DepositType.WITHDRAW,
+        poolAmount: pool.amountSaved,
       };
 
       if (manualSaving) {
