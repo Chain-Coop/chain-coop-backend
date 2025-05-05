@@ -509,15 +509,16 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   }
 
 // Handle savingsType: Lock (default behavior)
+const withdrawalFee = 50;
+
 if (!pay) {
   const debtfee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
   const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
   const earlyWithdrawalPenalty =
     contribution.withdrawalDate && currentDate < endDate ? Math.floor(amount * 0.03) : 0;
-  const charges = 50;
 
-  const totalPenalties = membershipFee + earlyWithdrawalPenalty + charges + debtfee;
-  const totalToPay = amount - totalPenalties;
+  const totalPenalties = membershipFee + earlyWithdrawalPenalty + withdrawalFee + debtfee;
+  const totalToPay = Math.max(amount - totalPenalties, 0);
 
   if (totalToPay <= 0) {
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -530,7 +531,7 @@ if (!pay) {
   return res.status(StatusCodes.OK).json({
     membership: membershipFee,
     deadline: earlyWithdrawalPenalty,
-    charges: charges,
+    charges: withdrawalFee,
     totalPenalties: totalPenalties,
     totalToPay: totalToPay,
     debtfee: debtfee,
@@ -544,70 +545,72 @@ if (currentDate < endDate) {
   penalties += Math.floor(amount * 0.03); // 3% early withdrawal penalty
 }
 
-penalties += 50; // standard withdrawal fee
+penalties += withdrawalFee; // always charge this
 
 if (user.membershipStatus !== "active") {
-  penalties += 1000; // membership fee
+  penalties += 1000;
   user.membershipStatus = "active";
 }
 
 const totalPenalties = penalties;
-const totalToPay = amount - totalPenalties;
+const totalToPay = Math.max(amount - totalPenalties, 0);
 
-
-  if (totalToPay <= 0) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message:
-        "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
-
-  if (contribution.balance < amount) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Insufficient funds in contribution balance",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
-
-  contribution.balance -= amount;
-  wallet.balance += totalToPay;
-
-  const historyPayload: iWalletHistory = {
-    amount: totalToPay,
-    label: "Withdrawal from Lock Contribution",
-    type: "credit",
-    ref: "Self",
-    //@ts-ignore
-    user: req.user.userId,
-  };
-
-  await createWalletHistoryService(historyPayload);
-  await createContributionHistoryService({
-    contribution: contributionId,
-    user: contribution.user,
-    amount: amount,
-    currency: "",
-    Date: new Date(),
-    type: "debit",
-    balance: contribution.balance,
-    status: "success",
-    reference: reference, 
-    withdrawalDate: currentDate,
-    savingsType: contribution.savingsType,
-  });
-
-  await contribution.save();
-  await wallet.save();
-  await user.save();
-
-  res.status(StatusCodes.OK).json({
+if (totalToPay <= 0) {
+  return res.status(StatusCodes.BAD_REQUEST).json({
     message:
-      "Transfer successful. Penalties have been deducted. Proceed to your wallet to complete the withdrawal process.",
-    totalPenalties: totalPenalties,
-    totalToPay: totalToPay,
-    statusCode: StatusCodes.OK,
+      "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
+    statusCode: StatusCodes.BAD_REQUEST,
   });
+}
+
+if (contribution.balance < amount) {
+  return res.status(StatusCodes.BAD_REQUEST).json({
+    message: "Insufficient funds in contribution balance",
+    statusCode: StatusCodes.BAD_REQUEST,
+  });
+}
+
+contribution.balance -= amount;
+wallet.balance += totalToPay;
+
+const historyPayload: iWalletHistory = {
+  amount: totalToPay,
+  label: "Withdrawal from Lock Contribution",
+  type: "credit",
+  ref: "Self",
+  //@ts-ignore
+  user: req.user.userId,
+};
+
+await createWalletHistoryService(historyPayload);
+await createContributionHistoryService({
+  contribution: contributionId,
+  user: contribution.user,
+  amount: amount,
+  currency: "",
+  Date: new Date(),
+  type: "debit",
+  balance: contribution.balance,
+  status: "success",
+  reference: reference,
+  withdrawalDate: currentDate,
+  savingsType: contribution.savingsType,
+});
+
+await contribution.save();
+await wallet.save();
+await user.save();
+
+res.status(StatusCodes.OK).json({
+  message:
+    totalToPay > 0
+      ? "Transfer successful. Penalties have been deducted. Proceed to your wallet to complete the withdrawal process."
+      : "Penalties have fully consumed the withdrawal amount. No funds were added to your wallet.",
+  totalPenalties: totalPenalties,
+  totalToPay: totalToPay,
+  statusCode: StatusCodes.OK,
+});
+
 };
 
 export const getContributionsById = async (req: Request, res: Response) => {
