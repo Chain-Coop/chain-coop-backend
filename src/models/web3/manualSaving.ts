@@ -9,14 +9,16 @@ export enum TransactionStatus {
 export enum DepositType {
   SAVE = 'SAVE',
   UPDATE = 'UPDATE',
+  WITHDRAW = 'WITHDRAW',
 }
 
-interface Transaction {
+export interface Transaction {
   txHash: string;
   amount: string;
   timestamp: Date;
   status: TransactionStatus;
   depositType: DepositType;
+  poolAmount: string;
   error?: string;
 }
 
@@ -39,7 +41,9 @@ export interface IManualSaving extends Document {
   addTransaction(
     txHash: string,
     amount: string,
-    status?: TransactionStatus,
+    status: TransactionStatus,
+    depositType: DepositType,
+    poolAmount: string,
     error?: string | null
   ): Promise<IManualSaving>;
   updateTotalAmount(): void;
@@ -59,11 +63,17 @@ const transactionSchema = new Schema<Transaction>(
       type: String,
       enum: Object.values(TransactionStatus),
       default: TransactionStatus.PENDING,
+      required: true,
     },
     depositType: {
       type: String,
       enum: Object.values(DepositType),
       default: DepositType.SAVE,
+      required: true,
+    },
+    poolAmount: {
+      type: String,
+      required: true,
     },
     error: { type: String },
   },
@@ -117,6 +127,7 @@ manualSavingSchema.methods.addTransaction = async function (
   amount: string,
   status: TransactionStatus = TransactionStatus.PENDING,
   depositType: DepositType,
+  poolAmount: string,
   error: string | null = null
 ) {
   this.transactions.push({
@@ -125,6 +136,7 @@ manualSavingSchema.methods.addTransaction = async function (
     timestamp: new Date(),
     status,
     depositType,
+    poolAmount,
     error: error ?? undefined,
   });
 

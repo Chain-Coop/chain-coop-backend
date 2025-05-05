@@ -10,6 +10,7 @@ import {
   ManualSaving,
   TransactionStatus,
   DepositType,
+  Transaction,
 } from '../../../models/web3/manualSaving';
 import { PeriodicSaving } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
@@ -89,6 +90,11 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
     }
     const receipt = await tx.wait();
     const poolId = periodicSavingService.extractPoolIdFromReceipt(receipt);
+    const pool = await userPoolsByPoolId(poolId);
+    if (!pool) {
+      res.status(400).json({ message: `Failed to get a pool ${poolId}` });
+      return;
+    }
     const saving = new ManualSaving({
       userId,
       poolId,
@@ -106,7 +112,8 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
       tx.hash,
       initialSaveAmount,
       TransactionStatus.CONFIRMED,
-      DepositType.SAVE
+      DepositType.SAVE,
+      pool.amountSaved
     );
     const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
     await createTransactionHistory(
@@ -166,6 +173,14 @@ const updatePoolWithAmount = asyncHandler(
           .json({ message: `Failed to update a pool ${poolId_bytes}` });
         return;
       }
+      await tx.wait();
+      const pool = await userPoolsByPoolId(poolId_bytes);
+      if (!pool) {
+        res
+          .status(400)
+          .json({ message: `Failed to get a pool ${poolId_bytes}` });
+        return;
+      }
       const saving = await ManualSaving.findOne({ poolId: poolId_bytes });
       if (!saving) {
         res
@@ -177,7 +192,8 @@ const updatePoolWithAmount = asyncHandler(
         tx.hash,
         amount,
         TransactionStatus.CONFIRMED,
-        DepositType.UPDATE
+        DepositType.UPDATE,
+        pool.amountSaved
       );
       const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
       await createTransactionHistory(
@@ -235,12 +251,24 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
+      const withdrawTransaction: Transaction = {
+        txHash: tx.hash,
+        amount: pool.amountSaved,
+        timestamp: new Date(),
+        status: TransactionStatus.CONFIRMED,
+        depositType: DepositType.WITHDRAW,
+        poolAmount: pool.amountSaved,
+      };
 
       if (manualSaving) {
         manualSaving.isActive = false;
+        manualSaving.totalAmount = '0';
+        manualSaving.transactions.push(withdrawTransaction);
         await manualSaving.save();
       } else if (periodicSaving) {
         periodicSaving.isActive = false;
+        periodicSaving.totalAmount = '0';
+        periodicSaving.transactions.push(withdrawTransaction);
         await periodicSaving.save();
       }
 

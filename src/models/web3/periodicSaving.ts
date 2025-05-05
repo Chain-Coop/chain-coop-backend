@@ -9,6 +9,7 @@ export enum SavingInterval {
 export enum DepositType {
   SAVE = 'SAVE',
   UPDATE = 'UPDATE',
+  WITHDRAW = 'WITHDRAW',
 }
 
 export enum TransactionStatus {
@@ -23,6 +24,7 @@ interface Transaction {
   timestamp: Date;
   status: TransactionStatus;
   depositType: DepositType;
+  poolAmount: string;
   error?: string;
 }
 
@@ -51,7 +53,9 @@ export interface IPeriodicSaving extends Document {
   addTransaction(
     txHash: string,
     amount: string,
-    status?: TransactionStatus,
+    status: TransactionStatus,
+    depositType: DepositType,
+    poolAmount: string,
     error?: string | null
   ): Promise<IPeriodicSaving>;
 }
@@ -75,6 +79,10 @@ const transactionSchema = new Schema<Transaction>(
     depositType: {
       type: String,
       enum: Object.values(DepositType),
+      required: true,
+    },
+    poolAmount: {
+      type: String,
       required: true,
     },
     error: { type: String },
@@ -182,6 +190,7 @@ periodicSavingSchema.methods.addTransaction = async function (
   amount: string,
   status: TransactionStatus = TransactionStatus.PENDING,
   depositType: DepositType,
+  poolAmount: string,
   error: string | null = null
 ) {
   this.transactions.push({
@@ -190,6 +199,7 @@ periodicSavingSchema.methods.addTransaction = async function (
     timestamp: new Date(),
     status,
     depositType,
+    poolAmount,
     error: error ?? undefined,
   });
   if (status === TransactionStatus.CONFIRMED) {

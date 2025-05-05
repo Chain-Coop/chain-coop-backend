@@ -248,6 +248,7 @@ const login = async (req: Request, res: Response) => {
       _id: user._id,
       email: user.email,
       phoneNumber: user.phoneNumber,
+      isVerified: user.isVerified,
       token,
       role: user.role,
       //@ts-ignore
