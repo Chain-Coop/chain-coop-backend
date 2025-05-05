@@ -431,10 +431,15 @@ export const verifyContributionPayment = async (reference: string) => {
         await wallet.save();
       }
 
-      const contribution = await Contribution.findOne({
-        _id: paymentData.metadata.contributionId,
-      });
+      const rawId = paymentData.metadata.contributionId;
 
+      // Remove any double quotes if accidentally passed in
+      const cleanedId = typeof rawId === "string" ? rawId.replace(/"/g, '') : rawId;
+      
+      // Then cast properly
+      const contribution = await Contribution.findOne({
+        _id: new mongoose.Types.ObjectId(cleanedId),
+      });
       if (!contribution) {
         throw new BadRequestError("Contribution not found");
       }
