@@ -9,6 +9,7 @@ export enum SavingInterval {
 export enum DepositType {
   SAVE = 'SAVE',
   UPDATE = 'UPDATE',
+  WITHDRAW = 'WITHDRAW',
 }
 
 export enum TransactionStatus {

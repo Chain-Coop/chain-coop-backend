@@ -9,9 +9,10 @@ export enum TransactionStatus {
 export enum DepositType {
   SAVE = 'SAVE',
   UPDATE = 'UPDATE',
+  WITHDRAW = 'WITHDRAW',
 }
 
-interface Transaction {
+export interface Transaction {
   txHash: string;
   amount: string;
   timestamp: Date;

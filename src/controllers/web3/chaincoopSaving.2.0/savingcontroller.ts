@@ -10,6 +10,7 @@ import {
   ManualSaving,
   TransactionStatus,
   DepositType,
+  Transaction,
 } from '../../../models/web3/manualSaving';
 import { PeriodicSaving } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
@@ -235,12 +236,23 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
         return;
       }
+      const withdrawTransaction: Transaction = {
+        txHash: tx.hash,
+        amount: pool.amountSaved,
+        timestamp: new Date(),
+        status: TransactionStatus.CONFIRMED,
+        depositType: DepositType.WITHDRAW,
+      };
 
       if (manualSaving) {
         manualSaving.isActive = false;
+        manualSaving.totalAmount = '0';
+        manualSaving.transactions.push(withdrawTransaction);
         await manualSaving.save();
       } else if (periodicSaving) {
         periodicSaving.isActive = false;
+        periodicSaving.totalAmount = '0';
+        periodicSaving.transactions.push(withdrawTransaction);
         await periodicSaving.save();
       }
 
