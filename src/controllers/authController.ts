@@ -99,7 +99,9 @@ const verifyOtp = async (req: Request, res: Response) => {
   if (!validOtp) {
     throw new UnauthenticatedError("Failed to validate OTP");
   }
-  const newUser = await updateUserByEmail(email, { status: "active", isVerified: "true"  });
+
+  // Activate user and not verify it
+  const newUser = await updateUserByEmail(email, { status: "active" });
   if (!newUser) {
     throw new NotFoundError("User not found");
   }
@@ -244,6 +246,7 @@ const login = async (req: Request, res: Response) => {
 
     await logUserOperation(user?.id, req, "LOGIN", "Success");
 
+    console.log(user)
     res.status(StatusCodes.OK).json({
       _id: user._id,
       email: user.email,
