@@ -402,6 +402,8 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   // Handle savingsType: Flexible
   if (contribution.savingsType === "Flexible") {
+    const withdrawalFee = 50;
+    const totalToCredit = Math.max(amount - withdrawalFee, 0);
     if (contribution.balance < amount) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: "Insufficient funds in contribution balance",
@@ -410,7 +412,8 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     }
   
     contribution.balance -= amount;
-    wallet.balance += amount;
+    wallet.balance += totalToCredit;
+  
     
     const historyPayload: iWalletHistory = {
       amount: amount,
@@ -457,6 +460,9 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   
   // Handle savingsType: Strict
   if (contribution.savingsType === "Strict") {
+  const withdrawalFee = 50;
+  const totalToCredit = Math.max(amount - withdrawalFee, 0);
+
     if (currentDate < endDate) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: "You cannot withdraw until the withdrawal date is reached.",
@@ -472,7 +478,8 @@ export const withdrawContribution = async (req: Request, res: Response) => {
     }
 
     contribution.balance -= amount;
-    wallet.balance += amount;
+    wallet.balance += totalToCredit;
+  
 
     const historyPayload: iWalletHistory = {
       amount: amount,
