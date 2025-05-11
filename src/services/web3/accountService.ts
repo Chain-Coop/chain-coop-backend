@@ -1,9 +1,12 @@
 import { generateAccount } from '../../utils/web3/generateAccount';
 import { contract } from '../../utils/web3/contract';
-import { parseEther } from 'ethers';
+import { parseEther, parseUnits } from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
 import User from '../../models/user';
-import { SupportedLISKStables } from '../../utils/web3/supportedStables';
+import {
+  SupportedLISKStables,
+  SupportedETHERLINKStables,
+} from '../../utils/web3/supportedStables';
 
 import { encrypt, decrypt } from '../encryption';
 export interface TokenBalance {
@@ -61,7 +64,7 @@ const checkStableUserBalance = async (
 const userTokensBalance = async (
   publicKey: string
 ): Promise<TokenBalance[]> => {
-  const tokens = SupportedLISKStables.map(
+  const tokens = SupportedETHERLINKStables.map(
     (tokenObj) => Object.values(tokenObj)[0]
   );
 
@@ -145,7 +148,7 @@ const approveTokenTransfer = async (
   userPrivateKey: string
 ) => {
   const con_tract = await contract(tokenAddress, userPrivateKey);
-  const tx = await con_tract.approve(toContractAddress, parseEther(amount));
+  const tx = await con_tract.approve(toContractAddress, parseUnits(amount, 6));
   await tx.wait();
   return tx;
 };

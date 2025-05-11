@@ -1,6 +1,9 @@
-import { ethers, formatEther, parseEther } from 'ethers';
+import { ethers, formatEther, formatUnits, parseEther, parseUnits } from 'ethers';
 import { approveTokenTransfer } from '../accountService';
-import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2 } from '../../../constant/contract/ChainCoopSaving';
+import {
+  CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
+  CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
+} from '../../../constant/contract/ChainCoopSaving';
 import { getTokenAddressSymbol } from '../accountService';
 import {
   signPermit,
@@ -22,7 +25,7 @@ const openPool = async (
   try {
     const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
+      CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
       initialSaveAmount,
       userPrivateKey
     );
@@ -32,7 +35,7 @@ const openPool = async (
     const con_tract = await chainCoopSavingcontract(userPrivateKey);
     const tx = await con_tract.openSavingPool(
       tokenAddressToSaveWith,
-      parseEther(initialSaveAmount),
+      parseUnits(initialSaveAmount,6),
       reasonForSaving,
       lockType,
       duration
@@ -55,7 +58,7 @@ const updatePoolAmount = async (
   try {
     const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
+      CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
       amount,
       userPrivateKey
     );
@@ -63,7 +66,7 @@ const updatePoolAmount = async (
       throw Error('Failed to approve transfer');
     }
     const con_tract = await chainCoopSavingcontract(userPrivateKey);
-    const tx = await con_tract.updateSaving(poolId_bytes, parseEther(amount));
+    const tx = await con_tract.updateSaving(poolId_bytes, parseUnits(amount,6));
     await tx.wait();
     return tx;
   } catch (error) {
@@ -147,7 +150,6 @@ interface SavingPool {
 const userPools = async (userAddress: string): Promise<SavingPool[]> => {
   try {
     const con_tract = await chainCoopSavingcontract();
-    console.log(userAddress);
     const rawUserPools = await con_tract.getSavingPoolBySaver(userAddress);
     const rawPools = JSON.parse(
       JSON.stringify(rawUserPools, (_, value) =>
@@ -166,7 +168,7 @@ const userPools = async (userAddress: string): Promise<SavingPool[]> => {
         startDate: pool[4].toString(),
         locktype: pool[7],
         Duration: pool[5].toString(),
-        amountSaved: formatEther(pool[6].toString()),
+        amountSaved: formatUnits(pool[6].toString(),6),
         isGoalAccomplished: pool[8],
       }))
     );

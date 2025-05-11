@@ -90,6 +90,7 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
     }
     const receipt = await tx.wait();
     const poolId = periodicSavingService.extractPoolIdFromReceipt(receipt);
+    console.log('poolId', poolId);
     const pool = await userPoolsByPoolId(poolId);
     if (!pool) {
       res.status(400).json({ message: `Failed to get a pool ${poolId}` });
