@@ -329,7 +329,7 @@ const router = Router();
  *               - accountNumber
  *               - accountName
  *               - bankCode
- *               - tokenAddress
+ *               - tokenId
  *             properties:
  *               reference:
  *                 type: string
@@ -351,10 +351,10 @@ const router = Router();
  *                 type: string
  *                 description: The code of the receiving bank
  *                 example: "012"
- *               tokenAddress:
+ *               tokenId:
  *                 type: string
- *                 description: The address of the token contract you want to transfer
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                 description: The ID of the token to be used for the transaction
+ *                 example: "1"
  *     responses:
  *       200:
  *         description: Quote confirmed successfully
