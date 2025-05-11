@@ -10,6 +10,7 @@ import CashwyreTransaction, {
   CashwyreTransactionType,
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
+import { tokenAddress } from '../../../utils/web3/tokenaddress';
 
 class CashwyreController {
   /**
@@ -156,7 +157,7 @@ class CashwyreController {
         accountNumber,
         accountName,
         bankCode,
-        tokenAddress,
+        tokenId,
       } = req.body;
 
       if (
@@ -165,10 +166,10 @@ class CashwyreController {
         !accountNumber ||
         !accountName ||
         !bankCode ||
-        !tokenAddress
+        !tokenId
       ) {
         throw new BadRequestError(
-          'Reference, transaction reference, account number, account name,bank code and token address are required'
+          'Reference, transaction reference, account number, account name,bank code and token Id are required'
         );
       }
       //@ts-ignore
@@ -183,7 +184,13 @@ class CashwyreController {
       );
 
       let data;
-      console.log(confirmationData.data);
+
+      const tokenIdNum = parseInt(tokenId, 10);
+      if (isNaN(tokenIdNum)) {
+        res.status(400).json({ message: 'Invalid tokenId' });
+        return;
+      }
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
 
       if (confirmationData) {
         data = await CashwyreService.createOfframpTransaction(
@@ -199,7 +206,7 @@ class CashwyreController {
           confirmationData.data.accountName || '',
           confirmationData.data.accountNumber || '',
           confirmationData.data.bankCode || '',
-          tokenAddress,
+          tokenAddressToSaveWith,
           confirmationData.data.cryptoAssetAddress || ''
         );
       }
