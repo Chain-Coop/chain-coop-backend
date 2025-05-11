@@ -1,13 +1,13 @@
 import { ethers,Contract } from "ethers";
-import { LISKRPC_TESTNET } from "../../constant/rpcs";
+import { LISKRPC_TESTNET ,ETHERLINK_TESTNET} from "../../constant/rpcs";
 import erc20abi from "../../constant/abi/abi.json"
 import savingabi from "../../constant/abi/ChainCoopSaving.2.0.json"
 import { Signer } from "../../utils/web3/createSingner";
-import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET,CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2 } from "../../constant/contract/ChainCoopSaving";
+import { CHAINCOOPSAVINGCONTRACT_LISK_TESTNET,CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2 ,CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET} from "../../constant/contract/ChainCoopSaving";
 import erc20WithPermit from "../../constant/abi/abiPermit.json"
 
 
-export const Provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET)
+export const Provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET)
 
 const contract =async(tokenAddress:string,privateKey?:string):Promise<ethers.Contract>=>{
     const signerOrProvider = privateKey ? await Signer(privateKey) : Provider;
@@ -20,7 +20,7 @@ const contract =async(tokenAddress:string,privateKey?:string):Promise<ethers.Con
 const chainCoopSavingcontract =async(privateKey?:string):Promise<ethers.Contract>=>{
     const signerOrProvider = privateKey ? await Signer(privateKey) : Provider;
     
-    const contract = new Contract(CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,savingabi.abi,signerOrProvider);
+    const contract = new Contract(CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,savingabi.abi,signerOrProvider);
     return contract
 }
 
