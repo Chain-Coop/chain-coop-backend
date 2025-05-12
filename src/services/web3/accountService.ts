@@ -1,22 +1,24 @@
-import { generateAccount } from "../../utils/web3/generateAccount";
-import { contract } from "../../utils/web3/contract";
-import { parseEther } from "ethers";
-import Web3Wallet from "../../models/web3Wallet";
-import User from "../../models/user";
-import { SupportedLISKStables } from "../../utils/web3/supportedStables";
+import { generateAccount } from '../../utils/web3/generateAccount';
+import { contract } from '../../utils/web3/contract';
+import { parseEther, parseUnits } from 'ethers';
+import Web3Wallet from '../../models/web3Wallet';
+import User from '../../models/user';
+import {
+  SupportedLISKStables,
+  SupportedETHERLINKStables,
+} from '../../utils/web3/supportedStables';
 
-import { encrypt,decrypt } from "../encryption";
-export interface TokenBalance{
+import { encrypt, decrypt } from '../encryption';
+export interface TokenBalance {
   tokenAddress: string;
   balance: number;
-  tokenSymbol:string
-
+  tokenSymbol: string;
 }
 
 const activateAccount = async (userId: string) => {
   const user = User.findById(userId);
   if (!user) {
-    throw new Error("User not found");
+    throw new Error('User not found');
   }
 
   const { address, privateKey, publicKey } = generateAccount();
@@ -44,47 +46,60 @@ const getUserWeb3Wallet = async (userId: string) => {
 };
 
 //publickey is the address
-const checkStableUserBalance = async(publicKey:string,tokenAddress:string):Promise<{bal:number,symbol:string}>=>{
-    const con_tract = await contract(tokenAddress)
-    const balance = await con_tract.balanceOf(publicKey)
-    //token symbol
-    const tokenSymbol = await con_tract.symbol()
-    //token decimal
-    const tokenDecimal = await con_tract.decimals()
-    const adjustedBalance = Number(balance.toString()) / (10 ** Number(tokenDecimal));
-    return {bal:adjustedBalance,symbol:tokenSymbol};
-}
+const checkStableUserBalance = async (
+  publicKey: string,
+  tokenAddress: string
+): Promise<{ bal: number; symbol: string }> => {
+  const con_tract = await contract(tokenAddress);
+  const balance = await con_tract.balanceOf(publicKey);
+  //token symbol
+  const tokenSymbol = await con_tract.symbol();
+  //token decimal
+  const tokenDecimal = await con_tract.decimals();
+  const adjustedBalance =
+    Number(balance.toString()) / 10 ** Number(tokenDecimal);
+  return { bal: adjustedBalance, symbol: tokenSymbol };
+};
 //user tokenBalances
-const userTokensBalance = async (publicKey: string): Promise<TokenBalance[]> => {
-  const tokens = SupportedLISKStables.map((tokenObj)=> Object.values(tokenObj)[0])
+const userTokensBalance = async (
+  publicKey: string
+): Promise<TokenBalance[]> => {
+  const tokens = SupportedETHERLINKStables.map(
+    (tokenObj) => Object.values(tokenObj)[0]
+  );
 
   const tokenBalances = await Promise.all(
-      tokens.map(async (tokenAddress) => {
-          const { bal, symbol } = await checkStableUserBalance(publicKey, tokenAddress);
-          return {
-              tokenAddress,
-              balance: bal,
-              tokenSymbol: symbol,
-          } as TokenBalance;
-      })
+    tokens.map(async (tokenAddress) => {
+      const { bal, symbol } = await checkStableUserBalance(
+        publicKey,
+        tokenAddress
+      );
+      return {
+        tokenAddress,
+        balance: bal,
+        tokenSymbol: symbol,
+      } as TokenBalance;
+    })
   );
   return tokenBalances;
 };
 //total sum of all the tokens
 const totalUserTokenBalance = async (publicKey: string): Promise<number> => {
   const tokenBalances = await userTokensBalance(publicKey);
-  const totalBalance = tokenBalances.reduce((acc, tokenBalance) => acc + tokenBalance
-  .balance, 0);
+  const totalBalance = tokenBalances.reduce(
+    (acc, tokenBalance) => acc + tokenBalance.balance,
+    0
+  );
   return totalBalance;
-  };
-const getTokenAddressSymbol = async(tokenAddress:string)=>{
-  const con_tract = await contract(tokenAddress)
-  const symbol = await con_tract.symbol()
-  
-  return symbol
-}
-const userAddress = async(userId:string):Promise<string>=>{
-  const wallet = await Web3Wallet.findOne({user:userId});
+};
+const getTokenAddressSymbol = async (tokenAddress: string) => {
+  const con_tract = await contract(tokenAddress);
+  const symbol = await con_tract.symbol();
+
+  return symbol;
+};
+const userAddress = async (userId: string): Promise<string> => {
+  const wallet = await Web3Wallet.findOne({ user: userId });
   return wallet.address;
 };
 
@@ -95,7 +110,7 @@ const transferStable = async (
   tokenAddress: string
 ): Promise<string> => {
   try {
-    const con_tract = await contract(tokenAddress, decrypt(userPrivateKey));
+    const con_tract = await contract(tokenAddress, userPrivateKey);
 
     const tx = await con_tract.transfer(toAddress, parseEther(amount));
 
@@ -103,8 +118,8 @@ const transferStable = async (
 
     return tx.hash;
   } catch (error) {
-    console.error("Error during token transfer:", error);
-    throw new Error("Token transfer failed.");
+    console.error('Error during token transfer:', error);
+    throw new Error('Token transfer failed.');
   }
 };
 
@@ -112,11 +127,11 @@ const transferStable = async (
 const userWeb3WalletDetails = async (userId: string) => {
   try {
     const wallets = await Web3Wallet.find({ user: userId })
-      .select("-encryptedKey")
-      .populate("user", "email phoneNumber"); // Optionally include specific user fields
+      .select('-encryptedKey')
+      .populate('user', 'email phoneNumber'); // Optionally include specific user fields
 
     if (!wallets || wallets.length === 0) {
-      throw new Error("No wallets found for this user");
+      throw new Error('No wallets found for this user');
     }
 
     return wallets;
@@ -133,11 +148,21 @@ const approveTokenTransfer = async (
   userPrivateKey: string
 ) => {
   const con_tract = await contract(tokenAddress, userPrivateKey);
-  const tx = await con_tract.approve(toContractAddress, parseEther(amount));
+  const tx = await con_tract.approve(toContractAddress, parseUnits(amount, 6));
   await tx.wait();
   return tx;
 };
 
-  
-
-export {transferStable,activateAccount,checkStableUserBalance,userWeb3WalletDetails,checkExistingWallet,userAddress,approveTokenTransfer,getUserWeb3Wallet,getTokenAddressSymbol,totalUserTokenBalance,userTokensBalance}
+export {
+  transferStable,
+  activateAccount,
+  checkStableUserBalance,
+  userWeb3WalletDetails,
+  checkExistingWallet,
+  userAddress,
+  approveTokenTransfer,
+  getUserWeb3Wallet,
+  getTokenAddressSymbol,
+  totalUserTokenBalance,
+  userTokensBalance,
+};

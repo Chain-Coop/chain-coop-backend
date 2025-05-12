@@ -31,6 +31,7 @@
     "@types/axios": "^0.9.36",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.7",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.7.7",
     "backend-ts": "file:",
     "bcryptjs": "^2.4.3",
@@ -64,6 +65,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
-    "twilio": "^5.3.7"
+    "twilio": "^5.3.7",
+    "uuid": "^11.1.0"
   }
 }

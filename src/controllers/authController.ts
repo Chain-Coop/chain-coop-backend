@@ -306,24 +306,29 @@ const resetPassword = async (req: Request, res: Response) => {
   let user: any = null;
 
   try {
-    const { otp, password, confirmPassword, email } = req.body;
+    const { 
+      // otp, 
+      password, 
+      confirmPassword, 
+      email 
+    } = req.body;
 
     user = await findUser("email", email);
     if (!user) {
       throw new NotFoundError("User with this email not found");
     }
 
-    const isVerified = await findOtp(email, otp);
-    if (!isVerified) {
-      throw new BadRequestError("Invalid otp provided");
-    }
+     // const isVerified = await findOtp(email, otp);
+    // if (!isVerified) {
+    //   throw new BadRequestError("Invalid otp provided");
+    // }
 
     if (password !== confirmPassword) {
       throw new BadRequestError("Password and confirm password do not match");
     }
 
     await resetUserPassword(user, password);
-    await deleteOtp(email);
+    // await deleteOtp(email);
     await logUserOperation(user?.id, req, "RESET_PASSWORD", "Success");
     res.status(StatusCodes.OK).json({ msg: "Password reset successful" });
   } catch (error) {
@@ -337,22 +342,26 @@ const changePhoneNumber = async (req: Request, res: Response) => {
   let user: InstanceType<typeof User> | null = null;
 
   try {
-    const { userId, otp, newPhoneNumber } = req.body;
+    const { 
+      userId, 
+      // otp, 
+      newPhoneNumber 
+    } = req.body;
 
     user = await findUser("id", userId);
     if (!user) {
       throw new NotFoundError("User not found");
     }
 
-    const isVerified = await findOtp(user.email, otp);
-    if (!isVerified) {
-      throw new BadRequestError("Invalid OTP provided");
-    }
+    // const isVerified = await findOtp(user.email, otp);
+    // if (!isVerified) {
+    //   throw new BadRequestError("Invalid OTP provided");
+    // }
 
     user.phoneNumber = newPhoneNumber;
     await user.save();
 
-    await deleteOtp(user.email);
+    // await deleteOtp(user.email);
     await logUserOperation(user.id, req, "CHANGE_PHONE_NUMBER", "Success");
 
     res.status(StatusCodes.OK).json({
