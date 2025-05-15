@@ -125,11 +125,11 @@ export const getCircleServiceByUserId = async (userId: string) => {
         $and: [
           {
             $or: [
-              { groupType: "open" }, 
+              { groupType: "open" },
               { "members.userId": userId }, // Ensure the user is a member for closed groups
             ]
           },
-            status: { $in: ["active", "pending"] }, // Only fetch circles with a status of "active"
+          { status: { $in: ["active", "pending"] } } // Wrap this in an object
         ],
       })
       .sort({ createdAt: -1 }); // Sort by most recent first
