@@ -125,11 +125,11 @@ export const getCircleServiceByUserId = async (userId: string) => {
         $and: [
           {
             $or: [
-              { groupType: "open" }, 
+              { groupType: "open" },
               { "members.userId": userId }, // Ensure the user is a member for closed groups
             ]
           },
-          { status: "active" } // Only fetch circles with a status of "active"
+          { status: { $in: ["active", "pending"] } } // Wrap this in an object
         ],
       })
       .sort({ createdAt: -1 }); // Sort by most recent first
@@ -486,11 +486,12 @@ export const getAllCirclesService = async (status?: string) => {
 
     // If a status query is provided, filter by status
     if (status) {
-      // Only include valid statuses (active or completed)
-      if (status !== "active" && status !== "completed") {
-        throw new Error("Invalid status. Only 'active' and 'completed' are allowed.");
+      // Only include valid statuses
+      const allowedStatuses = ["active", "completed", "pending"];
+      if (!allowedStatuses.includes(status)) {
+        throw new Error("Invalid status. Only 'active', 'completed', or 'pending' are allowed.");
       }
-      filter.status = status; // Filter by status if provided
+      filter.status = status;
     }
 
     // Fetch circles from the database with optional filtering and sort by creation date
@@ -501,3 +502,4 @@ export const getAllCirclesService = async (status?: string) => {
     throw error; // Throw error to be handled in controller
   }
 };
+
