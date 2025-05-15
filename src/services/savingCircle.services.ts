@@ -502,4 +502,3 @@ export const getAllCirclesService = async (status?: string) => {
     throw error; // Throw error to be handled in controller
   }
 };
-
