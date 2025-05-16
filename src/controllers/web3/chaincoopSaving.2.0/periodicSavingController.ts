@@ -28,6 +28,7 @@ export class PeriodicSavingController {
         lockedType,
         duration,
         interval,
+        network,
       } = req.body;
 
       // Validate required fields
@@ -38,7 +39,8 @@ export class PeriodicSavingController {
         !reasonForSaving ||
         lockedType === undefined ||
         !duration ||
-        !interval
+        !interval ||
+        !network
       ) {
         res
           .status(400)
@@ -67,7 +69,7 @@ export class PeriodicSavingController {
         res.status(400).json({ message: 'Invalid tokenId' });
         return;
       }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
       //@ts-ignore
       const userId = req.user.userId; // Assuming req.user is set by auth middleware
       console.log('userId', userId);
@@ -78,7 +80,11 @@ export class PeriodicSavingController {
         return;
       }
       const { bal: balance }: { bal: number; symbol: string } =
-        await checkStableUserBalance(wallet.address, tokenAddressToSaveWith);
+        await checkStableUserBalance(
+          wallet.address,
+          tokenAddressToSaveWith,
+          network
+        );
       if (balance < parseFloat(initialSaveAmount)) {
         res.status(400).json({
           message: `Insufficient balance. Your balance is ${balance} and you need ${initialSaveAmount}`,
@@ -96,9 +102,13 @@ export class PeriodicSavingController {
         lockedType,
         duration,
         interval,
-        privateKey
+        privateKey,
+        network
       );
-      const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+      const tokenSymbol = await getTokenAddressSymbol(
+        tokenAddressToSaveWith,
+        network
+      );
 
       await createTransactionHistory(
         userId,
@@ -242,7 +252,11 @@ export class PeriodicSavingController {
     res: Response
   ): Promise<void> {
     try {
-      const { id } = req.params as { id: string };
+      const { id, network } = req.params as { id: string; network: string };
+      if (!network) {
+        res.status(400).json({ message: 'Network is required' });
+        return;
+      }
       //@ts-ignore
       const userId = req.user.userId; // Assuming req.user is set by auth middleware
 
@@ -263,7 +277,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      await periodicSavingService.resumePeriodicSaving(id);
+      await periodicSavingService.resumePeriodicSaving(id, network);
 
       res.status(200).json({
         success: true,
@@ -342,8 +356,13 @@ export class PeriodicSavingController {
     res: Response
   ): Promise<void> {
     try {
-      const { id } = req.params as { id: string };
+      const { id, network } = req.params as { id: string; network: string };
+      if (!network) {
+        res.status(400).json({ message: 'Network is required' });
+        return;
+      }
       //@ts-ignore
+
       const userId = req.user.userId; // Assuming req.user is set by auth middleware
 
       // Verify ownership before executing
@@ -370,7 +389,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      await periodicSavingService.executeSaving(saving);
+      await periodicSavingService.executeSaving(saving, network);
 
       res.status(200).json({
         success: true,
@@ -447,8 +466,14 @@ export class PeriodicSavingController {
     req: Request,
     res: Response
   ): Promise<void> {
+    const { network } = req.params as { network: string };
+    if (!network) {
+      res.status(400).json({ message: 'Network is required' });
+      return;
+    }
+
     try {
-      await periodicSavingService.initialize();
+      await periodicSavingService.initialize(network);
       res.status(200).json({
         success: true,
         message: 'Periodic saving service initialized successfully',

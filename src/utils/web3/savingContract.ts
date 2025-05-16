@@ -9,7 +9,7 @@ export const Provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
 const savingcirclescontract = async (
   privateKey?: string
 ): Promise<ethers.Contract> => {
-  const signerOrProvider = privateKey ? await Signer(privateKey) : Provider;
+  const signerOrProvider = privateKey ? await Signer(privateKey,Provider) : Provider;
 
   const contract = new Contract(
     SAVINGCIRCLESCONTRACT_LISK_TESTNET,

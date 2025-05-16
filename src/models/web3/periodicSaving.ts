@@ -17,7 +17,11 @@ export enum TransactionStatus {
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
 }
-
+export enum network {
+  BSC = 'BSC',
+  ETHERLINK = 'ETHERLINK',
+  LISK = 'LISK',
+}
 interface Transaction {
   txHash: string;
   amount: string;
@@ -45,6 +49,7 @@ export interface IPeriodicSaving extends Document {
   encryptedPrivateKey: string;
   transactions: Transaction[];
   totalAmount: string;
+  network: network;
   createdAt: Date;
   updatedAt: Date;
 
@@ -117,6 +122,11 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
     encryptedPrivateKey: { type: String, required: true },
     transactions: [transactionSchema],
     totalAmount: { type: String, default: '0' },
+    network: {
+      type: String,
+      enum: Object.values(network),
+      required: true,
+    },
   },
   { timestamps: true }
 );

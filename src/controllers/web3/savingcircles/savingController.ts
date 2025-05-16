@@ -21,7 +21,7 @@ import {
 import { ethers } from 'ethers';
 
 const createCircles = asyncHandler(async (req: Request, res: Response) => {
-  const { members, depositAmount, token, depositInterval, maxDeposits } =
+  const { members, depositAmount, token, depositInterval, maxDeposits,network } =
     req.body;
   //@ts-ignore
   const userId = req.user.userId;
@@ -49,7 +49,7 @@ const createCircles = asyncHandler(async (req: Request, res: Response) => {
     res.status(400).json({ message: 'Invalid tokenId' });
     return;
   }
-  const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+  const tokenAddressToSaveWith = tokenAddress(tokenIdNum,network);
   const tx = await createSavingCircles(
     members,
     depositAmount,
@@ -62,7 +62,7 @@ const createCircles = asyncHandler(async (req: Request, res: Response) => {
     res.status(400).json({ message: 'Failed to create a circle' });
     return;
   }
-  const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+  const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith,network);
   await createTransactionHistory(
     userId,
     parseFloat(depositAmount),
@@ -102,7 +102,7 @@ const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
-  const { circleId, amount } = req.body;
+  const { circleId, amount,network } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -127,7 +127,7 @@ const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Failed to deposit in circle' });
       return;
     }
-    const tokenSymbol = await getTokenAddressSymbol(token);
+    const tokenSymbol = await getTokenAddressSymbol(token,network);
     await createTransactionHistory(
       userId,
       parseFloat(amount),
@@ -145,7 +145,7 @@ const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
-  const { circleId } = req.body;
+  const { circleId ,network} = req.body;
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -172,7 +172,7 @@ const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Failed to withdraw from circle ' });
       return;
     }
-    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith);
+    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith,network);
     await createTransactionHistory(
       userId,
       parseFloat(withdrawAmount),
@@ -192,7 +192,7 @@ const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
 
 const setSavingTokenAllowed = asyncHandler(
   async (req: Request, res: Response) => {
-    const { token, allowed } = req.body;
+    const { token, allowed ,network} = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
@@ -207,7 +207,7 @@ const setSavingTokenAllowed = asyncHandler(
         res.status(400).json({ message: 'Invalid tokenId' });
         return;
       }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum,network);
       const tx = await setTokenAllowed(
         tokenAddressToSaveWith,
         allowed,

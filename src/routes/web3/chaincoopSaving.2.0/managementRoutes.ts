@@ -26,6 +26,9 @@ const router = Router();
  *               stableTokenAddress:
  *                 type: string
  *                 description: The stable token address to allow
+ *               network:
+ *                 type: string
+ *                 description: The network to use (e.g., mainnet, testnet)
  *     responses:
  *       200:
  *         description: Success
@@ -80,6 +83,9 @@ const router = Router();
  *               feeCollectionAddress:
  *                 type: string
  *                 description: The fee collection address to set
+ *               network:
+ *                 type: string
+ *                 description: The network to use (e.g., mainnet, testnet)
  *     responses:
  *       200:
  *         description: Success
@@ -134,6 +140,9 @@ const router = Router();
  *               newAdminAddress:
  *                 type: string
  *                 description: The new admin address
+ *               network:
+ *                 type: string
+ *                 description: The network to use (e.g., mainnet, testnet)
  *     responses:
  *       200:
  *         description: Success
@@ -188,6 +197,9 @@ const router = Router();
  *               stableTokenAddress:
  *                 type: string
  *                 description: The stable token address to unlist
+ *               network:
+ *                type: string
+ *                description: The network to use (e.g., mainnet, testnet)
  *     responses:
  *       200:
  *         description: Success

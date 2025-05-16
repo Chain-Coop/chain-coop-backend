@@ -17,7 +17,7 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/balance/token/{tokenId}:
+ * /web3/balance/token/{tokenId}/{network}:
  *   get:
  *     summary: Get the token balance for the user
  *     tags:
@@ -30,8 +30,15 @@ const router = Router();
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID of the token (1 for USDC, 2 for Lisk Token)
+ *         description: ID of the token (1 for USDT, 2 for USDC)
  *         example: 1
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network (e.g., 'LISK', 'BSC', 'ETHERLINK', 'GNOSIS')
+ *         example: BSC
  *     responses:
  *       200:
  *         description: Balance fetched successfully.
@@ -88,13 +95,21 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/balance/total:
+ * /web3/balance/total/{network}:
  *   get:
  *     summary: Get the total balance of all tokens for the user
  *     tags:
  *       - Web3
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network (e.g., 'LISK', 'BSC', 'ETHERLINK', 'GNOSIS')
+ *         example: BSC
  *     responses:
  *       200:
  *         description: Total balance fetched successfully.
@@ -113,6 +128,16 @@ const router = Router();
  *                       type: number
  *                       description: The total balance of all tokens.
  *                       example: 1000.5
+ *       400:
+ *         description: Bad Request (e.g., wallet not activated).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No Wallet found
  *       401:
  *         description: Unauthorized (missing or invalid bearer token).
  *         content:
@@ -137,13 +162,21 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/balance/tokens:
+ * /web3/balance/tokens/{network}:
  *   get:
  *     summary: Get the balances of all tokens in the user's wallet
  *     tags:
  *       - Web3
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network (e.g., 'LISK', 'BSC', 'ETHERLINK', 'GNOSIS')
+ *         example: BSC
  *     responses:
  *       200:
  *         description: All token balances fetched successfully.
@@ -172,6 +205,16 @@ const router = Router();
  *                         type: number
  *                         description: Balance of the token.
  *                         example: 100.5
+ *       400:
+ *         description: Bad Request (e.g., wallet not activated).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No Wallet found
  *       401:
  *         description: Unauthorized (missing or invalid bearer token).
  *         content:
@@ -194,8 +237,8 @@ const router = Router();
  *                   example: Internal Server Error
  */
 
-router.get("/token/:tokenId", authorize, userTokenBalance);
-router.get("/total/", authorize, totalUserWalletBalance);
-router.get("/tokens/", authorize, usertokensAmount);
+router.get("/token/:tokenId/:network", authorize, userTokenBalance);
+router.get("/total/:network", authorize, totalUserWalletBalance);
+router.get("/tokens/:network", authorize, usertokensAmount);
 
 export default router;
