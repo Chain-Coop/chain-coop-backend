@@ -1,12 +1,20 @@
 import { generateAccount } from '../../utils/web3/generateAccount';
-import { contract } from '../../utils/web3/contract';
+import { contract } from '../../utils/web3/contract.2.0';
 import { parseEther, parseUnits } from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
 import User from '../../models/user';
 import {
   SupportedLISKStables,
   SupportedETHERLINKStables,
+  SupportedBSCStables,
+  SupportedGNOSISStables,
 } from '../../utils/web3/supportedStables';
+import {
+  CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
+  CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
+  CHAINCOOPSAVING_BSC_TESTNET,
+  CHAINCOOPSAVING_GNOSIS_TESTNET,
+} from '../../constant/contract/ChainCoopSaving';
 
 import { encrypt, decrypt } from '../encryption';
 export interface TokenBalance {
@@ -48,9 +56,10 @@ const getUserWeb3Wallet = async (userId: string) => {
 //publickey is the address
 const checkStableUserBalance = async (
   publicKey: string,
-  tokenAddress: string
+  tokenAddress: string,
+  network: string
 ): Promise<{ bal: number; symbol: string }> => {
-  const con_tract = await contract(tokenAddress);
+  const con_tract = await contract(tokenAddress, network);
   const balance = await con_tract.balanceOf(publicKey);
   //token symbol
   const tokenSymbol = await con_tract.symbol();
@@ -62,17 +71,29 @@ const checkStableUserBalance = async (
 };
 //user tokenBalances
 const userTokensBalance = async (
+  network: string,
   publicKey: string
 ): Promise<TokenBalance[]> => {
-  const tokens = SupportedETHERLINKStables.map(
-    (tokenObj) => Object.values(tokenObj)[0]
-  );
+  let stables;
+  if (network === 'LISK') {
+    stables = SupportedLISKStables;
+  } else if (network === 'BSC') {
+    stables = SupportedBSCStables;
+  } else if (network === 'ETHERLINK') {
+    stables = SupportedETHERLINKStables;
+  } else if (network === 'GNOSIS') {
+    stables = SupportedGNOSISStables;
+  } else {
+    throw new Error(`Invalid network: ${network}`);
+  }
+  const tokens = stables.map((tokenObj) => Object.values(tokenObj)[0]);
 
   const tokenBalances = await Promise.all(
     tokens.map(async (tokenAddress) => {
       const { bal, symbol } = await checkStableUserBalance(
         publicKey,
-        tokenAddress
+        tokenAddress,
+        network
       );
       return {
         tokenAddress,
@@ -84,16 +105,19 @@ const userTokensBalance = async (
   return tokenBalances;
 };
 //total sum of all the tokens
-const totalUserTokenBalance = async (publicKey: string): Promise<number> => {
-  const tokenBalances = await userTokensBalance(publicKey);
+const totalUserTokenBalance = async (
+  publicKey: string,
+  network: string
+): Promise<number> => {
+  const tokenBalances = await userTokensBalance(network, publicKey);
   const totalBalance = tokenBalances.reduce(
     (acc, tokenBalance) => acc + tokenBalance.balance,
     0
   );
   return totalBalance;
 };
-const getTokenAddressSymbol = async (tokenAddress: string) => {
-  const con_tract = await contract(tokenAddress);
+const getTokenAddressSymbol = async (tokenAddress: string, network: string) => {
+  const con_tract = await contract(tokenAddress, network);
   const symbol = await con_tract.symbol();
 
   return symbol;
@@ -107,10 +131,11 @@ const transferStable = async (
   userPrivateKey: string,
   amount: string,
   toAddress: string,
-  tokenAddress: string
+  tokenAddress: string,
+  network: string
 ): Promise<string> => {
   try {
-    const con_tract = await contract(tokenAddress, userPrivateKey);
+    const con_tract = await contract(tokenAddress, userPrivateKey, network);
 
     const tx = await con_tract.transfer(toAddress, parseEther(amount));
 
@@ -143,13 +168,27 @@ const userWeb3WalletDetails = async (userId: string) => {
 //approve token transfer
 const approveTokenTransfer = async (
   tokenAddress: string,
-  toContractAddress: string,
   amount: string,
-  userPrivateKey: string
+  userPrivateKey: string,
+  network: string
 ) => {
-  const con_tract = await contract(tokenAddress, userPrivateKey);
-  const tx = await con_tract.approve(toContractAddress, parseUnits(amount, 6));
-  await tx.wait();
+  const con_tract = await contract(tokenAddress, network, userPrivateKey);
+  let contractAddress;
+  if (network === 'LISK') {
+    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
+  } else if (network === 'BSC') {
+    contractAddress = CHAINCOOPSAVING_BSC_TESTNET;
+  } else if (network === 'ETHERLINK') {
+    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
+  } else if (network === 'GNOSIS') {
+    contractAddress = CHAINCOOPSAVING_GNOSIS_TESTNET;
+  } else {
+    throw new Error(`Invalid approval network: ${network}`);
+  }
+
+  const tx = await con_tract.approve(contractAddress, parseUnits(amount, 6));
+  console.log('Transaction hash:', tx);
+  await tx.wait(1);
   return tx;
 };
 

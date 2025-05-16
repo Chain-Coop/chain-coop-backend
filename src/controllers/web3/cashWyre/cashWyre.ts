@@ -158,6 +158,7 @@ class CashwyreController {
         accountName,
         bankCode,
         tokenId,
+        network = 'BSC',
       } = req.body;
 
       if (
@@ -190,7 +191,7 @@ class CashwyreController {
         res.status(400).json({ message: 'Invalid tokenId' });
         return;
       }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum);
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
 
       if (confirmationData) {
         data = await CashwyreService.createOfframpTransaction(
@@ -344,7 +345,7 @@ class CashwyreController {
 
   async processOfframpTransfer(req: Request, res: Response) {
     try {
-      const { transactionId } = req.body;
+      const { transactionId, network = 'BSC' } = req.body;
 
       if (!transactionId) {
         throw new BadRequestError('Insert transaction ID to process offramp');
@@ -384,7 +385,8 @@ class CashwyreController {
         userPrivateKey,
         transaction.cryptoAmount.toString(),
         transaction.offrampAddress || '',
-        transaction.tokenAddress || ''
+        transaction.tokenAddress || '',
+        network
       );
 
       await CashwyreService.updateTransactionHash(

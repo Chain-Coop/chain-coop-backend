@@ -37,8 +37,8 @@ import {
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
-import chainCoopManagementRouter from './routes/web3/chaincoopSaving/managementRoutes';
-import chaincoopSavingRoute from './routes/web3/chaincoopSaving/savingRoutes';
+// import chainCoopManagementRouter from './routes/web3/chaincoopSaving/managementRoutes';
+// import chaincoopSavingRoute from './routes/web3/chaincoopSaving/savingRoutes';
 import transactionHistory from './routes/web3/transactionHistoryRoutes';
 //version 2.0
 import chainCoopManagementRouter_2 from './routes/web3/chaincoopSaving.2.0/managementRoutes';
@@ -46,6 +46,7 @@ import chaincoopSavingRoute_2 from './routes/web3/chaincoopSaving.2.0/savingRout
 import web3SavingCircle from './routes/web3/savingCircles/savingCircleRoutes2';
 import periodicSaving from './routes/web3/chaincoopSaving.2.0/periodicSavingRoutes';
 import cashwyre from './routes/web3/cashWyre/cashWyre';
+// import lndRoutes from './routes/web3/lnd/lndRoutes';
 //import
 import logger from './utils/logger';
 import { webhookController } from './controllers/webhookController';
@@ -137,8 +138,8 @@ app.use('/api/v1/dashboard', dashboardRouter);
 //web3
 app.use('/api/v1/web3/account', accountRouter);
 app.use('/api/v1/web3/balance', balanceRouter);
-app.use('/api/v1/web3/management', chainCoopManagementRouter);
-app.use('/api/v1/web3/saving', chaincoopSavingRoute);
+// app.use('/api/v1/web3/management', chainCoopManagementRouter);
+// app.use('/api/v1/web3/saving', chaincoopSavingRoute);
 app.use('/api/v1/web3/transaction', transactionHistory);
 
 //web3_version 2.0
@@ -146,6 +147,7 @@ app.use('/api/v1/web3/v2/management', chainCoopManagementRouter_2);
 app.use('/api/v1/web3/v2/saving', chaincoopSavingRoute_2);
 app.use('/api/v1/web3/v2/periodicSaving', periodicSaving);
 app.use('/api/v1/web3/cashwyre', cashwyre);
+// app.use('/api/v1/web3/lnd', lndRoutes);
 
 //web3_Saving_circle
 

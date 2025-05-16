@@ -21,6 +21,12 @@ export interface Transaction {
   poolAmount: string;
   error?: string;
 }
+export enum network {
+  BSC = 'BSC',
+  ETHERLINK = 'ETHERLINK',
+  LISK = 'LISK',
+  GNOSIS = 'GNOSIS',
+}
 
 export interface IManualSaving extends Document {
   userId: mongoose.Types.ObjectId;
@@ -35,6 +41,7 @@ export interface IManualSaving extends Document {
   encryptedPrivateKey: string;
   transactions: Transaction[];
   totalAmount: string;
+  network: network;
   createdAt: Date;
   updatedAt: Date;
 
@@ -99,6 +106,11 @@ const manualSavingSchema = new Schema<IManualSaving>(
     encryptedPrivateKey: { type: String, required: true },
     transactions: [transactionSchema],
     totalAmount: { type: String, default: '0' },
+    network:{
+      type: String,
+      enum: Object.values(network),
+      required: true,
+    }
   },
   { timestamps: true }
 );

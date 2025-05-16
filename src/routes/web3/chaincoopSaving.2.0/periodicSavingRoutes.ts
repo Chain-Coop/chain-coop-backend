@@ -27,7 +27,8 @@ const router = express.Router();
  *               - lockedType
  *               - duration
  *               - interval
- *               -  pin
+ *               - network
+ *               - pin
  *             properties:
  *               tokenId:
  *                 type: string
@@ -51,6 +52,9 @@ const router = express.Router();
  *                 type: string
  *                 description: Saving interval (DAILY, WEEKLY, MONTHLY)
  *                 enum: [DAILY, WEEKLY, MONTHLY]
+ *               network:
+ *                 type: string
+ *                 description: Blockchain network to use (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *               pin:
  *                 type: string
  *                 description: User's pin for authorization
@@ -381,7 +385,7 @@ router.post(
 
 /**
  * @swagger
- * /web3/v2/periodicSaving/periodicPool/{id}/resume:
+ * /web3/v2/periodicSaving/periodicPool/{id}/resume/{network}:
  *   post:
  *     summary: Resume a periodic saving
  *     description: Resumes the execution of a previously stopped periodic saving
@@ -395,6 +399,12 @@ router.post(
  *         schema:
  *           type: string
  *         description: The periodic saving ID
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network to use (e.g., 'ethereum', 'binance')
  *     responses:
  *       200:
  *         description: Periodic saving resumed successfully
@@ -450,7 +460,7 @@ router.post(
  *                   example: Failed to resume periodic saving
  */
 router.post(
-  '/periodicPool/:id/resume',
+  '/periodicPool/:id/resume/:network',
   authorize,
   PeriodicSavingController.resumePeriodicSaving
 );
@@ -560,7 +570,7 @@ router.put(
 
 /**
  * @swagger
- * /web3/v2/periodicSaving/periodicPool/{id}/execute:
+ * /web3/v2/periodicSaving/periodicPool/{id}/execute/{network}:
  *   post:
  *     summary: Execute a periodic saving manually
  *     description: Manually triggers the execution of a periodic saving without waiting for the scheduled time
@@ -574,6 +584,12 @@ router.put(
  *         schema:
  *           type: string
  *         description: The periodic saving ID
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network to use (e.g., LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Manual execution initiated
@@ -642,20 +658,27 @@ router.put(
  *                   example: Failed to execute periodic saving
  */
 router.post(
-  '/periodicPool/:id/execute',
+  '/periodicPool/:id/execute/:network',
   authorize,
   PeriodicSavingController.executePeriodicSaving
 );
 
 /**
  * @swagger
- * /web3/v2/periodicSaving/periodicPool/intialize:
+ * /web3/v2/periodicSaving/periodicPool/initialize/{network}:
  *   post:
  *     summary: Initialize periodic saving service
  *     description: Initializes the periodic saving service that manages scheduled executions
  *     tags: [Web3 Periodic Saving]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Blockchain network to use (e.g., LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Service initialized successfully
@@ -685,10 +708,11 @@ router.post(
  *                   example: Failed to initialize periodic saving service
  */
 router.post(
-  '/periodicPool/intialize',
+  '/periodicPool/initialize/:network',
   authorize,
   PeriodicSavingController.intializePeriodicSaving
 );
+
 /**
  * @swagger
  * /web3/v2/periodicSaving/totalAmountSaved:

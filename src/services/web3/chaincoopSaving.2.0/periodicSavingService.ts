@@ -29,15 +29,15 @@ const CRON_EXPRESSIONS: Record<SavingInterval, string> = {
 class PeriodicSavingService {
   private cronJobs = new Map<string, CronJob>();
 
-  async initialize(): Promise<void> {
+  async initialize(network: string): Promise<void> {
     try {
-      this.scheduleDueExecutionsJob();
+      this.scheduleDueExecutionsJob(network);
 
       const activeSavings = await PeriodicSaving.find({ isActive: true });
       console.log(`Found ${activeSavings.length} active periodic savings`);
 
       for (const saving of activeSavings) {
-        this.scheduleIndividualSaving(saving);
+        this.scheduleIndividualSaving(saving, network);
       }
 
       console.log('Periodic saving service initialized successfully');
@@ -46,7 +46,7 @@ class PeriodicSavingService {
     }
   }
 
-  private scheduleDueExecutionsJob(): void {
+  private scheduleDueExecutionsJob(network: string): void {
     const job = new CronJob('0 * * * *', async () => {
       try {
         console.log('Checking for due periodic savings...');
@@ -54,7 +54,7 @@ class PeriodicSavingService {
 
         for (const saving of dueExecutions) {
           try {
-            await this.executeSaving(saving);
+            await this.executeSaving(saving, network);
           } catch (err) {
             console.error(`Error executing saving ${saving.poolId}:`, err);
           }
@@ -68,14 +68,14 @@ class PeriodicSavingService {
     console.log('Scheduled job to check for due executions');
   }
 
-  private scheduleIndividualSaving(saving: any): void {
+  private scheduleIndividualSaving(saving: any, network: string): void {
     const cronExpression = CRON_EXPRESSIONS[saving.interval as SavingInterval];
 
     const job = new CronJob(cronExpression, async () => {
       if (!saving.isActive) return;
 
       try {
-        await this.executeSaving(saving);
+        await this.executeSaving(saving, network);
       } catch (err) {
         console.error(
           `Failed to execute periodic saving for pool ${saving.poolId}:`,
@@ -89,7 +89,7 @@ class PeriodicSavingService {
     console.log(`Scheduled job for pool ${saving.poolId}`);
   }
 
-  async executeSaving(saving: any): Promise<void> {
+  async executeSaving(saving: any, network: string): Promise<void> {
     console.log(`Executing periodic saving for pool ${saving.poolId}`);
 
     try {
@@ -98,10 +98,11 @@ class PeriodicSavingService {
         saving.poolId,
         saving.periodicAmount,
         saving.tokenAddress,
-        privateKey
+        privateKey,
+        network
       );
       await tx.wait();
-      const pool = await userPoolsByPoolId(saving.poolId);
+      const pool = await userPoolsByPoolId(saving.poolId, network);
       await createTransactionHistory(
         saving.userId.toString(),
         saving.periodicAmount,
@@ -136,10 +137,11 @@ class PeriodicSavingService {
     lockType: number,
     duration: number,
     interval: SavingInterval,
-    privateKey: string
+    privateKey: string,
+    network: string
   ): Promise<any> {
     try {
-      const tokenSymbol = await getTokenAddressSymbol(tokenAddress);
+      const tokenSymbol = await getTokenAddressSymbol(tokenAddress, network);
 
       const tx = await openPool(
         tokenAddress,
@@ -147,11 +149,12 @@ class PeriodicSavingService {
         reason,
         lockType,
         duration,
-        privateKey
+        privateKey,
+        network
       );
       const receipt = await tx.wait();
       const poolId = this.extractPoolIdFromReceipt(receipt);
-      const pool = await userPoolsByPoolId(poolId);
+      const pool = await userPoolsByPoolId(poolId, network);
 
       const encryptedPrivateKey = encrypt(privateKey);
 
@@ -168,6 +171,7 @@ class PeriodicSavingService {
         interval,
         encryptedPrivateKey,
         lastExecutionTime: new Date(),
+        network,
       });
 
       await saving.save();
@@ -179,7 +183,7 @@ class PeriodicSavingService {
         pool.amountSaved
       );
 
-      this.scheduleIndividualSaving(saving);
+      this.scheduleIndividualSaving(saving, network);
       return tx;
     } catch (error: any) {
       console.error('Failed to create periodic saving:', error);
@@ -226,14 +230,14 @@ class PeriodicSavingService {
     return saving;
   }
 
-  async resumePeriodicSaving(poolId: string): Promise<any> {
+  async resumePeriodicSaving(poolId: string, network: string): Promise<any> {
     const saving = await PeriodicSaving.findOne({ poolId });
     if (!saving) throw new Error('Saving not found');
 
     saving.isActive = true;
     await saving.save();
 
-    this.scheduleIndividualSaving(saving);
+    this.scheduleIndividualSaving(saving, network);
     return saving;
   }
 

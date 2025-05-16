@@ -46,6 +46,9 @@ const router = Router();
  *               duration:
  *                 type: number
  *                 description: Duration in seconds
+ *               network:
+ *                type: string
+ *                description: Network for the saving pool (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *               pin:
  *                  type: string
  *                  description: User's pin for authorization
@@ -109,6 +112,9 @@ const router = Router();
  *               amount:
  *                 type: string
  *                 description: Amount to update the pool with
+ *               network:
+ *                 type: string
+ *                 description: Network for the saving pool (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Success
@@ -163,6 +169,9 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
+ *               network:
+ *                 type: string
+ *                 description: Network for the saving pool (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *               pin:
  *                 type: string
  *                 description: User's pin for authorization
@@ -205,12 +214,19 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/v2/saving/userPools:
+ * /web3/v2/saving/userPools/{network}:
  *   get:
- *     summary: Get all user pools
+ *     summary: Get all user pools on the specified network
  *     tags: [Web3]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Success
@@ -250,12 +266,19 @@ const router = Router();
 
 /**
  * @swagger
- * /web3/v2/saving/totalPools:
+ * /web3/v2/saving/totalPools/{network}:
  *   get:
- *     summary: Get total number of pools created
+ *     summary: Get total number of pools created on the specified network
  *     tags: [Web3]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Success
@@ -284,6 +307,60 @@ const router = Router();
 
 /**
  * @swagger
+ * /web3/v2/saving/userPoolContributions/{network}:
+ *   get:
+ *     summary: Get all user pool contributions on the specified network
+ *     description: Retrieves all contributions made by the authenticated user to various pools on the specified network.
+ *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user contributions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: array
+ *                   description: List of user contributions.
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request if the user's wallet is not activated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Please activate wallet"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "internal server error {error message}"
+ */
+
+/**
+ * @swagger
  * /web3/v2/saving/stopPool:
  *   post:
  *     summary: Stop saving for a pool
@@ -299,10 +376,14 @@ const router = Router();
  *             type: object
  *             required:
  *               - poolId_bytes
+ *               - network
  *             properties:
  *               poolId_bytes:
  *                 type: string
  *                 description: The unique identifier of the pool in bytes.
+ *               network:
+ *                 type: string
+ *                 description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Successfully stopped saving for the pool.
@@ -358,10 +439,14 @@ const router = Router();
  *             type: object
  *             required:
  *               - poolId_bytes
+ *               - network
  *             properties:
  *               poolId_bytes:
  *                 type: string
  *                 description: The unique identifier of the pool in bytes.
+ *               network:
+ *                 type: string
+ *                 description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Successfully restarted saving for the pool.
@@ -386,53 +471,6 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: "Provide all required values poolId_bytes"
- *       500:
- *         description: Internal server error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "internal server error {error message}"
- */
-
-/**
- * @swagger
- * /web3/v2/saving/userPoolContributions:
- *   get:
- *     summary: Get all user pool contributions
- *     description: Retrieves all contributions made by the authenticated user to various pools.
- *     tags: [Web3]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Successfully retrieved user contributions.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Success"
- *                 data:
- *                   type: array
- *                   description: List of user contributions.
- *                   items:
- *                     type: object
- *       400:
- *         description: Bad request if the user's wallet is not activated.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Please activate wallet"
  *       500:
  *         description: Internal server error.
  *         content:
@@ -817,17 +855,22 @@ const router = Router();
  *                   type: string
  *                   example: internal server error
  */
+
 router.post('/openPool', authorize, verifyPin, openSavingPool);
 router.post('/updatePool', authorize, updatePoolWithAmount);
 router.post('/withdraw', authorize, verifyPin, withdrawFromPoolByID);
 router.post('/stopPool', authorize, stopSavingForPool);
 router.post('/restartPool', authorize, restartPoolForSaving);
-router.get('/userPools', authorize, allUserPools);
-router.get('/totalPools', authorize, totalNumberPoolCreated);
-router.get('/userPoolContributions', authorize, allUserPoolsContributions);
 router.post('/getManualSaving', authorize, getManualSaving);
 router.get('/getManualSavingByUser', authorize, getManualSavingByUser);
 router.get('/getTotalAmountSaved', authorize, getTotalAmountSavedByUser);
 router.post('/getPoolByReason', authorize, getUserpoolbyReason);
+router.get('/userPools/:network', authorize, allUserPools);
+router.get('/totalPools/:network', authorize, totalNumberPoolCreated);
+router.get(
+  '/userPoolContributions/:network',
+  authorize,
+  allUserPoolsContributions
+);
 
 export default router;

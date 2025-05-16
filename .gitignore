@@ -2,3 +2,6 @@
 .env
 dist
 /self_test
+.tls.cert
+.admin.macaroon
+.lightning.proto
