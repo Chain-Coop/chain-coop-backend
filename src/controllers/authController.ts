@@ -242,6 +242,13 @@ const login = async (req: Request, res: Response) => {
     //     });
     //  }
 
+    // TEMPORARY BYPASS WHATSAPP OTP VERIFICATION
+    if (user.Tier === 0 && user.isVerified === false) {
+      user.Tier = 1;
+      user.isVerified = true;
+      await user.save();
+    }
+
     const token = await user.createJWT();
 
     await logUserOperation(user?.id, req, "LOGIN", "Success");
