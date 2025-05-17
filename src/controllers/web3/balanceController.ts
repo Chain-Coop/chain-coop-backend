@@ -1,13 +1,13 @@
 import AsyncHandler from 'express-async-handler';
 import { Request, Response } from 'express';
 import {
-  activateAccount,
   checkStableUserBalance,
   userAddress,
   checkExistingWallet,
   getUserWeb3Wallet,
   totalUserTokenBalance,
   userTokensBalance,
+  getBitcoinBalance,
 } from '../../services/web3/accountService';
 import { tokenAddress } from '../../utils/web3/tokenaddress';
 
@@ -58,7 +58,7 @@ const usertokensAmount = AsyncHandler(async (req: Request, res: Response) => {
     }
     const details = await getUserWeb3Wallet(userId);
     //get address
-    const tokensbalance = await userTokensBalance(network,details.address);
+    const tokensbalance = await userTokensBalance(network, details.address);
 
     res.json({ message: 'Success', data: tokensbalance });
   } catch (error) {
@@ -79,7 +79,10 @@ const totalUserWalletBalance = AsyncHandler(
       }
       const details = await getUserWeb3Wallet(userId);
       //get address
-      const totalbalance = await totalUserTokenBalance(details.address,network);
+      const totalbalance = await totalUserTokenBalance(
+        details.address,
+        network
+      );
 
       res.json({ message: 'Success', data: totalbalance });
     } catch (error) {
@@ -88,4 +91,28 @@ const totalUserWalletBalance = AsyncHandler(
     }
   }
 );
-export { userTokenBalance, usertokensAmount, totalUserWalletBalance };
+const getBitcoinBalanceController = AsyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      const exists = await checkExistingWallet(userId);
+      if (!exists) {
+        res.status(400).json({ message: 'No Wallet found' });
+        return;
+      }
+
+      const totalbalance = await getBitcoinBalance(userId);
+      res.json({ message: 'Success', data: totalbalance });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+);
+export {
+  userTokenBalance,
+  usertokensAmount,
+  totalUserWalletBalance,
+  getBitcoinBalanceController,
+};
