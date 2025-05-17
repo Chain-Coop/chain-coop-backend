@@ -1,16 +1,4 @@
-// const {
-//   getWalletInfo,
-//   createChainAddress,
-//   createInvoice,
-//   getInvoice,
-//   subscribeToInvoice,
-//   payViaRoutes,
-//   decodeBolt11,
-//   getRouteToDestination,
-//   probeForRoute,
-//   getChannels,
-// } = require('ln-service');
-// import { lnd } from '../../../utils/web3/lnd';
+// import { client } from '../../../utils/web3/lnd';
 
 // interface LndRoute {
 //   fee: number;
@@ -33,7 +21,7 @@
 // export const getWallet = async () => {
 //   try {
 //     console.log('LND instance:', lnd);
-//     const walletInfo = await getWalletInfo({lnd});
+//     const walletInfo = await getWalletInfo({ lnd });
 //     return walletInfo;
 //   } catch (error) {
 //     console.error('Error getting wallet info:', error);

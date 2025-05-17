@@ -1,10 +1,11 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   userTokenBalance,
   totalUserWalletBalance,
   usertokensAmount,
-} from "../../controllers/web3/balanceController";
-import { authorize } from "../../middlewares/authorization";
+  getBitcoinBalanceController,
+} from '../../controllers/web3/balanceController';
+import { authorize } from '../../middlewares/authorization';
 
 const router = Router();
 
@@ -237,8 +238,65 @@ const router = Router();
  *                   example: Internal Server Error
  */
 
-router.get("/token/:tokenId/:network", authorize, userTokenBalance);
-router.get("/total/:network", authorize, totalUserWalletBalance);
-router.get("/tokens/:network", authorize, usertokensAmount);
+/**
+ * @swagger
+ * /web3/balance/bitcoin/balance:
+ *   get:
+ *     summary: Get the user's Bitcoin wallet balance
+ *     tags:
+ *       - Web3
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bitcoin balance fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: number
+ *                   description: The balance of the user's Bitcoin wallet in BTC.
+ *                   example: 0.001245
+ *       400:
+ *         description: No wallet found for the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No Wallet found
+ *       401:
+ *         description: Unauthorized access due to missing or invalid token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error while fetching Bitcoin balance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal Server Error
+ */
+
+router.get('/token/:tokenId/:network', authorize, userTokenBalance);
+router.get('/total/:network', authorize, totalUserWalletBalance);
+router.get('/tokens/:network', authorize, usertokensAmount);
+router.get('/bitcoin/balance', authorize, getBitcoinBalanceController);
 
 export default router;
