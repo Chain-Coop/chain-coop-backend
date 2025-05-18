@@ -111,7 +111,53 @@ router.post(
   verifyPin,
   PeriodicSavingController.createPeriodicSaving
 );
+/**
+ * @swagger
+ * /web3/v2/periodicSaving/withdraw:
+ *   post:
+ *     summary: withdraw from a periodic saving pool
+ *     description: withdraw from a periodic saving pool
+ *     tags: [Web3 Periodic Saving]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - poolId_bytes
+ *               - pin
+ *             properties:
+ *               poolId_bytes:
+ *                 type: string
+ *                 description: The ID of the periodic saving pool to withdaw from
+ *               pin:
+ *                 type: string
+ *                 description: User's pin for authorization
+ *     responses:
+ *       200:
+ *         description: Periodic saving pool withdrawn from successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Periodic saving pool closed successfully
+ */
 
+router.post(
+  '/withdraw',
+  authorize,
+  verifyPin,
+  PeriodicSavingController.withdrawFromPoolByID
+);
 /**
  * @swagger
  * /web3/v2/periodicSaving/getPeriodicPool:
@@ -385,7 +431,7 @@ router.post(
 
 /**
  * @swagger
- * /web3/v2/periodicSaving/periodicPool/{id}/resume/{network}:
+ * /web3/v2/periodicSaving/periodicPool/{id}/resume:
  *   post:
  *     summary: Resume a periodic saving
  *     description: Resumes the execution of a previously stopped periodic saving
@@ -398,13 +444,7 @@ router.post(
  *         required: true
  *         schema:
  *           type: string
- *         description: The periodic saving ID
- *       - in: path
- *         name: network
- *         required: true
- *         schema:
- *           type: string
- *         description: Blockchain network to use (e.g., 'ethereum', 'binance')
+ *           description: The periodic saving ID
  *     responses:
  *       200:
  *         description: Periodic saving resumed successfully
@@ -460,7 +500,7 @@ router.post(
  *                   example: Failed to resume periodic saving
  */
 router.post(
-  '/periodicPool/:id/resume/:network',
+  '/periodicPool/:id/resume',
   authorize,
   PeriodicSavingController.resumePeriodicSaving
 );
@@ -570,7 +610,7 @@ router.put(
 
 /**
  * @swagger
- * /web3/v2/periodicSaving/periodicPool/{id}/execute/{network}:
+ * /web3/v2/periodicSaving/periodicPool/{id}/execute:
  *   post:
  *     summary: Execute a periodic saving manually
  *     description: Manually triggers the execution of a periodic saving without waiting for the scheduled time
@@ -583,13 +623,7 @@ router.put(
  *         required: true
  *         schema:
  *           type: string
- *         description: The periodic saving ID
- *       - in: path
- *         name: network
- *         required: true
- *         schema:
- *           type: string
- *         description: Blockchain network to use (e.g., LISK, BSC, ETHERLINK, GNOSIS)
+ *           description: The periodic saving ID
  *     responses:
  *       200:
  *         description: Manual execution initiated
@@ -658,7 +692,7 @@ router.put(
  *                   example: Failed to execute periodic saving
  */
 router.post(
-  '/periodicPool/:id/execute/:network',
+  '/periodicPool/:id/execute',
   authorize,
   PeriodicSavingController.executePeriodicSaving
 );

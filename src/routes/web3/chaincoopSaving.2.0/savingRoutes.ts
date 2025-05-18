@@ -112,9 +112,6 @@ const router = Router();
  *               amount:
  *                 type: string
  *                 description: Amount to update the pool with
- *               network:
- *                 type: string
- *                 description: Network for the saving pool (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Success
@@ -169,9 +166,6 @@ const router = Router();
  *               poolId_bytes:
  *                 type: string
  *                 description: Pool ID in bytes
- *               network:
- *                 type: string
- *                 description: Network for the saving pool (e.g.LISK, BSC, ETHERLINK, GNOSIS)
  *               pin:
  *                 type: string
  *                 description: User's pin for authorization
@@ -376,14 +370,10 @@ const router = Router();
  *             type: object
  *             required:
  *               - poolId_bytes
- *               - network
  *             properties:
  *               poolId_bytes:
  *                 type: string
  *                 description: The unique identifier of the pool in bytes.
- *               network:
- *                 type: string
- *                 description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Successfully stopped saving for the pool.
@@ -439,14 +429,10 @@ const router = Router();
  *             type: object
  *             required:
  *               - poolId_bytes
- *               - network
  *             properties:
  *               poolId_bytes:
  *                 type: string
  *                 description: The unique identifier of the pool in bytes.
- *               network:
- *                 type: string
- *                 description: Network for the saving pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
  *     responses:
  *       200:
  *         description: Successfully restarted saving for the pool.

@@ -3,6 +3,9 @@ import { Request, Response } from 'express';
 import {
   PeriodicSaving,
   SavingInterval,
+  Transaction,
+  TransactionStatus,
+  DepositType,
 } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 import {
@@ -13,6 +16,10 @@ import {
 import { decrypt } from '../../../services/encryption';
 import { tokenAddress } from '../../../utils/web3/tokenaddress';
 import { createTransactionHistory } from '../../../services/web3/historyService';
+import {
+  userPoolsByPoolId,
+  withdrawFromPool,
+} from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 export class PeriodicSavingController {
   public static async createPeriodicSaving(
@@ -129,6 +136,96 @@ export class PeriodicSavingController {
         success: false,
         message: error.message || 'Failed to create periodic saving',
       });
+    }
+  }
+
+  public static async withdrawFromPoolByID(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const { poolId_bytes } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      if (!poolId_bytes) {
+        res
+          .status(400)
+          .json({ message: 'Provide all required values poolId_bytes' });
+        return;
+      }
+
+      const wallet = await getUserWeb3Wallet(userId);
+      if (!wallet) {
+        res.status(400).json({ message: 'Please activate wallet' });
+        return;
+      }
+      const userPrivateKey = decrypt(wallet.encryptedKey);
+      const periodicSaving = await PeriodicSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!periodicSaving) {
+        res
+          .status(400)
+          .json({ message: `Failed to find a pool ${poolId_bytes}` });
+        return;
+      }
+      const pool = await userPoolsByPoolId(
+        poolId_bytes,
+        periodicSaving.network
+      );
+      if (!pool) {
+        res
+          .status(400)
+          .json({ message: `Failed to get a pool ${poolId_bytes}` });
+        return;
+      }
+
+      const tx = await withdrawFromPool(
+        poolId_bytes,
+        userPrivateKey,
+        periodicSaving.network
+      );
+      if (!tx) {
+        res
+          .status(400)
+          .json({ message: `Failed to withdraw a pool ${poolId_bytes}` });
+        return;
+      }
+      const withdrawTransaction: Transaction = {
+        txHash: tx.hash,
+        amount: pool.amountSaved,
+        timestamp: new Date(),
+        status: TransactionStatus.CONFIRMED,
+        depositType: DepositType.WITHDRAW,
+        poolAmount: pool.amountSaved,
+      };
+
+      periodicSaving.isActive = false;
+      periodicSaving.totalAmount = '0';
+      periodicSaving.transactions.push(withdrawTransaction);
+      await periodicSaving.save();
+
+      const tokenAddressToSaveWith = pool.tokenToSaveWith;
+      const tokenSymbol = await getTokenAddressSymbol(
+        tokenAddressToSaveWith,
+        periodicSaving.network
+      );
+      const amount = pool.amountSaved;
+      await createTransactionHistory(
+        userId,
+        parseFloat(amount),
+        'WITHDRAW',
+        tx.hash,
+        tokenSymbol
+      );
+
+      res.status(200).json({ message: 'Success', data: tx.hash });
+      return;
+    } catch (error: any) {
+      console.log(error);
+      res
+        .status(500)
+        .json({ message: `internal server error${error.message}` });
     }
   }
 
@@ -252,11 +349,7 @@ export class PeriodicSavingController {
     res: Response
   ): Promise<void> {
     try {
-      const { id, network } = req.params as { id: string; network: string };
-      if (!network) {
-        res.status(400).json({ message: 'Network is required' });
-        return;
-      }
+      const { id } = req.params as { id: string };
       //@ts-ignore
       const userId = req.user.userId; // Assuming req.user is set by auth middleware
 
@@ -277,7 +370,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      await periodicSavingService.resumePeriodicSaving(id, network);
+      await periodicSavingService.resumePeriodicSaving(id, saving.network);
 
       res.status(200).json({
         success: true,
@@ -356,11 +449,8 @@ export class PeriodicSavingController {
     res: Response
   ): Promise<void> {
     try {
-      const { id, network } = req.params as { id: string; network: string };
-      if (!network) {
-        res.status(400).json({ message: 'Network is required' });
-        return;
-      }
+      const { id } = req.params as { id: string};
+
       //@ts-ignore
 
       const userId = req.user.userId; // Assuming req.user is set by auth middleware
@@ -389,7 +479,7 @@ export class PeriodicSavingController {
         return;
       }
 
-      await periodicSavingService.executeSaving(saving, network);
+      await periodicSavingService.executeSaving(saving, saving.network);
 
       res.status(200).json({
         success: true,

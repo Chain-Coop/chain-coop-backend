@@ -22,7 +22,7 @@ export enum network {
   ETHERLINK = 'ETHERLINK',
   LISK = 'LISK',
 }
-interface Transaction {
+export interface Transaction {
   txHash: string;
   amount: string;
   timestamp: Date;
