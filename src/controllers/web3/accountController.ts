@@ -23,8 +23,7 @@ const activateWeb3Wallet = AsyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Wallet Already Activated' });
       return;
     }
-    await activateAccount(userId);
-
+    await activateAccount(userId); 
     res.json({ message: 'Account activated successfully' });
   } catch (error) {
     console.log(error);
@@ -45,7 +44,8 @@ const activateBitcoinWallet = AsyncHandler(
         res.status(400).json({ message: 'Wallet Already Activated' });
         return;
       }
-      await createUserBitcoinWallet(userId);
+      await createUserBitcoinWallet(userId);  
+      
       res.json({ message: 'Account activated successfully' });
     } catch (error) {
       console.log(error);
