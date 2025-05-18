@@ -149,14 +149,14 @@ const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
 
 const updatePoolWithAmount = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, tokenAddressToSaveWith, amount, network } = req.body;
+    const { poolId_bytes, tokenAddressToSaveWith, amount } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
-      if (!poolId_bytes || !tokenAddressToSaveWith || !amount || !network) {
+      if (!poolId_bytes || !tokenAddressToSaveWith || !amount) {
         res.status(400).json({
           message:
-            'Provide all required values poolId_bytes,tokenAddressToSaveWith,amount,network',
+            'Provide all required values poolId_bytes,tokenAddressToSaveWith,amount',
         });
         return;
       }
@@ -167,11 +167,21 @@ const updatePoolWithAmount = asyncHandler(
         return;
       }
 
+      const saving = await ManualSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!saving) {
+        res
+          .status(400)
+          .json({ message: `Failed to find a pool ${poolId_bytes}` });
+        return;
+      }
+
       const { bal: balance }: { bal: number; symbol: string } =
         await checkStableUserBalance(
           wallet.address,
           tokenAddressToSaveWith,
-          network
+          saving.network
         );
       if (balance < parseFloat(amount)) {
         res.status(400).json({
@@ -186,7 +196,7 @@ const updatePoolWithAmount = asyncHandler(
         amount,
         tokenAddressToSaveWith,
         userPrivateKey,
-        network
+        saving.network
       );
       if (!tx) {
         res
@@ -195,22 +205,14 @@ const updatePoolWithAmount = asyncHandler(
         return;
       }
       await tx.wait();
-      const pool = await userPoolsByPoolId(poolId_bytes, network);
+      const pool = await userPoolsByPoolId(poolId_bytes, saving.network);
       if (!pool) {
         res
           .status(400)
           .json({ message: `Failed to get a pool ${poolId_bytes}` });
         return;
       }
-      const saving = await ManualSaving.findOne({
-        poolId: poolId_bytes,
-      });
-      if (!saving) {
-        res
-          .status(400)
-          .json({ message: `Failed to find a pool ${poolId_bytes}` });
-        return;
-      }
+
       saving.addTransaction(
         tx.hash,
         amount,
@@ -220,7 +222,7 @@ const updatePoolWithAmount = asyncHandler(
       );
       const tokenSymbol = await getTokenAddressSymbol(
         tokenAddressToSaveWith,
-        network
+        saving.network
       );
       await createTransactionHistory(
         userId,
@@ -242,7 +244,7 @@ const updatePoolWithAmount = asyncHandler(
 
 const withdrawFromPoolByID = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, network } = req.body;
+    const { poolId_bytes } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
@@ -259,20 +261,28 @@ const withdrawFromPoolByID = asyncHandler(
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
-      const pool = await userPoolsByPoolId(poolId_bytes, network);
+      const manualSaving = await ManualSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!manualSaving) {
+        res
+          .status(400)
+          .json({ message: `Failed to find a pool ${poolId_bytes}` });
+        return;
+      }
+      const pool = await userPoolsByPoolId(poolId_bytes, manualSaving.network);
       if (!pool) {
         res
           .status(400)
           .json({ message: `Failed to get a pool ${poolId_bytes}` });
         return;
       }
-      const manualSaving = await ManualSaving.findOne({
-        poolId: poolId_bytes,
-      });
-      const periodicSaving = await PeriodicSaving.findOne({
-        poolId: poolId_bytes,
-      });
-      const tx = await withdrawFromPool(poolId_bytes, userPrivateKey, network);
+
+      const tx = await withdrawFromPool(
+        poolId_bytes,
+        userPrivateKey,
+        manualSaving.network
+      );
       if (!tx) {
         res
           .status(400)
@@ -288,22 +298,15 @@ const withdrawFromPoolByID = asyncHandler(
         poolAmount: pool.amountSaved,
       };
 
-      if (manualSaving) {
-        manualSaving.isActive = false;
-        manualSaving.totalAmount = '0';
-        manualSaving.transactions.push(withdrawTransaction);
-        await manualSaving.save();
-      } else if (periodicSaving) {
-        periodicSaving.isActive = false;
-        periodicSaving.totalAmount = '0';
-        periodicSaving.transactions.push(withdrawTransaction);
-        await periodicSaving.save();
-      }
+      manualSaving.isActive = false;
+      manualSaving.totalAmount = '0';
+      manualSaving.transactions.push(withdrawTransaction);
+      await manualSaving.save();
 
       const tokenAddressToSaveWith = pool.tokenToSaveWith;
       const tokenSymbol = await getTokenAddressSymbol(
         tokenAddressToSaveWith,
-        network
+        manualSaving.network
       );
       const amount = pool.amountSaved;
       await createTransactionHistory(
@@ -326,7 +329,7 @@ const withdrawFromPoolByID = asyncHandler(
 );
 //Stop saving pool
 const stopSavingForPool = asyncHandler(async (req: Request, res: Response) => {
-  const { poolId_bytes, network } = req.body;
+  const { poolId_bytes } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -336,6 +339,15 @@ const stopSavingForPool = asyncHandler(async (req: Request, res: Response) => {
         .json({ message: 'Provide all required values poolId_bytes' });
       return;
     }
+    const manualSaving = await ManualSaving.findOne({
+      poolId: poolId_bytes,
+    });
+    if (!manualSaving) {
+      res
+        .status(400)
+        .json({ message: `Failed to find a pool ${poolId_bytes}` });
+      return;
+    }
 
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
@@ -343,7 +355,11 @@ const stopSavingForPool = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    const tx = await stopSaving(poolId_bytes, userPrivateKey, network);
+    const tx = await stopSaving(
+      poolId_bytes,
+      userPrivateKey,
+      manualSaving.network
+    );
     if (!tx) {
       res
         .status(400)
@@ -361,7 +377,7 @@ const stopSavingForPool = asyncHandler(async (req: Request, res: Response) => {
 //restart for saving
 const restartPoolForSaving = asyncHandler(
   async (req: Request, res: Response) => {
-    const { poolId_bytes, network } = req.body;
+    const { poolId_bytes } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
@@ -371,6 +387,15 @@ const restartPoolForSaving = asyncHandler(
           .json({ message: 'Provide all required values poolId_bytes' });
         return;
       }
+      const manualSaving = await ManualSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!manualSaving) {
+        res
+          .status(400)
+          .json({ message: `Failed to find a pool ${poolId_bytes}` });
+        return;
+      }
 
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
@@ -378,7 +403,7 @@ const restartPoolForSaving = asyncHandler(
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
-      const tx = await restartSaving(poolId_bytes, userPrivateKey, network);
+      const tx = await restartSaving(poolId_bytes, userPrivateKey, manualSaving.network);
       if (!tx) {
         res.status(400).json({
           message: `Failed to restart pool for saving ${poolId_bytes}`,
