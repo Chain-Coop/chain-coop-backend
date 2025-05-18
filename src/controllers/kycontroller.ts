@@ -138,10 +138,10 @@ export const initiateTier2Kyc = async (req: Request, res: Response) => {
       });
     }
     // Ensure the user is Tier 1 before Tier 2 KYC can be initiated.
-    if (user.Tier !== 0) {
+    if (user.Tier !== 1) {
       return res.status(400).json({ 
         status: 400,
-        message: "User must be a Tier 0 user to initiate Tier 1 KYC" 
+        message: "User must be a Tier 1 user to initiate Tier 2 KYC" 
       });
     }
 
@@ -151,7 +151,7 @@ export const initiateTier2Kyc = async (req: Request, res: Response) => {
     // Success response with the verification URL
     return res.status(200).json({
       status: 200,
-      message: "KYC Tier 1 session created successfully",
+      message: "KYC Tier 2 session created successfully",
       //@ts-ignore
       verificationUrl: sessionData?.url, // URL for the user to complete the verification
     });

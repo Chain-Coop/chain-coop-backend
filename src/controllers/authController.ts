@@ -68,13 +68,16 @@ const register = async (req: Request, res: Response) => {
     // await generateAndSendOtpWA(req.body.phoneNumber);
 
     // sends WhatsApp OTP on user registering
-    await generateAndSendOtpWA(phoneNumber)
-      .then((response) => {
-        console.log('OTP sent successfully to WhatsApp:', response);
-      })
-      .catch((error) => {
-        console.error('Error sending OTP to WhatsApp:', error);
-      });
+
+    // OTP is down so a temporal bypass has been implemented
+    // await generateAndSendOtpWA(phoneNumber)
+    //   .then((response) => {
+    //     console.log("OTP sent successfully to WhatsApp:", response);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error sending OTP to WhatsApp:", error);
+    // });
+
 
     const walletPayload: iWallet = {
       balance: 0,
@@ -249,6 +252,13 @@ const login = async (req: Request, res: Response) => {
     //     });
     //  }
 
+    // TEMPORARY BYPASS WHATSAPP OTP VERIFICATION
+    if (user.Tier === 0 && user.isVerified === false) {
+      user.Tier = 1;
+      user.isVerified = true;
+      await user.save();
+    }
+
     const token = await user.createJWT();
 
     await logUserOperation(user?.id, req, 'LOGIN', 'Success');
@@ -320,26 +330,35 @@ const resetPassword = async (req: Request, res: Response) => {
   let user: any = null;
 
   try {
-    const { otp, password, confirmPassword, email } = req.body;
+    const { 
+      // otp, 
+      password, 
+      confirmPassword, 
+      email 
+    } = req.body;
 
     user = await findUser('email', email);
     if (!user) {
       throw new NotFoundError('User with this email not found');
     }
 
-    const isVerified = await findOtp(email, otp);
-    if (!isVerified) {
-      throw new BadRequestError('Invalid otp provided');
-    }
+
+     // const isVerified = await findOtp(email, otp);
+    // if (!isVerified) {
+    //   throw new BadRequestError("Invalid otp provided");
+    // }
+
 
     if (password !== confirmPassword) {
       throw new BadRequestError('Password and confirm password do not match');
     }
 
     await resetUserPassword(user, password);
-    await deleteOtp(email);
-    await logUserOperation(user?.id, req, 'RESET_PASSWORD', 'Success');
-    res.status(StatusCodes.OK).json({ msg: 'Password reset successful' });
+
+    // await deleteOtp(email);
+    await logUserOperation(user?.id, req, "RESET_PASSWORD", "Success");
+    res.status(StatusCodes.OK).json({ msg: "Password reset successful" });
+
   } catch (error) {
     await logUserOperation(user?.id, req, 'RESET_PASSWORD', 'Failure');
     throw error;
@@ -351,23 +370,30 @@ const changePhoneNumber = async (req: Request, res: Response) => {
   let user: InstanceType<typeof User> | null = null;
 
   try {
-    const { userId, otp, newPhoneNumber } = req.body;
+    const { 
+      userId, 
+      // otp, 
+      newPhoneNumber 
+    } = req.body;
 
     user = await findUser('id', userId);
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
-    const isVerified = await findOtp(user.email, otp);
-    if (!isVerified) {
-      throw new BadRequestError('Invalid OTP provided');
-    }
+    // const isVerified = await findOtp(user.email, otp);
+    // if (!isVerified) {
+    //   throw new BadRequestError("Invalid OTP provided");
+    // }
+
 
     user.phoneNumber = newPhoneNumber;
     await user.save();
 
-    await deleteOtp(user.email);
-    await logUserOperation(user.id, req, 'CHANGE_PHONE_NUMBER', 'Success');
+
+    // await deleteOtp(user.email);
+    await logUserOperation(user.id, req, "CHANGE_PHONE_NUMBER", "Success");
+
 
     res.status(StatusCodes.OK).json({
       msg: 'Phone number successfully updated',
