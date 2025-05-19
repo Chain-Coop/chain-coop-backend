@@ -779,9 +779,8 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5, sort = "desc", search = "", filter } = req.query;
+    const { sort = "desc", search = "", filter } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
     const sortOrder = sort === "asc" ? 1 : -1;
 
     const query: any = {
@@ -790,15 +789,13 @@ export const getUserContributions = async (req: Request, res: Response) => {
     };
 
     // Apply savingsType filter if valid
-    const allowedFilters = ["lock", "strict", "flexible"];
+    const allowedFilters = ["Lock", "Strict", "Flexible", "One-time"];
     if (filter) {
       const normalizedFilter = String(filter).charAt(0).toUpperCase() + String(filter).slice(1).toLowerCase();
-      const allowedFilters = ["Lock", "Strict", "Flexible", "One-time"];
       if (allowedFilters.includes(normalizedFilter)) {
         query.savingsType = normalizedFilter;
       }
     }
-    
 
     // Apply search term if present
     if (search) {
@@ -806,18 +803,11 @@ export const getUserContributions = async (req: Request, res: Response) => {
     }
 
     const contributions = await Contribution.find(query)
-      .sort({ createdAt: sortOrder })
-      .skip(skip)
-      .limit(Number(limit));
-
-    const conLength = await Contribution.countDocuments(query);
-
-    const totalPages = Math.ceil(conLength / Number(limit));
+      .sort({ createdAt: sortOrder });
 
     res.status(StatusCodes.OK).json({
       contributions,
-      totalPages,
-      currentPage: Number(page),
+      total: contributions.length,
     });
   } catch (error) {
     console.error("Error fetching user contributions:", error);
@@ -826,6 +816,7 @@ export const getUserContributions = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 
 
