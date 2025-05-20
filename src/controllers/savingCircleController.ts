@@ -10,7 +10,10 @@ import {
   unpaidCircleService,
   tryRecurringCircleService,
   verifyPaymentService,
-  getAllCirclesService
+  getAllCirclesService,
+  getTotalUserCircleBalance,
+  getOtherUsersCirclesService,
+  searchCircleByIdService
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
 import uploadImageFile from "../utils/imageUploader"; 
@@ -259,4 +262,35 @@ export const getAllCirclesController = async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : "An error occurred",
     });
   }
+};
+
+
+export const getUserTotalBalanceController = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized: userId not found" });
+  }
+
+  const totalBalance = await getTotalUserCircleBalance(userId);
+  res.status(200).json({ 
+    userId,
+    totalBalance });
+};
+
+
+// Add controller to get public circles from other users
+export const getOtherUsersCirclesController = async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const circles = await getOtherUsersCirclesService(userId);
+  res.status(200).json({ circles });
+};
+
+// Add controller to get circle by ID
+export const searchCircleByIdController = async (req: Request, res: Response) => {
+  const { circleId } = req.params;
+  const circle = await searchCircleByIdService(circleId);
+  if (!circle) return res.status(404).json({ message: "Circle not found" });
+  res.status(200).json({ circle });
 };

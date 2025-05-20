@@ -174,10 +174,15 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 
     const member = circle.members.find((m) => m.userId.toString() === userId);
     if (!member) throw new NotFoundError("Member not found");
-
+    
     member.contribution += amount;
+    
+    // ✅ Add this
+    member.progress = (member.contribution / circle.goalAmount!) * 100;
+    
     circle.currentIndividualTotal! += amount;
     await circle.save();
+    
     return circle;
   } catch (error) {
     throw error;
@@ -349,6 +354,7 @@ export const tryRecurringCircleService = async () => {
 
         member.failures = 0;
         member.contribution += amountUnpaid;
+        member.progress = (member.contribution / circle.goalAmount!) * 100;
       } catch (error) {
         member.failures! += 1;
       }
@@ -435,9 +441,14 @@ export const verifyPaymentService = async (reference: string) => {
     );
 
     if (memberIndex !== -1) {
-      savingCircle.members[memberIndex].status = "completed";
-      savingCircle.members[memberIndex].contribution += amount / 100;
-    } else {
+      const member = savingCircle.members[memberIndex];
+      member.status = "completed";
+      member.contribution += amount / 100;
+    
+      // ✅ Add this to update individual progress
+      member.progress = (member.contribution / savingCircle.goalAmount!) * 100;
+    }
+     else {
       throw new Error("Member not found in saving circle.");
     }
 
@@ -501,4 +512,27 @@ export const getAllCirclesService = async (status?: string) => {
   } catch (error) {
     throw error; // Throw error to be handled in controller
   }
+};
+
+// Add a new function to calculate total user balance
+export const getTotalUserCircleBalance = async (userId: string) => {
+  const circles = await savingCircleModel.find({ "members.userId": userId });
+  const total = circles.reduce((sum, circle) => {
+    const member = circle.members.find(m => m.userId.toString() === userId);
+    return member ? sum + member.contribution : sum;
+  }, 0);
+  return total;
+};
+
+// New service to get public/open circles by others
+export const getOtherUsersCirclesService = async (userId: string) => {
+  return await savingCircleModel.find({
+    groupType: "open",
+    createdBy: { $ne: userId },
+  });
+};
+
+// Search circle by ID
+export const searchCircleByIdService = async (circleId: string) => {
+  return await savingCircleModel.findById(circleId);
 };

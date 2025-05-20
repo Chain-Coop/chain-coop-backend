@@ -13,6 +13,7 @@ import {
   getAllCirclesController
 } from "../controllers/savingCircleController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
+import { getOtherUsersCirclesController, getUserTotalBalanceController, searchCircleByIdController } from "../controllers/savingCircleController";
 
 const router = Router();
 
@@ -114,6 +115,22 @@ router.post("/create", authorize, createCircleController);
  */
 router.post("/join", authorize, joinCircleController);
 
+router.get("/user/total-balance", authorize, getUserTotalBalanceController);
+/**
+ * @swagger
+ * /savingcircle/others:
+ *   get:
+ *     summary: Get other users' saving circles
+ *     description: Fetch all saving circles created by other users.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully fetched other users' circles
+ */
+
 /**
  * @swagger
  * /savingcircle/user/{userId}:
@@ -203,6 +220,24 @@ router.get("/verify", authorize, verifyPaymentController);
  */
 router.get("/circles", authorize, getAllCirclesController);
 
+
+/**
+ * @swagger
+ * /savingcircle/public:
+ *   get:
+ *     summary: Get all public saving circles
+ *     description: Fetch all public saving circles created by other users.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully fetched public circles
+ */
+router.get("/public", authorize,getOtherUsersCirclesController);
+
+
 /**
  * @swagger
  * /savingcircle/{circleId}:
@@ -227,6 +262,9 @@ router.get("/circles", authorize, getAllCirclesController);
  *         description: Circle not found
  */
 router.get("/:circleId", authorize, getCircleController);
+
+
+
 
 /**
  * @swagger
@@ -349,6 +387,7 @@ router.post("/initialize", authorize, initializeCircleController);
  */
 router.post("/payment", authorize, paymentCircleController);
 
+
 /**
  * @swagger
  * /savingcircle/unpaid/{circleId}/{userId}:
@@ -406,5 +445,13 @@ router.post("/recurring", authorize, recurringCircleController);
 
 
 
+router.get("/search/:circleId", searchCircleByIdController);
+
 
 export default router;
+
+
+
+// router.get("/user/total-balance", getUserTotalBalanceController);
+// router.get("/circles/others", getOtherUsersCirclesController);
+// router.get("/circles/search/:circleId", searchCircleByIdController);

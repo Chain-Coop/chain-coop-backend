@@ -8,6 +8,7 @@ export interface SavingCircleDocument extends Document {
   groupType: "open" | "closed";
   inviteCode?: string;
   members: Array<{
+    progress: number;
     userId: Schema.Types.ObjectId;
     contribution: number;
     status: "pending" | "active" | "completed";
@@ -38,7 +39,7 @@ export interface SavingCircleDocument extends Document {
 const SavingCircleSchema = new Schema<SavingCircleDocument>(
   {
     name: { type: String, required: [true, "Circle name is required"] },
-    description: { type: String, required: [true, "Circle description is required"] },
+    description: { type: String, required: false },
     status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
     groupType: { type: String, enum: ["open", "closed"], required: true, default: "closed" },
 
@@ -58,6 +59,7 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: [true, "User ID is required"] },
         contribution: { type: Number, required: [true, "Contribution is required"] },
+        progress: { type: Number, default: 0 },
         status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
         cardData: { type: String },
         failures: { type: Number, default: 0 },
@@ -100,8 +102,8 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
     //interestAmount: { type: Number, default: 0 },
     goalAmount: { type: Number, default: 0 },
     currentIndividualTotal: { type: Number, default: 0 },
-    imageUrl: { type: String }, 
-    imagePublicId: { type: String },
+    imageUrl: { type: String, required: false },
+    imagePublicId: { type: String, required: false },
   },
   { timestamps: true }
 );
