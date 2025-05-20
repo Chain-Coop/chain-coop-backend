@@ -115,21 +115,23 @@ router.post("/create", authorize, createCircleController);
  */
 router.post("/join", authorize, joinCircleController);
 
-router.get("/user/total-balance", authorize, getUserTotalBalanceController);
+
 /**
  * @swagger
- * /savingcircle/others:
+ * /savingcircle/user/total-balance:
  *   get:
- *     summary: Get other users' saving circles
- *     description: Fetch all saving circles created by other users.
+ *     summary: Get total balance for a user
+ *     description: Fetch the total balance of a user across all saving circles.
  *     tags:
  *       - Saving Circles
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Successfully fetched other users' circles
+ *         description: Successfully fetched total balance
  */
+router.get("/user/total-balance", authorize, getUserTotalBalanceController);
+
 
 /**
  * @swagger
@@ -445,7 +447,34 @@ router.post("/recurring", authorize, recurringCircleController);
 
 
 
+
+
+/**
+ * @swagger
+ * /savingcircle/search/{circleId}:
+ *   get:
+ *     summary: Search for a saving circle by its ID
+ *     description: Retrieve a specific saving circle by its ID.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: circleId
+ *         required: true
+ *         description: The ID of the saving circle to search for.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched the saving circle
+ *       404:
+ *         description: Circle not found
+ */
 router.get("/search/:circleId", searchCircleByIdController);
+
+
 
 
 export default router;
