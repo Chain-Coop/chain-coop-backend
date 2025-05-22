@@ -13,11 +13,13 @@ import {
   getAllCirclesService,
   getTotalUserCircleBalance,
   getOtherUsersCirclesService,
-  searchCircleByIdService
+  searchCircleByIdService,
+  getCircleTransactionsService
 } from "../services/savingCircle.services";
 import { BadRequestError } from "../errors";
 import uploadImageFile from "../utils/imageUploader"; 
 import { StatusCodes } from "http-status-codes";
+import Transaction from "../models/SavingCircleHistory";
 
 /**
  * Controller to create a new saving circle
@@ -293,4 +295,20 @@ export const searchCircleByIdController = async (req: Request, res: Response) =>
   const circle = await searchCircleByIdService(circleId);
   if (!circle) return res.status(404).json({ message: "Circle not found" });
   res.status(200).json({ circle });
+};
+
+
+export const getCircleTransactionsController = async (req: Request, res: Response) => {
+  try {
+    const { circleId } = req.params;
+    if (!circleId) {
+      return res.status(400).json({ message: "Circle ID is required" });
+    }
+
+    const transactions = await getCircleTransactionsService(circleId);
+    res.status(200).json({ transactions });
+  } catch (error: any) {
+    console.error("Error fetching circle transactions:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };

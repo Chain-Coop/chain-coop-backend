@@ -5,6 +5,7 @@ import { chargeCardService, findWalletService } from "./walletService";
 import User, { UserDocument } from "../models/authModel";
 import { BadRequestError, NotFoundError } from "../errors";
 import { findUser } from "./authService";
+import Transaction from "../models/SavingCircleHistory";
 
 dotenv.config();
 
@@ -424,13 +425,16 @@ export const verifyPaymentService = async (reference: string) => {
     if (!metadata?.circleId || !metadata?.userId) {
       throw new Error("Missing circle ID or user ID in payment metadata.");
     }
+    
 
     // Find the SavingCircle in the database
     const savingCircle = await savingCircleModel.findById(metadata.circleId);
 
-    if (!savingCircle) {
-      throw new Error("Saving circle not found.");
-    }
+if (!savingCircle || !savingCircle._id) {
+  throw new Error(`SavingCircle with ID ${metadata.circleId} not found or invalid.`);
+}
+console.error("SavingCircle to be saved:", JSON.stringify(savingCircle, null, 2));
+
 
     // Update balance and member contribution status
     savingCircle.balance += amount / 100; // Convert from kobo to Naira
@@ -474,6 +478,17 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
 
 
     await savingCircle.save();
+
+    // ✅ Create a transaction record
+    await Transaction.create({
+      userId: metadata.userId,
+      circleId: metadata.circleId,
+      amount: amount / 100,
+      type: "credit",
+      reference,
+      status: "success",
+    });
+
 
     return {
       savingCircleId: savingCircle._id,
@@ -535,4 +550,8 @@ export const getOtherUsersCirclesService = async (userId: string) => {
 // Search circle by ID
 export const searchCircleByIdService = async (circleId: string) => {
   return await savingCircleModel.findById(circleId);
+};
+
+export const getCircleTransactionsService = async (circleId: string) => {
+  return await Transaction.find({ circleId }).sort({ createdAt: -1 });
 };

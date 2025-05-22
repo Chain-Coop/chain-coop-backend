@@ -10,7 +10,8 @@ import {
   unpaidCircleController,
   recurringCircleController,
   verifyPaymentController,
-  getAllCirclesController
+  getAllCirclesController,
+  getCircleTransactionsController 
 } from "../controllers/savingCircleController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 import { getOtherUsersCirclesController, getUserTotalBalanceController, searchCircleByIdController } from "../controllers/savingCircleController";
@@ -475,6 +476,28 @@ router.post("/recurring", authorize, recurringCircleController);
 router.get("/search/:circleId", searchCircleByIdController);
 
 
+/**
+ * @swagger
+ * /savingcircle/transactions/{circleId}:
+ *   get:
+ *     summary: Get transactions for a specific saving circle
+ *     description: Retrieve all transactions associated with a specific saving circle.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: circleId
+ *         required: true
+ *         description: The ID of the saving circle to fetch transactions for.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched transactions for the saving circle
+ */
+router.get("/history/:circleId", authorize, getCircleTransactionsController);
 
 
 export default router;
