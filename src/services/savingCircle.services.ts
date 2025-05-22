@@ -65,7 +65,7 @@ export const createCircleService = async (circleData: any) => {
       savingFrequency,
       startDate: start,
       endDate: end,
-      members: [{ userId, contribution: 0, role: "admin" }], // Creator is added as admin
+      members: [{ userId, contribution: 0, role: "admin" }],  
       imageUrl,
       imagePublicId 
     };
@@ -310,7 +310,7 @@ export const joinCircleService = async (circleId: string, userId: string) => {
 
   // Add user to the members list
   //@ts-ignore
-  circle.members.push({ userId });
+  circle.members.push({ userId, contribution: 0, role: "member", status: "active" });
 
   // Save the updated circle
   await circle.save();

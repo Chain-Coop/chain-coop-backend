@@ -14,6 +14,7 @@ export interface SavingCircleDocument extends Document {
     status: "pending" | "active" | "completed";
     cardData?: string;
     failures?: number;
+    role: "admin" | "member";
   }>;
   invitedUsers?: Schema.Types.ObjectId[];
   createdBy: Schema.Types.ObjectId;
@@ -58,6 +59,7 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
     members: [
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: [true, "User ID is required"] },
+        role: { type: String, enum: ["admin", "member"], default: "member" },
         contribution: { type: Number, required: [true, "Contribution is required"] },
         progress: { type: Number, default: 0 },
         status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
