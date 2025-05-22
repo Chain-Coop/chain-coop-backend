@@ -283,19 +283,10 @@ export const newgetContributionHistory = async (
     req: Request,
     res: Response
 ) => {
-    const { page = "1", limit = "5", contributionId } = req.query;
+    const { contributionId } = req.query;
 
     if (!contributionId) {
         throw new BadRequestError("Contribution ID is required");
-    }
-
-    // Convert to numbers
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
-
-    // Validate that page and limit are numbers
-    if (isNaN(pageNumber) || isNaN(limitNumber)) {
-        throw new BadRequestError("Page and limit must be numbers");
     }
 
     try {
@@ -322,22 +313,10 @@ export const newgetContributionHistory = async (
             contributionType,
         } = contribution;
 
-        // Fetch the total history length
-        const historyLength = await getHistoryLengthService(
+        // Fetch full history 
+        const history = await getContributionHistoryService(
             contributionId as string
         );
-
-        const skip = (pageNumber - 1) * limitNumber;
-
-        // Fetch paginated history entries
-        const history = await getContributionHistoryService(
-            contributionId as string,
-            limitNumber,
-            skip
-        );
-
-        // Calculate total pages for pagination
-        const totalPages = Math.ceil(historyLength / limitNumber);
 
         res.status(StatusCodes.OK).json({
             balance,
@@ -350,8 +329,6 @@ export const newgetContributionHistory = async (
             nextContributionDate,
             withdrawalDate,
             history,
-            totalPages,
-            currentPage: pageNumber,
         });
     } catch (error) {
         console.error("Error fetching contribution history:", error);
@@ -361,6 +338,7 @@ export const newgetContributionHistory = async (
         });
     }
 };
+
 
 
 export const withdrawContribution = async (req: Request, res: Response) => {

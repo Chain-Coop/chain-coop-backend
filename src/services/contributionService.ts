@@ -111,7 +111,6 @@ export const createContributionService = async (data: {
 };
 
 
-
 export const initializeContributionPayment = async (
   contributionId: string,
   paymentType: string,
@@ -848,17 +847,14 @@ export const getUserContributionStrictFieldsService = async (
 };
 
 export const getContributionHistoryService = async (
-  contributionId: string,
-  limit: number,
-  skip: number
+  contributionId: string
 ) => {
   return await ContributionHistory.find({
     contribution: contributionId,
     status: { $ne: "Paid" },
-  })
-    .limit(limit)
-    .skip(skip);
+  });
 };
+
 
 export const getHistoryLengthService = async (contributionId: string) => {
   return await ContributionHistory.countDocuments({
