@@ -124,21 +124,15 @@ export const getCircleServiceByUserId = async (userId: string) => {
   try {
     return await savingCircleModel
       .find({
-        $and: [
-          {
-            $or: [
-              { groupType: "open" },
-              { "members.userId": userId }, // Ensure the user is a member for closed groups
-            ]
-          },
-          { status: { $in: ["active", "pending"] } } // Wrap this in an object
-        ],
+        "members.userId": userId,
+        status: { $in: ["active", "pending"] },
       })
-      .sort({ createdAt: -1 }); // Sort by most recent first
+      .sort({ createdAt: -1 });
   } catch (error) {
     throw error;
   }
 };
+
 
 
 /**
