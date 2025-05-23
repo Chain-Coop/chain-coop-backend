@@ -1,6 +1,4 @@
 // // controllers/lndController.ts
-// import { Request, Response } from 'express';
-// import * as lndService from '../../../services/web3/lndService/lndService';
 // import Invoice, { IInvoice } from '../../../models/web3/lnd/invoice';
 // import Payment, { IPayment } from '../../../models/web3/lnd/payment';
 // import Transaction, {
@@ -9,6 +7,70 @@
 // import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
 // import mongoose from 'mongoose';
 
+import { Request, Response } from "express";
+import * as lndService from '../../../services/web3/lndService/lndService';
+import { StatusCodes } from "http-status-codes";
+
+
+// Create a controller to get invoice by Id
+export const getInvoice = async (req: Request, res: Response) => {
+    const { invoiceId } = req.params;
+    try {
+        const invoice = await lndService.getInvoiceById(invoiceId);
+        if (!invoice) {
+            return res
+                .status(StatusCodes.NOT_FOUND)
+                .json({ message: `Invoice ${invoiceId} not found` });
+        }
+        return res.status(StatusCodes.OK).json(invoice);
+
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            //@ts-ignore
+            error: error.message,
+        });
+    }
+}
+
+// Create a controller to get invoices for user
+export const getUserInvoice = async (req: Request, res: Response) => {
+    // @ts-ignore
+    const { userId } = req.user as { userId: string };
+
+    try {
+        const invoices = await lndService.getInvoicesByUser(userId);
+        return res.status(StatusCodes.OK).json(invoices);
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            //@ts-ignore
+            error: error.message,
+        });
+    }
+}
+
+// Create invoice controller
+export const createInvoice = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const { userId } = req.user as { userId: string };
+        const { amount, memo = '' } = req.body;
+
+        let request = {
+            value: amount,
+            memo
+        };
+
+        await lndService.createInvoice(request, res, userId)
+
+    } catch (error) {
+        console.log('Error 222: ' + error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "Failed to create invoice",
+            //@ts-ignore
+            error: error.message,
+        });
+    }
+}
 
 // // Get wallet info controller
 // export const getWalletInfo = async (req: Request, res: Response) => {

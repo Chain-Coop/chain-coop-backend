@@ -6,7 +6,7 @@ export interface IInvoice extends Document {
   invoiceId: string; // LND invoice ID
   bolt11: string; // BOLT11 invoice string
   preimage?: string;
-  description: string;
+  payment_request: string,
   amount: number; // In satoshis
   amountPaid?: number; // Actual amount paid (in case of overpayment)
   memo: string;
@@ -43,9 +43,10 @@ const InvoiceSchema: Schema = new Schema(
     preimage: {
       type: String,
     },
-    description: {
+    payment_request: {
       type: String,
-      default: '',
+      required: true,
+      unique: true,
     },
     amount: {
       type: Number,
