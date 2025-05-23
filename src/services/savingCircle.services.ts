@@ -510,7 +510,7 @@ export const getAllCirclesService = async (userId: string, status?: string) => {
 
     const filter: any = {
       createdBy: { $ne: objectId },
-      members: { $nin: [objectId] },
+      "members.userId": { $ne: objectId }, // properly exclude user from member list
     };
 
     if (status) {
