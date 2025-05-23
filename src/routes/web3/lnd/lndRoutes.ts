@@ -3,9 +3,7 @@ import express from 'express';
 import * as lndController from '../../../controllers/web3/lnd/lndController';
 import { authorize } from '../../../middlewares/authorization';
 
-
 const router = express.Router();
-
 
 /**
  * @swagger
@@ -13,64 +11,6 @@ const router = express.Router();
  *   name: LND
  *   description: BTC interaction with LND
  */
-
-/**
- * @swagger
- * /web3/lnd/invoice/info:
- *   get:
- *     summary: Retrieve information about the LND node
- *     tags: [LND]
- *     security:
- *       - bearerAuth: []              # if you’re using a bearer token
- *       - macaroonAuth: []            # if you document macaroon header auth
- *     responses:
- *       200:
- *         description: Node info retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 identity_pubkey:
- *                   type: string
- *                   description: Node’s public key
- *                   example: "03a1b2c3d4e5f6..."
- *                 alias:
- *                   type: string
- *                   description: Node’s alias
- *                   example: "mynode"
- *                 num_active_channels:
- *                   type: integer
- *                   description: Number of currently active channels
- *                   example: 12
- *                 num_peers:
- *                   type: integer
- *                   description: Number of connected peers
- *                   example: 23
- *                 block_height:
- *                   type: integer
- *                   description: Current blockchain height
- *                   example: 789123
- *                 synced_to_chain:
- *                   type: boolean
- *                   description: Whether node is fully synced to chain
- *                   example: true
- *                 version:
- *                   type: string
- *                   description: LND software version
- *                   example: "0.15.0-beta"
- *                 uris:
- *                   type: array
- *                   items:
- *                     type: string
- *                   description: Public URIs for the node
- *                   example: ["03a1b2c3@1.2.3.4:9735"]
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       500:
- *         description: Server error
- */
-
 
 /**
  * @swagger
@@ -126,7 +66,6 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-
 
 /**
  * @swagger
