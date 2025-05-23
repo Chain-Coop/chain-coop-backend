@@ -6,6 +6,7 @@ import User, { UserDocument } from "../models/authModel";
 import { BadRequestError, NotFoundError } from "../errors";
 import { findUser } from "./authService";
 import Transaction from "../models/SavingCircleHistory";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -511,10 +512,11 @@ export const getAllCirclesService = async (userId: string, status?: string) => {
       throw new Error("User ID is required to filter out user's own circles.");
     }
 
-    // Base filter: exclude circles created by the user and ones they are a member of
+    const objectId = new mongoose.Types.ObjectId(userId);
+
     const filter: any = {
-      createdBy: { $ne: userId },
-      members: { $nin: [userId] }, // Exclude if user is in the members array
+      createdBy: { $ne: objectId },
+      members: { $nin: [objectId] },
     };
 
     if (status) {
