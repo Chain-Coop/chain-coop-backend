@@ -532,13 +532,27 @@ export const getAllCirclesService = async (userId: string, status?: string) => {
 
 // Add a new function to calculate total user balance
 export const getTotalUserCircleBalance = async (userId: string) => {
-  const circles = await savingCircleModel.find({ "members.userId": userId });
-  const total = circles.reduce((sum, circle) => {
-    const member = circle.members.find(m => m.userId.toString() === userId);
-    return member ? sum + member.contribution : sum;
-  }, 0);
-  return total;
+  try {
+    const circles = await savingCircleModel.find({ "members.userId": userId });
+
+    let total = 0;
+
+    for (const circle of circles) {
+      const member = circle.members.find(
+        (m) => m.userId.toString() === userId
+      );
+
+      if (member && typeof member.contribution === "number") {
+        total += member.contribution;
+      }
+    }
+
+    return total;
+  } catch (error) {
+    throw new Error("Failed to calculate user circle balance: " + error);
+  }
 };
+
 
 // New service to get public/open circles by others
 export const getOtherUsersCirclesService = async (userId: string) => {
