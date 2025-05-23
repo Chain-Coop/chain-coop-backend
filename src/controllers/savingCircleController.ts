@@ -245,20 +245,25 @@ export const verifyPaymentController = async (req: Request, res: Response) => {
  */
 export const getAllCirclesController = async (req: Request, res: Response) => {
   try {
-    // Extract status from query parameters (optional)
     const { status } = req.query;
+    const userId = req.user?.userId; // Assumes authentication middleware sets req.user
+    
+    if (!userId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "User ID is required.",
+      });
+    }
 
-    // Call the service function, passing the status query parameter
-    const circles = await getAllCirclesService(status as string | undefined);
+    // Pass both status and userId to the service
+    const circles = await getAllCirclesService(userId, status as string | undefined);
 
-    // Return the success response
     return res.status(StatusCodes.OK).json({
       status: StatusCodes.OK,
       message: "Group savings retrieved successfully",
-      data: circles, // Use 'data' as the key for the returned circles
+      data: circles,
     });
   } catch (error) {
-    // Handle errors and return an appropriate response
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: StatusCodes.INTERNAL_SERVER_ERROR,
       error: error instanceof Error ? error.message : "An error occurred",
