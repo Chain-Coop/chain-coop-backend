@@ -507,17 +507,16 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
  */
 export const getAllCirclesService = async (userId: string, status?: string) => {
   try {
-    // Validate userId
     if (!userId) {
       throw new Error("User ID is required to filter out user's own circles.");
     }
 
-    // Initialize filter
-    let filter: any = {
-      createdBy: { $ne: userId }, // Exclude circles created by this user
+    // Base filter: exclude circles created by the user and ones they are a member of
+    const filter: any = {
+      createdBy: { $ne: userId },
+      members: { $nin: [userId] }, // Exclude if user is in the members array
     };
 
-    // Optional status filtering
     if (status) {
       const allowedStatuses = ["active", "completed", "pending"];
       if (!allowedStatuses.includes(status)) {
@@ -526,14 +525,13 @@ export const getAllCirclesService = async (userId: string, status?: string) => {
       filter.status = status;
     }
 
-    // Fetch filtered and sorted circles
     const circles = await savingCircleModel.find(filter).sort({ createdAt: -1 });
-
     return circles;
   } catch (error) {
     throw error;
   }
 };
+
 
 
 // Add a new function to calculate total user balance
