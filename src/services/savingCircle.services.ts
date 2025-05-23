@@ -39,7 +39,7 @@ export const createCircleService = async (circleData: any) => {
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
     if (!currency) throw new Error("Currency is required.");
-    if (!description) throw new Error("Circle description is required.");
+    //if (!description) throw new Error("Circle description is required.");
     if (!savingFrequency) throw new Error("Saving frequency is required.");
     if (!startDate || !endDate) throw new Error("Start Date and End Date are required.");
     if (!goalAmount) throw new Error("Goal Amount is required!");
