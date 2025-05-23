@@ -50,7 +50,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const CONTRIBUTION_CALLBACK_URL = process.env.CONTRIBUTION_CALLBACK_URL;
 
 export const createContributionService = async (data: {
-  user: ObjectId;
+  user: mongoose.Types.ObjectId;
   contributionPlan: string;
   amount: number;
   savingsType: string;

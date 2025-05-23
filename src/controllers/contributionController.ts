@@ -93,7 +93,7 @@ export const createContribution = async (req: Request, res: Response) => {
   //if (savingsType !== "Strict"  && savingsType !== "One-time" && !contributionPlan) {
  //   throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
  // }
-
+const objectId = new mongoose.Types.ObjectId(userId);
   try {
     const result = await createContributionService({
       amount,
@@ -103,7 +103,7 @@ export const createContribution = async (req: Request, res: Response) => {
       startDate,
       endDate,
       email,
-      user: userId,
+      user: objectId ,
       savingsType,
       contributionType,
     });
@@ -313,7 +313,7 @@ export const newgetContributionHistory = async (
             contributionType,
         } = contribution;
 
-        // Fetch full history 
+        // Fetch full history  
         const history = await getContributionHistoryService(
             contributionId as string
         );

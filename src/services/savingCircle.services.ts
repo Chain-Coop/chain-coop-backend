@@ -505,14 +505,20 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
 /**
  * Get all saving circles with optional status filtering
  */
-export const getAllCirclesService = async (status?: string) => {
+export const getAllCirclesService = async (userId: string, status?: string) => {
   try {
-    // Start with an empty filter object
-    let filter: any = {};
+    // Validate userId
+    if (!userId) {
+      throw new Error("User ID is required to filter out user's own circles.");
+    }
 
-    // If a status query is provided, filter by status
+    // Initialize filter
+    let filter: any = {
+      createdBy: { $ne: userId }, // Exclude circles created by this user
+    };
+
+    // Optional status filtering
     if (status) {
-      // Only include valid statuses
       const allowedStatuses = ["active", "completed", "pending"];
       if (!allowedStatuses.includes(status)) {
         throw new Error("Invalid status. Only 'active', 'completed', or 'pending' are allowed.");
@@ -520,14 +526,15 @@ export const getAllCirclesService = async (status?: string) => {
       filter.status = status;
     }
 
-    // Fetch circles from the database with optional filtering and sort by creation date
+    // Fetch filtered and sorted circles
     const circles = await savingCircleModel.find(filter).sort({ createdAt: -1 });
 
     return circles;
   } catch (error) {
-    throw error; // Throw error to be handled in controller
+    throw error;
   }
 };
+
 
 // Add a new function to calculate total user balance
 export const getTotalUserCircleBalance = async (userId: string) => {

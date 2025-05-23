@@ -41,8 +41,8 @@ const uploadProfilePicture = async (req: Request, res: Response) => {
       profilePhoto: user.profilePhoto,
     });
   } catch (error) {
-    await logUserOperation(userId, req, "UPDATE_PROFILE_PIC", "Failure");
-	throw error;
+    await logUserOperation(userId ?? "", req, "UPDATE_PROFILE_PIC", "Failure");
+  throw error;
   }
 };
 
