@@ -239,7 +239,7 @@ export const paystackPaymentCircleService = async ({
   amount: number;
   cardData?: string;
   metadata: any;
-  callbackUrl?: string; // ✅ add this
+  callbackUrl?: string; 
 }) => {
   try {
     const DEFAULT_CALLBACK_URL =
