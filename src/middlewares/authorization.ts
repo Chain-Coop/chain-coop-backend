@@ -67,3 +67,32 @@ export const authorizePermissions =
     }
     next();
   };
+
+export const kycVerified = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    if (!userId) {
+      throw new UnauthenticatedError('User ID not found');
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new UnauthenticatedError('User not found');
+    }
+
+    if (user.Tier !== 2) {
+      throw new ForbiddenError('User does not have the required KYC level');
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

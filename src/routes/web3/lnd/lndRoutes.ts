@@ -1,13 +1,13 @@
-// // routes/lndRoutes.ts
-// import express from 'express';
-// import * as lndController from '../../../controllers/web3/lnd/lndController';
-// import { authorize } from '../../../middlewares/authorization';
+// routes/lndRoutes.ts
+import express from 'express';
+import * as lndController from '../../../controllers/web3/lnd/lndController';
+import { authorize } from '../../../middlewares/authorization';
 
 
-// const router = express.Router();
+const router = express.Router();
 
 // // Wallet routes
-// router.get('/wallet/info', authorize,lndController.getWalletInfo);
+router.get('/wallet/info', authorize,lndController.getWalletInfo);
 // router.post('/wallet/address',authorize, lndController.createBitcoinAddress);
 
 // // Invoice routes
@@ -25,4 +25,4 @@
 // router.get('/userPayment',authorize, lndController.getUserPayments);
 // router.get('/userWallet',authorize, lndController.getWalletDetails);
 
-// export default router;
+export default router;

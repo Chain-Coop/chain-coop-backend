@@ -189,9 +189,11 @@ const router = Router();
 
 /**
  * @swagger
- * /create-pin:
+ * /wallet/create-pin:
  *   post:
  *     summary: Create wallet pin
+  *     security:
+ *       - bearerAuth: []
  *     description: Sets a pin for the authenticated user's wallet.
  *     operationId: setWalletPin
  *     tags:

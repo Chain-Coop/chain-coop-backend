@@ -1,7 +1,11 @@
 // routes/periodicSavingRoutes.ts
 import express from 'express';
 import { PeriodicSavingController } from '../../../controllers/web3/chaincoopSaving.2.0/periodicSavingController';
-import { authorize, verifyPin } from '../../../middlewares/authorization'; // Your authentication middleware
+import {
+  authorize,
+  verifyPin,
+  kycVerified,
+} from '../../../middlewares/authorization'; // Your authentication middleware
 
 const router = express.Router();
 
@@ -109,6 +113,7 @@ router.post(
   '/openPeriodicPool',
   authorize,
   verifyPin,
+  kycVerified,
   PeriodicSavingController.createPeriodicSaving
 );
 /**
@@ -156,6 +161,7 @@ router.post(
   '/withdraw',
   authorize,
   verifyPin,
+  kycVerified,
   PeriodicSavingController.withdrawFromPoolByID
 );
 /**
@@ -426,6 +432,7 @@ router.get(
 router.post(
   '/periodicPool/:id/stop',
   authorize,
+  kycVerified,
   PeriodicSavingController.stopPeriodicSaving
 );
 
@@ -502,6 +509,7 @@ router.post(
 router.post(
   '/periodicPool/:id/resume',
   authorize,
+  kycVerified,
   PeriodicSavingController.resumePeriodicSaving
 );
 
@@ -605,6 +613,7 @@ router.post(
 router.put(
   '/periodicPool/:id/amount',
   authorize,
+  kycVerified,
   PeriodicSavingController.updateSavingAmount
 );
 
@@ -694,6 +703,7 @@ router.put(
 router.post(
   '/periodicPool/:id/execute',
   authorize,
+  kycVerified,
   PeriodicSavingController.executePeriodicSaving
 );
 

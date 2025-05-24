@@ -1,70 +1,71 @@
-// // controllers/lndController.ts
-// import { Request, Response } from 'express';
-// import * as lndService from '../../../services/web3/lndService/lndService';
-// import Invoice, { IInvoice } from '../../../models/web3/lnd/invoice';
-// import Payment, { IPayment } from '../../../models/web3/lnd/payment';
-// import Transaction, {
-//   ITransaction,
-// } from '../../../models/web3/lnd/transaction';
-// import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
-// import mongoose from 'mongoose';
+// controllers/lndController.ts
+import { Request, Response } from 'express';
+import * as lndService from '../../../services/web3/lndService/lndService';
+import Invoice, { IInvoice } from '../../../models/web3/lnd/invoice';
+import Payment, { IPayment } from '../../../models/web3/lnd/payment';
+import Transaction, {
+  ITransaction,
+} from '../../../models/web3/lnd/transaction';
+import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
+import mongoose from 'mongoose';
 
+// Get wallet info controller
+export const getWalletInfo = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const { userId } = req.user as { userId: string }; // Assuming auth middleware sets this
 
-// // Get wallet info controller
-// export const getWalletInfo = async (req: Request, res: Response) => {
-//   try {
-//     //@ts-ignore
-//     const { userId } = req.user as { userId: string }; // Assuming auth middleware sets this
+    // Get LND wallet info
+    const lndWalletInfo = await lndService.getWallet();
 
-//     // Get LND wallet info
-//     const lndWalletInfo = await lndService.getWallet();
+    console.log(lndWalletInfo);
 
-//     // Find or create user wallet in MongoDB
-//     let wallet = await LndWallet.findOne({ userId });
+    // Find or create user wallet in MongoDB
+    let wallet = await LndWallet.findOne({ userId });
 
-//     if (!wallet) {
-//       // Create new wallet if it doesn't exist
-//       wallet = await LndWallet.create({
-//         userId,
-//         balance: {
-//           onchain: lndWalletInfo.chain_balance,
-//           lightning: lndWalletInfo.channel_balance,
-//           pendingChannels: lndWalletInfo.pending_channel_balance,
-//         },
-//       });
-//     } else {
-//       // Update wallet balance from LND
-//       wallet.balance = {
-//         onchain: lndWalletInfo.chain_balance,
-//         lightning: lndWalletInfo.channel_balance,
-//         pendingChannels: lndWalletInfo.pending_channel_balance,
-//       };
-//       await wallet.save();
-//     }
+    // if (!wallet) {
+    //   // Create new wallet if it doesn't exist
+    //   wallet = await LndWallet.create({
+    //     userId,
+    //     balance: {
+    //       onchain: lndWalletInfo.chain_balance,
+    //       lightning: lndWalletInfo.channel_balance,
+    //       pendingChannels: lndWalletInfo.pending_channel_balance,
+    //     },
+    //   });
+    // } else {
+    //   // Update wallet balance from LND
+    //   wallet.balance = {
+    //     onchain: lndWalletInfo.chain_balance,
+    //     lightning: lndWalletInfo.channel_balance,
+    //     pendingChannels: lndWalletInfo.pending_channel_balance,
+    //   };
+    //   await wallet.save();
+    // }
 
-//     res.status(200).json({
-//       success: true,
-//       data: {
-//         channelBalance: lndWalletInfo.channel_balance,
-//         chainBalance: lndWalletInfo.chain_balance,
-//         pendingChannelBalance: lndWalletInfo.pending_channel_balance,
-//         version: lndWalletInfo.version,
-//         wallet: {
-//           id: wallet._id,
-//           onchainAddressCount: wallet.onchainAddresses?.length || 0,
-//           currentAddress: wallet.currentAddress,
-//         },
-//       },
-//     });
-//   } catch (error: any) {
-//     console.error('Error getting wallet info:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to retrieve wallet information',
-//       error: error.message,
-//     });
-//   }
-// };
+    res.status(200).json({
+      success: true,
+      //   data: {
+      //     channelBalance: lndWalletInfo.channel_balance,
+      //     chainBalance: lndWalletInfo.chain_balance,
+      //     pendingChannelBalance: lndWalletInfo.pending_channel_balance,
+      //     version: lndWalletInfo.version,
+      //     wallet: {
+      //       id: wallet._id,
+      //       onchainAddressCount: wallet.onchainAddresses?.length || 0,
+      //       currentAddress: wallet.currentAddress,
+      //     },
+      //   },
+    });
+  } catch (error: any) {
+    console.error('Error getting wallet info:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve wallet information',
+      error: error.message,
+    });
+  }
+};
 
 // // Create on-chain address controller
 // export const createBitcoinAddress = async (req: Request, res: Response) => {

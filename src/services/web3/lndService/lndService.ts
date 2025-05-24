@@ -1,33 +1,33 @@
-// import { client } from '../../../utils/web3/lnd';
+import { client } from '../../../utils/web3/lnd';
 
-// interface LndRoute {
-//   fee: number;
-//   fee_mtokens: string;
-//   hops: Array<{
-//     channel: string;
-//     channel_capacity: number;
-//     fee: number;
-//     fee_mtokens: string;
-//     forward: number;
-//     forward_mtokens: string;
-//     public_key: string;
-//     timeout: number;
-//   }>;
-//   mtokens: string;
-//   payment: number;
-//   timeout: number;
-// }
+interface LndRoute {
+  fee: number;
+  fee_mtokens: string;
+  hops: Array<{
+    channel: string;
+    channel_capacity: number;
+    fee: number;
+    fee_mtokens: string;
+    forward: number;
+    forward_mtokens: string;
+    public_key: string;
+    timeout: number;
+  }>;
+  mtokens: string;
+  payment: number;
+  timeout: number;
+}
 
-// export const getWallet = async () => {
-//   try {
-//     console.log('LND instance:', lnd);
-//     const walletInfo = await getWalletInfo({ lnd });
-//     return walletInfo;
-//   } catch (error) {
-//     console.error('Error getting wallet info:', error);
-//     throw error;
-//   }
-// };
+export const getWallet = async () => {
+  try {
+    console.log('LND instance:', client);
+    // const walletInfo = await getWalletInfo({ lnd });
+    // return walletInfo;
+  } catch (error) {
+    console.error('Error getting wallet info:', error);
+    throw error;
+  }
+};
 
 // export const createAddress = async () => {
 //   try {
