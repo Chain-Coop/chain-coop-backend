@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/src/app.js",
     "dev": "nodemon src/app.ts --exec ts-node --ignore 'dist/'",
-    "build": "tsc"
+    "build": "tsc",
+    "postbuild": "cpx \"src/**/*.proto\" dist/ && cpx \"src/**/*.macaroon\" dist/"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,7 @@
     "@types/nodemailer": "^6.4.14",
     "@types/otp-generator": "^4.0.2",
     "@types/uuid": "^10.0.0",
+    "cpx": "^1.5.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
