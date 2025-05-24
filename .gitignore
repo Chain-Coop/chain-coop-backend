@@ -2,5 +2,5 @@
 .env
 dist
 /self_test
-.tls.cert
+
 

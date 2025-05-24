@@ -9,11 +9,11 @@ const loaderOptions = {
   defaults: true,
   oneofs: true,
 };
-const protoPath = path.join(__dirname, '.lightning.proto');
+const protoPath = path.join(__dirname, 'lightning.proto');
 const packageDefinition = protoLoader.loadSync(protoPath, loaderOptions);
 
 process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA';
-const certPath = path.join(__dirname, '.admin.macaroon');
+const certPath = path.join(__dirname, 'admin.macaroon');
 let m = fs.readFileSync(certPath);
 let macaroon = m.toString('hex');
 
