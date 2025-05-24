@@ -329,7 +329,7 @@ const router = Router();
  *               - accountNumber
  *               - accountName
  *               - bankCode
- *               - tokenId
+ *               - network
  *             properties:
  *               reference:
  *                 type: string
@@ -355,6 +355,10 @@ const router = Router();
  *                 type: string
  *                 description: The ID of the token to be used for the transaction
  *                 example: "1"
+ *               network:
+ *                 type: string
+ *                 description: The ID of the network
+ *                 example: "BTC,ETHERLINK,BSC,LISK,POLYGON"                   
  *     responses:
  *       200:
  *         description: Quote confirmed successfully
@@ -465,11 +469,16 @@ const router = Router();
  *             type: object
  *             required:
  *               - transactionId
+ *               - network
  *             properties:
  *               transactionId:
  *                 type: string
  *                 description: The ID of the offramp transaction to process
  *                 example: "6447b7e02c4815d3a57d79ba"
+ *               network:
+ *                 type: string
+ *                 description: The network ID 
+ *                 example: "BTC,BSC,POLYGON,LISK,ETHERLINK"                 
  *     responses:
  *       200:
  *         description: Transfer processed successfully

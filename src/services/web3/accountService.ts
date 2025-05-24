@@ -2,7 +2,7 @@ import axios from 'axios';
 import { generateAccount } from '../../utils/web3/generateAccount';
 import { generateBtcAccount } from '../../utils/web3/generateAccountBTC';
 import { contract } from '../../utils/web3/contract.2.0';
-import { parseEther, parseUnits } from 'ethers';
+import { formatUnits, parseEther, parseUnits } from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
 import User from '../../models/user';
 import {
@@ -237,9 +237,8 @@ const transferStable = async (
   network: string
 ): Promise<string> => {
   try {
-    const con_tract = await contract(tokenAddress, userPrivateKey, network);
-
-    const tx = await con_tract.transfer(toAddress, parseEther(amount));
+    const con_tract = await contract(tokenAddress, network, userPrivateKey);
+    const tx = await con_tract.transfer(toAddress, parseUnits(amount, 6));
 
     await tx.wait();
 
@@ -282,10 +281,7 @@ const transferBitcoin = async (
 
     // Get the private key
     const wif = decrypt(wallet.encryptedWif);
-
-    // Determine network - use testnet for development
     const network = BITCOIN_NETWORK;
-
     const keyPair = ECPair.fromWIF(wif, network);
 
     // Create a P2WPKH (SegWit) address
@@ -294,7 +290,6 @@ const transferBitcoin = async (
       network,
     });
 
-    // Verify the address
     if (address !== wallet.address) {
       throw new Error('Generated address does not match stored address');
     }
@@ -307,25 +302,27 @@ const transferBitcoin = async (
 
     // Get the current fee rate if not provided
     if (!feeRate) {
-      feeRate = await getBitcoinFeeRate();
+      feeRate = await getBitcoinFeeRate(); // sat/vB
     }
 
-    // Convert BTC to satoshis
     const amountSatoshis = Math.floor(amount * SATOSHI_TO_BTC);
 
-    // Get unspent transaction outputs (UTXOs)
+    // Get UTXOs
     const utxos = await getUnspentOutputs(
       wallet.address,
       network === networks.bitcoin
     );
 
-    // Create a transaction
-    const psbt = new bitcoin.Psbt({ network });
+    if (!utxos || utxos.length === 0) {
+      throw new Error('No UTXOs available');
+    }
 
-    // Add inputs (UTXOs)
+    // 1. Build dummy PSBT to estimate actual transaction size
+    const dummyPsbt = new bitcoin.Psbt({ network });
     let totalInput = 0;
+
     for (const utxo of utxos) {
-      psbt.addInput({
+      dummyPsbt.addInput({
         hash: utxo.txid,
         index: utxo.vout,
         witnessUtxo: {
@@ -336,47 +333,56 @@ const transferBitcoin = async (
       totalInput += utxo.value;
     }
 
-    // Calculate fee (estimated size * fee rate)
-    const estimatedSize = utxos.length * 180 + 2 * 34 + 10; // Rough estimate
-    const fee = estimatedSize * feeRate;
+    // Dummy outputs
+    dummyPsbt.addOutput({ address: toAddress, value: 1000 });
+    dummyPsbt.addOutput({ address: wallet.address, value: 1000 });
 
-    // Calculate change amount
+    for (let i = 0; i < utxos.length; i++) {
+      dummyPsbt.signInput(i, signer);
+    }
+    dummyPsbt.finalizeAllInputs();
+
+    const dummyTxHex = dummyPsbt.extractTransaction().toHex();
+    const txSize = Buffer.from(dummyTxHex, 'hex').length;
+    const fee = Math.ceil(txSize * feeRate); // accurate fee in satoshis
+
+    // 2. Validate sufficient balance
     const changeAmount = totalInput - amountSatoshis - fee;
     if (changeAmount < 0) {
       throw new Error('Insufficient funds including fee');
     }
 
-    // Add output to recipient
-    psbt.addOutput({
-      address: toAddress,
-      value: amountSatoshis,
-    });
+    // 3. Build actual transaction
+    const psbt = new bitcoin.Psbt({ network });
 
-    // Add change output back to sender if change is significant
-    if (changeAmount > 546) {
-      // Dust threshold
-      psbt.addOutput({
-        address: wallet.address,
-        value: changeAmount,
+    for (const utxo of utxos) {
+      psbt.addInput({
+        hash: utxo.txid,
+        index: utxo.vout,
+        witnessUtxo: {
+          script: bitcoin.address.toOutputScript(wallet.address, network),
+          value: utxo.value,
+        },
       });
     }
 
-    // Sign the transaction
+    psbt.addOutput({ address: toAddress, value: amountSatoshis });
+
+    if (changeAmount > 546) {
+      psbt.addOutput({ address: wallet.address, value: changeAmount });
+    }
+
     for (let i = 0; i < utxos.length; i++) {
       psbt.signInput(i, signer);
     }
 
-    // Finalize and extract transaction
     psbt.finalizeAllInputs();
     const tx = psbt.extractTransaction();
 
-    // Broadcast the transaction
-    const txHex = tx.toHex();
     const txId = await broadcastTransaction(
-      txHex,
+      tx.toHex(),
       network === networks.bitcoin
     );
-
     return txId;
   } catch (error: any) {
     console.error('Error transferring Bitcoin:', error);
@@ -502,5 +508,5 @@ export {
   getBitcoinAddress,
   transferBitcoin,
   validateBitcoinAddress,
-  checkExistingBitcoinWallet
+  checkExistingBitcoinWallet,
 };

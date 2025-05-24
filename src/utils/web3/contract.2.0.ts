@@ -35,7 +35,9 @@ const contract = async (
   } else {
     throw new Error(`Invalid contract network: ${network}`);
   }
-  const signerOrProvider = privateKey ? await Signer(privateKey,provider) : provider;
+  const signerOrProvider = privateKey
+    ? await Signer(privateKey, provider)
+    : provider;
 
   const contract = new Contract(tokenAddress, erc20abi.abi, signerOrProvider);
   return contract;
@@ -48,7 +50,6 @@ const chainCoopSavingcontract = async (
 ): Promise<ethers.Contract> => {
   let provider;
   let contractAddress;
-
 
   if (network === 'LISK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
@@ -65,7 +66,9 @@ const chainCoopSavingcontract = async (
   } else {
     throw new Error(`Invalid execution network: ${network}`);
   }
-  const signerOrProvider = privateKey ? await Signer(privateKey,provider) : provider;
+  const signerOrProvider = privateKey
+    ? await Signer(privateKey, provider)
+    : provider;
   const contract = new Contract(
     contractAddress,
     savingabi.abi,

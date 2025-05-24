@@ -2,8 +2,14 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestError, NotFoundError } from '../../../errors';
 import CashwyreService from '../../../services/web3/Cashwyre/cashWyre';
-import { getUserWeb3Wallet } from '../../../services/web3/accountService';
-import { transferStable } from '../../../services/web3/accountService';
+import {
+  getUserWeb3Wallet,
+  getBitcoinAddress,
+} from '../../../services/web3/accountService';
+import {
+  transferStable,
+  transferBitcoin,
+} from '../../../services/web3/accountService';
 import { decrypt } from '../../../services/encryption';
 import CashwyreTransaction, {
   CashwyreTransactionStatus,
@@ -63,11 +69,20 @@ class CashwyreController {
         );
       }
       const wallet = await getUserWeb3Wallet(userId);
+      const bitcoinWallet = await getBitcoinAddress(userId);
       if (!wallet) {
         res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
-      const userAddress = wallet.address;
+      if (!bitcoinWallet) {
+        res.status(400).json({ message: 'Please activate Bitcoin wallet' });
+      }
+      let userAddress;
+      if (network === 'BTC') {
+        userAddress = bitcoinWallet;
+      } else {
+        userAddress = wallet.address;
+      }
 
       const confirmationData: any = await CashwyreService.confirmOnrampQuote(
         reference,
@@ -158,7 +173,7 @@ class CashwyreController {
         accountName,
         bankCode,
         tokenId,
-        network = 'BSC',
+        network,
       } = req.body;
 
       if (
@@ -166,11 +181,10 @@ class CashwyreController {
         !transactionReference ||
         !accountNumber ||
         !accountName ||
-        !bankCode ||
-        !tokenId
+        !bankCode
       ) {
         throw new BadRequestError(
-          'Reference, transaction reference, account number, account name,bank code and token Id are required'
+          'Reference, transaction reference, account number, account name,bank code are required'
         );
       }
       //@ts-ignore
@@ -183,15 +197,17 @@ class CashwyreController {
         accountName,
         bankCode
       );
+      let tokenAddressToSaveWith = null;
+      if (network !== 'BTC') {
+        const tokenIdNum = parseInt(tokenId, 10);
+        if (isNaN(tokenIdNum)) {
+          res.status(400).json({ message: 'Invalid tokenId' });
+          return;
+        }
+        tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
+      }
 
       let data;
-
-      const tokenIdNum = parseInt(tokenId, 10);
-      if (isNaN(tokenIdNum)) {
-        res.status(400).json({ message: 'Invalid tokenId' });
-        return;
-      }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
 
       if (confirmationData) {
         data = await CashwyreService.createOfframpTransaction(
@@ -207,7 +223,7 @@ class CashwyreController {
           confirmationData.data.accountName || '',
           confirmationData.data.accountNumber || '',
           confirmationData.data.bankCode || '',
-          tokenAddressToSaveWith,
+          tokenAddressToSaveWith || 'Bitcoin Transaction',
           confirmationData.data.cryptoAssetAddress || ''
         );
       }
@@ -345,7 +361,7 @@ class CashwyreController {
 
   async processOfframpTransfer(req: Request, res: Response) {
     try {
-      const { transactionId, network = 'BSC' } = req.body;
+      const { transactionId, network } = req.body;
 
       if (!transactionId) {
         throw new BadRequestError('Insert transaction ID to process offramp');
@@ -356,7 +372,6 @@ class CashwyreController {
 
       const transaction: ICashwyreTransaction | null =
         await CashwyreTransaction.findById(transactionId);
-      console.log(transaction);
 
       if (!transaction) {
         throw new NotFoundError('Transaction cannot be fetched');
@@ -369,25 +384,35 @@ class CashwyreController {
         throw new BadRequestError('Tokens have already been transferred');
       }
 
-      // Get user's wallet
-      const wallet = await getUserWeb3Wallet(userId);
-      if (!wallet) {
-        return res.status(400).json({
-          success: false,
-          message: 'Wallet not found or not activated',
-        });
+      let txHash;
+      if (network === 'BTC') {
+        txHash = await transferBitcoin(
+          userId,
+          transaction.cryptoAmount,
+          transaction.offrampAddress || ''
+        );
+      } else {
+        const wallet = await getUserWeb3Wallet(userId);
+        if (!wallet) {
+          return res.status(400).json({
+            success: false,
+            message: 'Wallet not found or not activated',
+          });
+        }
+
+        const userPrivateKey = decrypt(wallet.encryptedKey);
+
+        // Process transfer
+        txHash = await transferStable(
+          userPrivateKey,
+          transaction.cryptoAmount.toString(),
+          transaction.offrampAddress || '',
+          transaction.tokenAddress || '',
+          network
+        );
       }
 
-      const userPrivateKey = decrypt(wallet.encryptedKey);
-
-      // Process transfer
-      const txHash = await transferStable(
-        userPrivateKey,
-        transaction.cryptoAmount.toString(),
-        transaction.offrampAddress || '',
-        transaction.tokenAddress || '',
-        network
-      );
+      // Get user's wallet
 
       await CashwyreService.updateTransactionHash(
         transaction.reference,

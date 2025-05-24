@@ -143,7 +143,7 @@ const getUserContributions = async (
   const formatedContributions: Contributions[] = await Promise.all(
     contributions.map(async (contribution: any) => ({
       tokenAddress: contribution.tokenAddress,
-      amount: formatEther(contribution.amount.toString()),
+      amount: formatUnits(contribution.amount.toString(), 6),
     }))
   );
   return formatedContributions;
@@ -218,7 +218,7 @@ const userPoolsByPoolId = async (
       startDate: rawPools[4].toString(),
       locktype: rawPools[7],
       Duration: rawPools[5].toString(),
-      amountSaved: formatEther(rawPools[6].toString()),
+      amountSaved: formatUnits(rawPools[6].toString(), 6),
       isGoalAccomplished: rawPools[8],
       symbol: await getTokenAddressSymbol(rawPools[1], network),
     };

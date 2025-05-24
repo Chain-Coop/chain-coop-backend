@@ -13,7 +13,11 @@ import {
   getTotalAmountSavedByUser,
   getUserpoolbyReason,
 } from '../../../controllers/web3/chaincoopSaving.2.0/savingcontroller';
-import { authorize, verifyPin } from '../../../middlewares/authorization';
+import {
+  authorize,
+  verifyPin,
+  kycVerified,
+} from '../../../middlewares/authorization';
 const router = Router();
 
 /**
@@ -842,11 +846,17 @@ const router = Router();
  *                   example: internal server error
  */
 
-router.post('/openPool', authorize, verifyPin, openSavingPool);
-router.post('/updatePool', authorize, updatePoolWithAmount);
-router.post('/withdraw', authorize, verifyPin, withdrawFromPoolByID);
-router.post('/stopPool', authorize, stopSavingForPool);
-router.post('/restartPool', authorize, restartPoolForSaving);
+router.post('/openPool', authorize, verifyPin, kycVerified, openSavingPool);
+router.post('/updatePool', authorize, kycVerified, updatePoolWithAmount);
+router.post(
+  '/withdraw',
+  authorize,
+  verifyPin,
+  kycVerified,
+  withdrawFromPoolByID
+);
+router.post('/stopPool', authorize, kycVerified, stopSavingForPool);
+router.post('/restartPool', authorize, kycVerified, restartPoolForSaving);
 router.post('/getManualSaving', authorize, getManualSaving);
 router.get('/getManualSavingByUser', authorize, getManualSavingByUser);
 router.get('/getTotalAmountSaved', authorize, getTotalAmountSavedByUser);
