@@ -188,37 +188,39 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 /**
  * Initialize a payment for a saving circle
  */
-export const initializeCircleService = async (circleId: string, paymentType: string, depositAmount: number, userId: string, cardData?: string) => {
+export const initializeCircleService = async (
+  circleId: string,
+  paymentType: string,
+  depositAmount: number,
+  userId: string,
+  cardData?: string,
+  callbackUrl?: string //
+) => {
   try {
-    // Ensure the user exists
     const user = await findUser("id", userId);
     if (!user) throw new NotFoundError("User not found");
 
-    // Ensure the circle exists
     const circle = await savingCircleModel.findById(circleId);
     if (!circle) throw new NotFoundError("Circle not found");
 
-    // Ensure the user is a member of the circle
     const member = circle.members.find((m) => m.userId.toString() === userId);
     if (!member) throw new NotFoundError("User is not a member of this circle");
 
-    // Calculate unpaid amount
+    const amount = depositAmount;
 
-
-    const amount = depositAmount
-
-    // Process payment via Paystack or Card
     return await paystackPaymentCircleService({
       paymentType,
       user,
-      amount: amount,
+      amount,
       metadata: { circleId: circle._id, type: "circle", userId },
       cardData,
+      callbackUrl, // ✅ pass it down
     });
   } catch (error) {
     throw error;
   }
 };
+
 
 
 /**
@@ -230,15 +232,18 @@ export const paystackPaymentCircleService = async ({
   amount,
   cardData = "",
   metadata,
+  callbackUrl, // ✅ add this
 }: {
   paymentType: string;
   user: UserDocument;
   amount: number;
   cardData?: string;
   metadata: any;
+  callbackUrl?: string; // ✅ add this
 }) => {
   try {
-    const CALLBACK_URL = process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/wallet";
+    const DEFAULT_CALLBACK_URL =
+      process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/wallet";
 
     if (paymentType === "card") {
       const response = await chargeCardService(cardData, user.email, amount, metadata);
@@ -262,20 +267,21 @@ export const paystackPaymentCircleService = async ({
           amount: amount * 100,
           email: user.email,
           metadata,
-          callback_url: CALLBACK_URL, // ✅ Redirects user after payment
+          callback_url: callbackUrl || DEFAULT_CALLBACK_URL, // ✅ use provided or fallback
         },
         {
           headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
         }
       );
-        //@ts-ignore
+
+      //@ts-ignore
       if (!response?.data?.status) throw new BadRequestError("Failed to initialize payment");
 
-      return { 
-        info: response.data, 
-        type: "paystack", 
+      return {
+        info: response.data,
+        type: "paystack",
         //@ts-ignore
-        redirect_url: response.data.data.authorization_url 
+        redirect_url: response.data.data.authorization_url,
       };
     }
 
@@ -284,7 +290,6 @@ export const paystackPaymentCircleService = async ({
     throw error;
   }
 };
-
 
 
 /**
