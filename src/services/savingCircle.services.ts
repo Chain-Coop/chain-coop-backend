@@ -243,7 +243,7 @@ export const paystackPaymentCircleService = async ({
 }) => {
   try {
     const DEFAULT_CALLBACK_URL =
-      process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/payment-callback";
+      process.env.SAVINGGROUP_CALLBACK_URL || "https://chaincoop.org/dashboard/payment-callback";
 
     if (paymentType === "card") {
       const response = await chargeCardService(cardData, user.email, amount, metadata);
@@ -267,7 +267,7 @@ export const paystackPaymentCircleService = async ({
           amount: amount * 100,
           email: user.email,
           metadata,
-          callback_url: callbackUrl || DEFAULT_CALLBACK_URL, // ✅ use provided or fallback
+          callback_url: callbackUrl || DEFAULT_CALLBACK_URL,
         },
         {
           headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
