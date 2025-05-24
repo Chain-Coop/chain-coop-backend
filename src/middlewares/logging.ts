@@ -24,7 +24,7 @@ export const loggerMiddleware = async (
     const duration = Date.now() - start;
     //@ts-ignore
     const logEntry = {
-      userId: user?.id || "Anonymous",
+      userId: user?.userId || "Anonymous",
       userEmail: user?.email || "Anonymous",
       timestamp: new Date().toISOString(),
       operation: req.method,

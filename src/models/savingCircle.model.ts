@@ -8,11 +8,13 @@ export interface SavingCircleDocument extends Document {
   groupType: "open" | "closed";
   inviteCode?: string;
   members: Array<{
+    progress: number; 
     userId: Schema.Types.ObjectId;
     contribution: number;
     status: "pending" | "active" | "completed";
     cardData?: string;
     failures?: number;
+    role: "admin" | "member";
   }>;
   invitedUsers?: Schema.Types.ObjectId[];
   createdBy: Schema.Types.ObjectId;
@@ -38,8 +40,8 @@ export interface SavingCircleDocument extends Document {
 const SavingCircleSchema = new Schema<SavingCircleDocument>(
   {
     name: { type: String, required: [true, "Circle name is required"] },
-    description: { type: String, required: [true, "Circle description is required"] },
-    status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
+    description: { type: String, required: false },
+    status: { type: String, enum: ["pending", "active", "completed", "success"], default: "pending" },
     groupType: { type: String, enum: ["open", "closed"], required: true, default: "closed" },
 
     inviteCode: {
@@ -57,8 +59,10 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
     members: [
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: [true, "User ID is required"] },
+        role: { type: String, enum: ["admin", "member"], default: "member" },
         contribution: { type: Number, required: [true, "Contribution is required"] },
-        status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
+        progress: { type: Number, default: 0 },
+        status: { type: String, enum: ["pending", "active", "completed", "success"], default: "pending" },
         cardData: { type: String },
         failures: { type: Number, default: 0 },
       },
@@ -100,8 +104,8 @@ const SavingCircleSchema = new Schema<SavingCircleDocument>(
     //interestAmount: { type: Number, default: 0 },
     goalAmount: { type: Number, default: 0 },
     currentIndividualTotal: { type: Number, default: 0 },
-    imageUrl: { type: String }, 
-    imagePublicId: { type: String },
+    imageUrl: { type: String, required: false },
+    imagePublicId: { type: String, required: false },
   },
   { timestamps: true }
 );

@@ -50,7 +50,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const CONTRIBUTION_CALLBACK_URL = process.env.CONTRIBUTION_CALLBACK_URL;
 
 export const createContributionService = async (data: {
-  user: ObjectId;
+  user: mongoose.Types.ObjectId;
   contributionPlan: string;
   amount: number;
   savingsType: string;
@@ -62,54 +62,17 @@ export const createContributionService = async (data: {
   contributionType: "one-time" | "auto";
 }) => {
   try {
-
-    // Enforce the rule that "Strict" savingsType must have contributionType "one-time"
-    // if (data.savingsType === "Strict" && data.contributionType !== "one-time") {
-    //   throw new BadRequestError(
-    //     "For 'Strict' savingsType, contributionType must be 'one-time'."
-    //   );
-    // }
-    
     // Calculate savings duration (endDate - startDate in days)
     const savingsDuration =
       (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 60 * 60 * 24);
 
-    if (data.contributionType === "one-time") {
-      const contribution = await Contribution.create({
-        user: data.user,
-        contributionPlan: data.contributionPlan,
-        amount: data.amount,
-        savingsType: data.savingsType,
-        currency: data.currency,
-        savingsCategory: data.savingsCategory,
-        startDate: new Date(data.startDate),
-        savingsDuration,
-        endDate: new Date(data.endDate),
-        nextContributionDate: null,
-        lastContributionDate: new Date(data.startDate),
-        withdrawalDate: new Date(data.endDate),
-        contributionType: data.contributionType,
-        balance: 0,
-        status: "Pending",
-      });
-      logger.info("Created one-time Contribution ID:", contribution._id);
-      return {
-        contributionId: contribution._id,
-        withdrawalDate: contribution.withdrawalDate,
-        savingsDuration: contribution.savingsDuration,
-      };
+    const withdrawalDate = new Date(data.endDate);
+    withdrawalDate.setDate(withdrawalDate.getDate() + 1);
 
-    } else { 
-
-        // Set nextContributionDate
-        const nextContributionDate = calculateNextContributionDate(
-          data.startDate,
-          data.contributionPlan
-        );
-    
-        // Set withdrawal date to 1 day after endDate
-        const withdrawalDate = new Date(data.endDate);
-        withdrawalDate.setDate(withdrawalDate.getDate() + 1);
+    const nextContributionDate =
+      data.contributionType === "one-time"
+        ? null
+        : calculateNextContributionDate(data.startDate, data.contributionPlan);
 
     const contribution = await Contribution.create({
       user: data.user,
@@ -119,21 +82,26 @@ export const createContributionService = async (data: {
       currency: data.currency,
       savingsCategory: data.savingsCategory,
       startDate: new Date(data.startDate),
+      savingsDuration,
       endDate: new Date(data.endDate),
       nextContributionDate,
-      lastContributionDate: new Date(),
+      lastContributionDate:
+        data.contributionType === "one-time"
+          ? new Date(data.startDate)
+          : new Date(),
       withdrawalDate,
+      contributionType: data.contributionType,
       balance: 0,
       status: "Pending",
-      contributionType: data.contributionType,
     });
-    logger.info("Created Auto-savings Contribution ID:", contribution._id);
+
+    logger.info(`Created ${data.contributionType} Contribution ID:`, contribution._id);
+
     return {
       contributionId: contribution._id,
       withdrawalDate: contribution.withdrawalDate,
+      savingsDuration: contribution.savingsDuration,
     };
-   }
-
   } catch (error: any) {
     console.error("Error creating contribution:", error);
     throw new BadRequestError(
@@ -433,10 +401,10 @@ export const verifyContributionPayment = async (reference: string) => {
 
       const rawId = paymentData.metadata.contributionId;
 
-      // Remove any double quotes if accidentally passed in
+  
       const cleanedId = typeof rawId === "string" ? rawId.replace(/"/g, '') : rawId;
       
-      // Then cast properly
+ 
       const contribution = await Contribution.findOne({
         _id: new mongoose.Types.ObjectId(cleanedId),
       });
@@ -879,17 +847,14 @@ export const getUserContributionStrictFieldsService = async (
 };
 
 export const getContributionHistoryService = async (
-  contributionId: string,
-  limit: number,
-  skip: number
+  contributionId: string
 ) => {
   return await ContributionHistory.find({
     contribution: contributionId,
     status: { $ne: "Paid" },
-  })
-    .limit(limit)
-    .skip(skip);
+  });
 };
+
 
 export const getHistoryLengthService = async (contributionId: string) => {
   return await ContributionHistory.countDocuments({

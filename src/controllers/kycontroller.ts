@@ -17,6 +17,9 @@ import User from '../models/user';
 interface CustomRequest extends Request {
   user: {
     id: string;
+    email: string;
+    userId: string;
+    role: string;
   };
 }
 

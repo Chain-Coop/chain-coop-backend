@@ -5,6 +5,8 @@ import { chargeCardService, findWalletService } from "./walletService";
 import User, { UserDocument } from "../models/authModel";
 import { BadRequestError, NotFoundError } from "../errors";
 import { findUser } from "./authService";
+import Transaction from "../models/SavingCircleHistory";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -37,7 +39,7 @@ export const createCircleService = async (circleData: any) => {
     // ✅ Validate required fields
     if (!userId) throw new Error("User ID is required to create a circle.");
     if (!currency) throw new Error("Currency is required.");
-    if (!description) throw new Error("Circle description is required.");
+    //if (!description) throw new Error("Circle description is required.");
     if (!savingFrequency) throw new Error("Saving frequency is required.");
     if (!startDate || !endDate) throw new Error("Start Date and End Date are required.");
     if (!goalAmount) throw new Error("Goal Amount is required!");
@@ -65,7 +67,7 @@ export const createCircleService = async (circleData: any) => {
       savingFrequency,
       startDate: start,
       endDate: end,
-      members: [{ userId, contribution: 0, role: "admin" }], // Creator is added as admin
+      members: [{ userId, contribution: 0, role: "admin" }],  
       imageUrl,
       imagePublicId 
     };
@@ -122,21 +124,15 @@ export const getCircleServiceByUserId = async (userId: string) => {
   try {
     return await savingCircleModel
       .find({
-        $and: [
-          {
-            $or: [
-              { groupType: "open" },
-              { "members.userId": userId }, // Ensure the user is a member for closed groups
-            ]
-          },
-          { status: { $in: ["active", "pending"] } } // Wrap this in an object
-        ],
+        "members.userId": userId,
+        status: { $in: ["active", "pending"] },
       })
-      .sort({ createdAt: -1 }); // Sort by most recent first
+      .sort({ createdAt: -1 });
   } catch (error) {
     throw error;
   }
 };
+
 
 
 /**
@@ -174,10 +170,15 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 
     const member = circle.members.find((m) => m.userId.toString() === userId);
     if (!member) throw new NotFoundError("Member not found");
-
+    
     member.contribution += amount;
+    
+    // ✅ Add this
+    member.progress = (member.contribution / circle.goalAmount!) * 100;
+    
     circle.currentIndividualTotal! += amount;
     await circle.save();
+    
     return circle;
   } catch (error) {
     throw error;
@@ -187,37 +188,39 @@ export const paymentCircleService = async ({ userId, circleId, amount }: { userI
 /**
  * Initialize a payment for a saving circle
  */
-export const initializeCircleService = async (circleId: string, paymentType: string, depositAmount: number, userId: string, cardData?: string) => {
+export const initializeCircleService = async (
+  circleId: string,
+  paymentType: string,
+  depositAmount: number,
+  userId: string,
+  cardData?: string,
+  callbackUrl?: string //
+) => {
   try {
-    // Ensure the user exists
     const user = await findUser("id", userId);
     if (!user) throw new NotFoundError("User not found");
 
-    // Ensure the circle exists
     const circle = await savingCircleModel.findById(circleId);
     if (!circle) throw new NotFoundError("Circle not found");
 
-    // Ensure the user is a member of the circle
     const member = circle.members.find((m) => m.userId.toString() === userId);
     if (!member) throw new NotFoundError("User is not a member of this circle");
 
-    // Calculate unpaid amount
+    const amount = depositAmount;
 
-
-    const amount = depositAmount
-
-    // Process payment via Paystack or Card
     return await paystackPaymentCircleService({
       paymentType,
       user,
-      amount: amount,
+      amount,
       metadata: { circleId: circle._id, type: "circle", userId },
       cardData,
+      callbackUrl, // ✅ pass it down
     });
   } catch (error) {
     throw error;
   }
 };
+
 
 
 /**
@@ -229,15 +232,18 @@ export const paystackPaymentCircleService = async ({
   amount,
   cardData = "",
   metadata,
+  callbackUrl, // ✅ add this
 }: {
   paymentType: string;
   user: UserDocument;
   amount: number;
   cardData?: string;
   metadata: any;
+  callbackUrl?: string; 
 }) => {
   try {
-    const CALLBACK_URL = process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/wallet";
+    const DEFAULT_CALLBACK_URL =
+      process.env.SAVINGGROUP_CALLBACK_URL || "https://chaincoop.org/dashboard/payment-callback";
 
     if (paymentType === "card") {
       const response = await chargeCardService(cardData, user.email, amount, metadata);
@@ -261,20 +267,21 @@ export const paystackPaymentCircleService = async ({
           amount: amount * 100,
           email: user.email,
           metadata,
-          callback_url: CALLBACK_URL, // ✅ Redirects user after payment
+          callback_url: callbackUrl || DEFAULT_CALLBACK_URL,
         },
         {
           headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
         }
       );
-        //@ts-ignore
+
+      //@ts-ignore
       if (!response?.data?.status) throw new BadRequestError("Failed to initialize payment");
 
-      return { 
-        info: response.data, 
-        type: "paystack", 
+      return {
+        info: response.data,
+        type: "paystack",
         //@ts-ignore
-        redirect_url: response.data.data.authorization_url 
+        redirect_url: response.data.data.authorization_url,
       };
     }
 
@@ -283,7 +290,6 @@ export const paystackPaymentCircleService = async ({
     throw error;
   }
 };
-
 
 
 /**
@@ -305,7 +311,7 @@ export const joinCircleService = async (circleId: string, userId: string) => {
 
   // Add user to the members list
   //@ts-ignore
-  circle.members.push({ userId });
+  circle.members.push({ userId, contribution: 0, role: "member", status: "active" });
 
   // Save the updated circle
   await circle.save();
@@ -349,6 +355,7 @@ export const tryRecurringCircleService = async () => {
 
         member.failures = 0;
         member.contribution += amountUnpaid;
+        member.progress = (member.contribution / circle.goalAmount!) * 100;
       } catch (error) {
         member.failures! += 1;
       }
@@ -418,13 +425,16 @@ export const verifyPaymentService = async (reference: string) => {
     if (!metadata?.circleId || !metadata?.userId) {
       throw new Error("Missing circle ID or user ID in payment metadata.");
     }
+    
 
     // Find the SavingCircle in the database
     const savingCircle = await savingCircleModel.findById(metadata.circleId);
 
-    if (!savingCircle) {
-      throw new Error("Saving circle not found.");
-    }
+if (!savingCircle || !savingCircle._id) {
+  throw new Error(`SavingCircle with ID ${metadata.circleId} not found or invalid.`);
+}
+console.error("SavingCircle to be saved:", JSON.stringify(savingCircle, null, 2));
+
 
     // Update balance and member contribution status
     savingCircle.balance += amount / 100; // Convert from kobo to Naira
@@ -435,9 +445,14 @@ export const verifyPaymentService = async (reference: string) => {
     );
 
     if (memberIndex !== -1) {
-      savingCircle.members[memberIndex].status = "completed";
-      savingCircle.members[memberIndex].contribution += amount / 100;
-    } else {
+      const member = savingCircle.members[memberIndex];
+      member.status = "completed";
+      member.contribution += amount / 100;
+    
+      // ✅ Add this to update individual progress
+      member.progress = (member.contribution / savingCircle.goalAmount!) * 100;
+    }
+     else {
       throw new Error("Member not found in saving circle.");
     }
 
@@ -464,6 +479,17 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
 
     await savingCircle.save();
 
+    // ✅ Create a transaction record
+    await Transaction.create({
+      userId: metadata.userId,
+      circleId: metadata.circleId,
+      amount: amount / 100,
+      type: "credit",
+      reference,
+      status: "success",
+    });
+
+
     return {
       savingCircleId: savingCircle._id,
       amount: amount / 100,
@@ -479,14 +505,20 @@ if (savingCircle.goalAmount === undefined || savingCircle.goalAmount === 0) {
 /**
  * Get all saving circles with optional status filtering
  */
-export const getAllCirclesService = async (status?: string) => {
+export const getAllCirclesService = async (userId: string, status?: string) => {
   try {
-    // Start with an empty filter object
-    let filter: any = {};
+    if (!userId) {
+      throw new Error("User ID is required to filter out user's own circles.");
+    }
 
-    // If a status query is provided, filter by status
+    const objectId = new mongoose.Types.ObjectId(userId);
+
+    const filter: any = {
+      createdBy: { $ne: objectId },
+      "members.userId": { $ne: objectId }, // properly exclude user from member list
+    };
+
     if (status) {
-      // Only include valid statuses
       const allowedStatuses = ["active", "completed", "pending"];
       if (!allowedStatuses.includes(status)) {
         throw new Error("Invalid status. Only 'active', 'completed', or 'pending' are allowed.");
@@ -494,11 +526,52 @@ export const getAllCirclesService = async (status?: string) => {
       filter.status = status;
     }
 
-    // Fetch circles from the database with optional filtering and sort by creation date
     const circles = await savingCircleModel.find(filter).sort({ createdAt: -1 });
-
     return circles;
   } catch (error) {
-    throw error; // Throw error to be handled in controller
+    throw error;
   }
+};
+
+
+
+// Add a new function to calculate total user balance
+export const getTotalUserCircleBalance = async (userId: string) => {
+  try {
+    const circles = await savingCircleModel.find({ "members.userId": userId });
+
+    let total = 0;
+
+    for (const circle of circles) {
+      const member = circle.members.find(
+        (m) => m.userId.toString() === userId
+      );
+
+      if (member && typeof member.contribution === "number") {
+        total += member.contribution;
+      }
+    }
+
+    return total;
+  } catch (error) {
+    throw new Error("Failed to calculate user circle balance: " + error);
+  }
+};
+
+
+// New service to get public/open circles by others
+export const getOtherUsersCirclesService = async (userId: string) => {
+  return await savingCircleModel.find({
+    groupType: "open",
+    createdBy: { $ne: userId },
+  });
+};
+
+// Search circle by ID
+export const searchCircleByIdService = async (circleId: string) => {
+  return await savingCircleModel.findById(circleId);
+};
+
+export const getCircleTransactionsService = async (circleId: string) => {
+  return await Transaction.find({ circleId }).sort({ createdAt: -1 });
 };

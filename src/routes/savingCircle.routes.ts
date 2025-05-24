@@ -10,9 +10,11 @@ import {
   unpaidCircleController,
   recurringCircleController,
   verifyPaymentController,
-  getAllCirclesController
+  getAllCirclesController,
+  getCircleTransactionsController 
 } from "../controllers/savingCircleController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
+import { getOtherUsersCirclesController, getUserTotalBalanceController, searchCircleByIdController } from "../controllers/savingCircleController";
 
 const router = Router();
 
@@ -114,6 +116,24 @@ router.post("/create", authorize, createCircleController);
  */
 router.post("/join", authorize, joinCircleController);
 
+
+/**
+ * @swagger
+ * /savingcircle/user/total-balance:
+ *   get:
+ *     summary: Get total balance for a user
+ *     description: Fetch the total balance of a user across all saving circles.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully fetched total balance
+ */
+router.get("/user/total-balance", authorize, getUserTotalBalanceController);
+
+
 /**
  * @swagger
  * /savingcircle/user/{userId}:
@@ -203,6 +223,24 @@ router.get("/verify", authorize, verifyPaymentController);
  */
 router.get("/circles", authorize, getAllCirclesController);
 
+
+/**
+ * @swagger
+ * /savingcircle/public:
+ *   get:
+ *     summary: Get all public saving circles
+ *     description: Fetch all public saving circles created by other users.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully fetched public circles
+ */
+router.get("/public", authorize,getOtherUsersCirclesController);
+
+
 /**
  * @swagger
  * /savingcircle/{circleId}:
@@ -227,6 +265,9 @@ router.get("/circles", authorize, getAllCirclesController);
  *         description: Circle not found
  */
 router.get("/:circleId", authorize, getCircleController);
+
+
+
 
 /**
  * @swagger
@@ -349,6 +390,7 @@ router.post("/initialize", authorize, initializeCircleController);
  */
 router.post("/payment", authorize, paymentCircleController);
 
+
 /**
  * @swagger
  * /savingcircle/unpaid/{circleId}/{userId}:
@@ -407,4 +449,61 @@ router.post("/recurring", authorize, recurringCircleController);
 
 
 
+
+/**
+ * @swagger
+ * /savingcircle/search/{circleId}:
+ *   get:
+ *     summary: Search for a saving circle by its ID
+ *     description: Retrieve a specific saving circle by its ID.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: circleId
+ *         required: true
+ *         description: The ID of the saving circle to search for.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched the saving circle
+ *       404:
+ *         description: Circle not found
+ */
+router.get("/search/:circleId", searchCircleByIdController);
+
+
+/**
+ * @swagger
+ * /savingcircle/transactions/{circleId}:
+ *   get:
+ *     summary: Get transactions for a specific saving circle
+ *     description: Retrieve all transactions associated with a specific saving circle.
+ *     tags:
+ *       - Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: circleId
+ *         required: true
+ *         description: The ID of the saving circle to fetch transactions for.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully fetched transactions for the saving circle
+ */
+router.get("/history/:circleId", authorize, getCircleTransactionsController);
+
+
 export default router;
+
+
+
+// router.get("/user/total-balance", getUserTotalBalanceController);
+// router.get("/circles/others", getOtherUsersCirclesController);
+// router.get("/circles/search/:circleId", searchCircleByIdController);

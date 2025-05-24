@@ -93,7 +93,7 @@ export const createContribution = async (req: Request, res: Response) => {
   //if (savingsType !== "Strict"  && savingsType !== "One-time" && !contributionPlan) {
  //   throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
  // }
-
+const objectId = new mongoose.Types.ObjectId(userId);
   try {
     const result = await createContributionService({
       amount,
@@ -103,7 +103,7 @@ export const createContribution = async (req: Request, res: Response) => {
       startDate,
       endDate,
       email,
-      user: userId,
+      user: objectId ,
       savingsType,
       contributionType,
     });
@@ -283,19 +283,10 @@ export const newgetContributionHistory = async (
     req: Request,
     res: Response
 ) => {
-    const { page = "1", limit = "5", contributionId } = req.query;
+    const { contributionId } = req.query;
 
     if (!contributionId) {
         throw new BadRequestError("Contribution ID is required");
-    }
-
-    // Convert to numbers
-    const pageNumber = Number(page);
-    const limitNumber = Number(limit);
-
-    // Validate that page and limit are numbers
-    if (isNaN(pageNumber) || isNaN(limitNumber)) {
-        throw new BadRequestError("Page and limit must be numbers");
     }
 
     try {
@@ -322,22 +313,10 @@ export const newgetContributionHistory = async (
             contributionType,
         } = contribution;
 
-        // Fetch the total history length
-        const historyLength = await getHistoryLengthService(
+        // Fetch full history  
+        const history = await getContributionHistoryService(
             contributionId as string
         );
-
-        const skip = (pageNumber - 1) * limitNumber;
-
-        // Fetch paginated history entries
-        const history = await getContributionHistoryService(
-            contributionId as string,
-            limitNumber,
-            skip
-        );
-
-        // Calculate total pages for pagination
-        const totalPages = Math.ceil(historyLength / limitNumber);
 
         res.status(StatusCodes.OK).json({
             balance,
@@ -350,8 +329,6 @@ export const newgetContributionHistory = async (
             nextContributionDate,
             withdrawalDate,
             history,
-            totalPages,
-            currentPage: pageNumber,
         });
     } catch (error) {
         console.error("Error fetching contribution history:", error);
@@ -361,6 +338,7 @@ export const newgetContributionHistory = async (
         });
     }
 };
+
 
 
 export const withdrawContribution = async (req: Request, res: Response) => {
@@ -779,9 +757,8 @@ export const getUserContributions = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     const userId = req.user.userId;
-    const { page = 1, limit = 5, sort = "desc", search = "", filter } = req.query;
+    const { sort = "desc", search = "", filter } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
     const sortOrder = sort === "asc" ? 1 : -1;
 
     const query: any = {
@@ -790,15 +767,13 @@ export const getUserContributions = async (req: Request, res: Response) => {
     };
 
     // Apply savingsType filter if valid
-    const allowedFilters = ["lock", "strict", "flexible"];
+    const allowedFilters = ["Lock", "Strict", "Flexible", "One-time"];
     if (filter) {
       const normalizedFilter = String(filter).charAt(0).toUpperCase() + String(filter).slice(1).toLowerCase();
-      const allowedFilters = ["Lock", "Strict", "Flexible", "One-time"];
       if (allowedFilters.includes(normalizedFilter)) {
         query.savingsType = normalizedFilter;
       }
     }
-    
 
     // Apply search term if present
     if (search) {
@@ -806,18 +781,11 @@ export const getUserContributions = async (req: Request, res: Response) => {
     }
 
     const contributions = await Contribution.find(query)
-      .sort({ createdAt: sortOrder })
-      .skip(skip)
-      .limit(Number(limit));
-
-    const conLength = await Contribution.countDocuments(query);
-
-    const totalPages = Math.ceil(conLength / Number(limit));
+      .sort({ createdAt: sortOrder });
 
     res.status(StatusCodes.OK).json({
       contributions,
-      totalPages,
-      currentPage: Number(page),
+      total: contributions.length,
     });
   } catch (error) {
     console.error("Error fetching user contributions:", error);
