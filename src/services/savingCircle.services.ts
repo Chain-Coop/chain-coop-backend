@@ -243,7 +243,7 @@ export const paystackPaymentCircleService = async ({
 }) => {
   try {
     const DEFAULT_CALLBACK_URL =
-      process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/wallet";
+      process.env.CONTRIBUTION_CALLBACK_URL || "https://chaincoop.org/dashboard/payment-callback";
 
     if (paymentType === "card") {
       const response = await chargeCardService(cardData, user.email, amount, metadata);
