@@ -13,7 +13,6 @@ import {
 } from '../../services/web3/accountService';
 import Web3Wallet, { Web3WalletDocument } from '../../models/web3Wallet';
 import { decrypt } from '../../services/encryption';
-import transaction from '../../models/web3/lnd/transaction';
 import { tokenAddress } from '../../utils/web3/tokenaddress';
 
 const activateWeb3Wallet = AsyncHandler(async (req: Request, res: Response) => {
