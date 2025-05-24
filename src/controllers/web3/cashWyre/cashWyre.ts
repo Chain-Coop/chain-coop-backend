@@ -197,15 +197,17 @@ class CashwyreController {
         accountName,
         bankCode
       );
+      let tokenAddressToSaveWith = null;
+      if (network !== 'BTC') {
+        const tokenIdNum = parseInt(tokenId, 10);
+        if (isNaN(tokenIdNum)) {
+          res.status(400).json({ message: 'Invalid tokenId' });
+          return;
+        }
+        tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
+      }
 
       let data;
-
-      const tokenIdNum = parseInt(tokenId, 10);
-      if (isNaN(tokenIdNum)) {
-        res.status(400).json({ message: 'Invalid tokenId' });
-        return;
-      }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
 
       if (confirmationData) {
         data = await CashwyreService.createOfframpTransaction(
