@@ -1,4 +1,55 @@
-// import { client } from '../../../utils/web3/lnd';
+import { StatusCodes } from "http-status-codes";
+import Invoice from "../../../models/web3/lnd/invoice";
+import { client } from "../../../utils/web3/lnd";
+import { Response } from "express";
+
+export const getInvoiceById = async (invoiceId: string) => {
+    return await Invoice.findOne({ invoiceId });
+};
+
+export const getInvoicesByUser = async (userId: string) => {
+    return await Invoice.find({ userId }).sort({ createdAt: -1 });
+};
+
+export const create = async (payload: any) => {
+    return await Invoice.create(payload);
+};
+
+interface IAddInvoice {
+    value: number;
+    memo?: string;
+}
+
+export const createInvoice = async (request: IAddInvoice, res: Response, user_id: string) => {
+    client.addInvoice(request, async (err: Error | null, response: any) => {
+
+        if (err) {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                message: "Error creating invoice",
+                //@ts-ignore
+                error: err.message,
+            });
+        }
+
+        let invoice = {
+            userId: user_id,
+            invoiceId: response.add_index,
+            bolt11: response.payment_addr,
+            amount: request.value,
+            memo: request.memo,
+            expiresAt: new Date(Date.now() + 3600000),
+            paymentHash: response.r_hash,
+            payment_request: response.payment_request
+        };
+
+        let resp = await create(invoice);
+
+        res.status(StatusCodes.CREATED).json({
+            message: "Created invoice successfully",
+            resp
+        });
+    });
+};
 
 // interface LndRoute {
 //   fee: number;
