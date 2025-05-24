@@ -11,7 +11,7 @@ const loaderOptions = {
 };
 const protoPath =
   process.env.NODE_ENV === 'production'
-    ? '/etc/secrets/ligthning.proto'
+    ? '/etc/secrets/lightning.proto'
     : path.resolve(__dirname, 'lightning.proto');
 const packageDefinition = protoLoader.loadSync(protoPath, loaderOptions);
 
