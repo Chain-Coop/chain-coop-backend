@@ -86,10 +86,6 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Invoice found successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Invoice'
  *       404:
  *         description: Invoice not found
  *       401:
@@ -121,18 +117,61 @@ const router = express.Router();
  *           application/json:
  *             schema:
  *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Invoice'
  *       401:
  *         description: Unauthorized – missing or invalid credentials
  *       500:
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /web3/lnd/invoice/send:
+ *   post:
+ *     summary: Send payment on Lightning Network invoice
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *       - macaroonAuth: []               # header: Grpc-Metadata-macaroon
+ *     requestBody:
+ *       description: Invoice identifier to pay
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               invoiceId:
+ *                 type: string
+ *                 description: The internal invoiceId (add_index) of the invoice stored in your system
+ *                 example: "1"
+ *             required:
+ *               - invoiceId
+ *     responses:
+ *       200:
+ *         description: Payment stream started; final status will be streamed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Payment recorded successfully"
+ *       400:
+ *         description: Bad request (e.g. missing invoiceId or invalid invoice state)
+ *       401:
+ *         description: Unauthorized – missing or invalid credentials
+ *       404:
+ *         description: Invoice not found
+ *       500:
+ *         description: Server error (e.g. payment routing failure)
+ */
+
 // Invoice routes
 router.post('/invoice/create', authorize, lndController.createInvoice);
 router.get('/invoice/:invoiceId', authorize, lndController.getInvoice);
 router.get('/invoices/user/:userId', authorize, lndController.getUserInvoice);
+router.post('/invoice/send', authorize, lndController.sendPayment);
 // router.get('/invoice/:id',authorize, lndController.getInvoice);
 // router.post('/invoice/webhook',authorize, lndController.setupInvoiceWebhook);
 // router.post('/invoice/decode', lndController.decodeInvoice);

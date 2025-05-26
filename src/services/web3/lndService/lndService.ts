@@ -1,6 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import Invoice from "../../../models/web3/lnd/invoice";
-import { client } from "../../../utils/web3/lnd";
+import Payment from "../../../models/web3/lnd/payment";
+import { client, routerClient } from "../../../utils/web3/lnd";
 import { Response } from "express";
 
 export const getInvoiceById = async (invoiceId: string) => {
@@ -50,6 +51,65 @@ export const createInvoice = async (request: IAddInvoice, res: Response, user_id
         });
     });
 };
+
+
+interface ISendPaymentRequest {
+    payment_request: string,
+    timeout_seconds: number
+}
+
+export const createPayment = async (payload: any) => {
+    return await Payment.create(payload);
+};
+
+export const sendPayment = async (
+    request: ISendPaymentRequest,
+    res: Response,
+    userId: string,
+    invoice: any,
+) => {
+    // call the SendPaymentV2 RPC
+    const call = routerClient.sendPaymentV2(request);
+    call.on('data', async (response: any) => {
+        console.log(response);
+
+        if (response.status === 'SUCCEEDED' || response.status === 'FAILED') {
+
+            const payload = {
+                userId,
+                paymentId: invoice.invoiceId,
+                bolt11: invoice.bolt11,
+                amount: response.value,
+                fee: response.fee,
+                payment_index: response.payment_index,
+                preimage: response.payment_preimage,
+                status: response.status.toLowerCase(),
+                failureReason: response.failure_reason,
+                paymentHash: response.paymentHash,
+                hop: response.first_hop_custom_records,
+                succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
+                failedAt: response.status === 'FAILED' ? new Date() : undefined,
+                routingHints: response.htlcs,
+            };
+
+            let resp = await create(payload);
+
+            res.status(response.status === 'SUCCEEDED' ? StatusCodes.CREATED : StatusCodes.CONFLICT).json({
+                message: response.status === 'SUCCEEDED' ? "Payment sent successfully" : "Payment failed",
+                resp
+            });
+
+
+        }
+    });
+    call.on('error', (err: Error) => {
+        res.status(500).json({ message: 'Payment failed', error: err.message });
+    });
+    call.on('end', () => {
+        console.log('Payment stream ended');
+    });
+};
+
 
 // interface LndRoute {
 //   fee: number;
