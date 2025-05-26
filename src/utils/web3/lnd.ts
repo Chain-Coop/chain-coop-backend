@@ -15,6 +15,13 @@ const protoPath =
     : path.resolve(__dirname, 'lightning.proto');
 const packageDefinition = protoLoader.loadSync(protoPath, loaderOptions);
 
+const routerPath =
+  process.env.NODE_ENV === 'production'
+    ? '/etc/secrets/router.proto'
+    : path.resolve(__dirname, 'router.proto');
+const routerPackageDefinition = protoLoader.loadSync([protoPath, routerPath], loaderOptions);
+
+
 process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA';
 const certPath =
   process.env.NODE_ENV === 'production'
@@ -46,6 +53,13 @@ let credentials = grpc.credentials.combineChannelCredentials(
 let lnrpcDescriptor = grpc.loadPackageDefinition(packageDefinition);
 let lnrpc = lnrpcDescriptor.lnrpc;
 export const client = new lnrpc.Lightning(
+  'lightning-node.m.voltageapp.io:10009',
+  credentials
+);
+
+let routerLnrpcDescriptor = grpc.loadPackageDefinition(routerPackageDefinition);
+let routerrpc = routerLnrpcDescriptor.routerrpc;
+export const routerClient = new routerrpc.Router(
   'lightning-node.m.voltageapp.io:10009',
   credentials
 );

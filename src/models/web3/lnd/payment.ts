@@ -7,7 +7,7 @@ export interface IPayment extends Document {
   bolt11?: string; // Original BOLT11 invoice if available
   amount: number; // In satoshis
   fee: number; // In satoshis
-  destination: string; // Destination node public key
+  payment_index: number;
   status: 'pending' | 'succeeded' | 'failed';
   preimage?: string;
   failureReason?: string;

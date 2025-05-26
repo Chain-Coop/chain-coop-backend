@@ -10,6 +10,7 @@
 import { Request, Response } from "express";
 import * as lndService from '../../../services/web3/lndService/lndService';
 import { StatusCodes } from "http-status-codes";
+import bolt11 from "bolt11";
 
 
 // Create a controller to get invoice by Id
@@ -71,6 +72,43 @@ export const createInvoice = async (req: Request, res: Response) => {
         });
     }
 }
+
+
+export const sendPayment = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const { userId } = req.user as { userId: string };
+        const { invoiceId } = req.body;
+
+        const invoice = await lndService.getInvoiceById(invoiceId);
+
+        // @ts-ignore
+        const payment_request_from_db = invoice.payment_request;
+
+        const decoded = bolt11.decode(payment_request_from_db);
+
+        const expireTag = decoded.tags.find((t: { tagName: string; }) => t.tagName === 'expire_time')
+        const timeout_seconds = typeof expireTag?.data === 'number'
+            ? expireTag.data
+            : 60  // fallback to a default if not present
+
+        let request = {
+            payment_request: payment_request_from_db,
+            timeout_seconds
+        };
+
+        await lndService.sendPayment(request, res, userId, invoice)
+
+    } catch (error) {
+        console.log('Error 222: ' + error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "Failed to send payment",
+            //@ts-ignore
+            error: error.message,
+        });
+    }
+}
+
 
 // // Get wallet info controller
 // export const getWalletInfo = async (req: Request, res: Response) => {
