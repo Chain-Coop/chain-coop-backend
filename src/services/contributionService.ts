@@ -69,31 +69,36 @@ export const createContributionService = async (data: {
     const withdrawalDate = new Date(data.endDate);
     withdrawalDate.setDate(withdrawalDate.getDate() + 1);
 
-    const nextContributionDate =
-      data.contributionType === "one-time"
-        ? null
-        : calculateNextContributionDate(data.startDate, data.contributionPlan);
+const contributionPayload: any = {
+  user: data.user,
+  amount: data.amount,
+  savingsType: data.savingsType,
+  currency: data.currency,
+  savingsCategory: data.savingsCategory,
+  startDate: new Date(data.startDate),
+  endDate: new Date(data.endDate),
+  savingsDuration,
+  withdrawalDate,
+  lastContributionDate:
+    data.contributionType === "one-time"
+      ? new Date(data.startDate)
+      : new Date(),
+  contributionType: data.contributionType,
+  balance: 0,
+  status: "Pending",
+};
 
-    const contribution = await Contribution.create({
-      user: data.user,
-      contributionPlan: data.contributionPlan,
-      amount: data.amount,
-      savingsType: data.savingsType,
-      currency: data.currency,
-      savingsCategory: data.savingsCategory,
-      startDate: new Date(data.startDate),
-      savingsDuration,
-      endDate: new Date(data.endDate),
-      nextContributionDate,
-      lastContributionDate:
-        data.contributionType === "one-time"
-          ? new Date(data.startDate)
-          : new Date(),
-      withdrawalDate,
-      contributionType: data.contributionType,
-      balance: 0,
-      status: "Pending",
-    });
+// Only set if not one-time
+if (data.contributionType !== "one-time") {
+  contributionPayload.contributionPlan = data.contributionPlan;
+  contributionPayload.nextContributionDate = calculateNextContributionDate(
+    data.startDate,
+    data.contributionPlan
+  );
+}
+
+const contribution = await Contribution.create(contributionPayload);
+
 
     logger.info(`Created ${data.contributionType} Contribution ID:`, contribution._id);
 
