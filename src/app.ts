@@ -53,6 +53,7 @@ import { webhookController } from './controllers/webhookController';
 import { authorize } from './middlewares/authorization';
 import { addtoLimit, getDailyTotal } from './services/dailyServices';
 import { tryRecurringCircleService } from './services/savingCircle.services';
+import { periodicSavingService } from './services/web3/chaincoopSaving.2.0/periodicSavingService';
 
 dotenv.config();
 // console.log(process.env.CLOUD_API_KEY);
@@ -120,6 +121,24 @@ app.use((req, _res, next) => {
 
 setupSwagger(app);
 
+const initializeBlockchainServices = async () => {
+  const networks = ['BSC', 'LISK', 'ETHERLINK', 'GNOSIS']; // Your supported networks
+
+  for (const network of networks) {
+    try {
+      console.log(`Initializing periodic saving service for ${network}...`);
+      await periodicSavingService.initialize(network);
+      console.log(
+        `✅ ${network} periodic saving service initialized successfully`
+      );
+    } catch (error) {
+      console.error(
+        `❌ Failed to initialize ${network} periodic saving:`,
+        error
+      );
+    }
+  }
+};
 // Routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/news-letter', newsLetterRouter);
@@ -175,8 +194,23 @@ app.all('/add', authorize, async (req: Request, res: Response) => {
 app.use(notFound);
 app.use(errorHandlerMiddleware);
 const start = async () => {
-  await ConnectDB(mongoUrl);
-  app.listen(port, () => console.log(`App listening on port ${port}!`));
+  try {
+    await ConnectDB(mongoUrl);
+    app.listen(port, () => console.log(`App listening on port ${port}!`));
+    initializeBlockchainServices()
+      .then(() =>
+        console.log('🎉 All blockchain services initialization completed')
+      )
+      .catch((error) =>
+        console.error(
+          '⚠️ Some blockchain services failed to initialize:',
+          error
+        )
+      );
+  } catch (error) {
+    console.error('Failed to start application:', error);
+    process.exit(1);
+  }
 };
 
 start();
