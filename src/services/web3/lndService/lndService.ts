@@ -1,8 +1,5 @@
-import { StatusCodes } from "http-status-codes";
-import Invoice from "../../../models/web3/lnd/invoice";
-import Payment from "../../../models/web3/lnd/payment";
-import { client, routerClient } from "../../../utils/web3/lnd";
-import { Response } from "express";
+import Invoice, { IInvoiceData } from "../../../models/web3/lnd/invoice";
+import Payment, { IPaymentData } from "../../../models/web3/lnd/payment";
 
 export const getInvoiceById = async (invoiceId: string) => {
     return await Invoice.findOne({ invoiceId });
@@ -12,117 +9,13 @@ export const getInvoicesByUser = async (userId: string) => {
     return await Invoice.find({ userId }).sort({ createdAt: -1 });
 };
 
-export const create = async (payload: any) => {
+export const createInvoice = async (payload: IInvoiceData) => {
     return await Invoice.create(payload);
 };
 
-interface IAddInvoice {
-    value: number;
-    memo?: string;
-}
-
-export const createInvoice = async (request: IAddInvoice, res: Response, user_id: string) => {
-    try {
-        let lndClient = await client();
-        lndClient.addInvoice(request, async (err: Error | null, response: any) => {
-
-            if (err) {
-                res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                    message: "Error creating invoice",
-                    //@ts-ignore
-                    error: err.message,
-                });
-            }
-
-            let invoice = {
-                userId: user_id,
-                invoiceId: response.add_index,
-                bolt11: response.payment_addr,
-                amount: request.value,
-                memo: request.memo,
-                expiresAt: new Date(Date.now() + 3600000),
-                paymentHash: response.r_hash,
-                payment_request: response.payment_request
-            };
-
-            let resp = await create(invoice);
-
-            res.status(StatusCodes.CREATED).json({
-                message: "Created invoice successfully",
-                resp
-            });
-        });
-
-    } catch (error) {
-        console.log(`Error creating invoice`, error);
-        throw Error('Something went wrong please retry')
-    }
-
-};
-
-
-interface ISendPaymentRequest {
-    payment_request: string,
-    timeout_seconds: number
-}
-
-export const createPayment = async (payload: any) => {
+export const createPayment = async (payload: IPaymentData) => {
     return await Payment.create(payload);
 };
-
-export const sendPayment = async (
-    request: ISendPaymentRequest,
-    res: Response,
-    userId: string,
-    invoice: any,
-) => {
-    try {
-        let lndRouterClient = await routerClient();
-        // call the SendPaymentV2 RPC
-        const call = lndRouterClient.sendPaymentV2(request);
-
-        call.on('data', async (response: any) => {
-            console.log(response);
-
-            if (response.status === 'SUCCEEDED' || response.status === 'FAILED') {
-
-                const payload = {
-                    userId,
-                    paymentId: invoice.invoiceId,
-                    bolt11: invoice.bolt11,
-                    amount: response.value,
-                    fee: response.fee,
-                    payment_index: response.payment_index,
-                    preimage: response.payment_preimage,
-                    status: response.status.toLowerCase(),
-                    failureReason: response.failure_reason,
-                    paymentHash: response.paymentHash,
-                    hop: response.first_hop_custom_records,
-                    succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
-                    failedAt: response.status === 'FAILED' ? new Date() : undefined,
-                    routingHints: response.htlcs,
-                };
-
-                let resp = await createPayment(payload);
-
-                res.status(response.status === 'SUCCEEDED' ? StatusCodes.CREATED : StatusCodes.CONFLICT).json({
-                    message: response.status === 'SUCCEEDED' ? "Payment sent successfully" : "Payment failed",
-                    resp
-                });
-            }
-        });
-        call.on('error', (err: Error) => {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Payment failed', error: err.message });
-        });
-        call.on('end', () => {
-            console.log('Payment stream ended');
-        });
-    } catch (error) {
-        console.log(`Error making payment`, error);
-        throw Error('Something went wrong please retry')
-    }
-};
-
 
 // interface LndRoute {
 //   fee: number;

@@ -1,13 +1,14 @@
 // models/Payment.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IPayment extends Document {
+export interface IPaymentData {
   userId: mongoose.Types.ObjectId;
   paymentId: string; // LND payment ID
   bolt11?: string; // Original BOLT11 invoice if available
   amount: number; // In satoshis
   fee: number; // In satoshis
   payment_index: number;
+  destination: string,
   status: 'pending' | 'succeeded' | 'failed';
   preimage?: string;
   failureReason?: string;
@@ -16,13 +17,15 @@ export interface IPayment extends Document {
     [key: string]: any;
   };
   paymentHash: string;
-  createdAt: Date;
   succeededAt?: Date;
   failedAt?: Date;
   isRecoverable?: boolean;
   routingHints?: any[];
   retryCount?: number;
 }
+
+// Full interface that extends Document (for database operations)
+export interface IPayment extends IPaymentData, Document { }
 
 const PaymentSchema: Schema = new Schema(
   {
