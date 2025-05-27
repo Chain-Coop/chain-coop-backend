@@ -50,16 +50,32 @@ let credentials = grpc.credentials.combineChannelCredentials(
 );
 
 // Pass the crendentials when creating a channel
-let lnrpcDescriptor = grpc.loadPackageDefinition(packageDefinition);
-let lnrpc = lnrpcDescriptor.lnrpc;
-export const client = new lnrpc.Lightning(
-  'lightning-test-node.t.voltageapp.io:10009',
-  credentials
-);
+export const client = async () => {
+  try {
+    let lnrpcDescriptor = grpc.loadPackageDefinition(packageDefinition);
+    let lnrpc = lnrpcDescriptor.lnrpc;
+    const client = new lnrpc.Lightning(
+      'lightning-test-node.t.voltageapp.io:10009',
+      credentials
+    );
+    return client;
+  } catch (error) {
+    console.log("Encountered error connecting: ", error);
+    throw Error('Something went wrong please retry')
+  }
+}
 
-let routerLnrpcDescriptor = grpc.loadPackageDefinition(routerPackageDefinition);
-let routerrpc = routerLnrpcDescriptor.routerrpc;
-export const routerClient = new routerrpc.Router(
-  'lightning-test-node.t.voltageapp.io:10009',
-  credentials
-);
+export const routerClient = async () => {
+  try {
+    let routerLnrpcDescriptor = grpc.loadPackageDefinition(routerPackageDefinition);
+    let routerrpc = routerLnrpcDescriptor.routerrpc;
+    const client = new routerrpc.Router(
+      'lightning-test-node.t.voltageapp.io:10009',
+      credentials
+    );
+    return client;
+  } catch (error) {
+    console.log("Encountered error connecting: ", error);
+    throw Error('Something went wrong please retry')
+  }
+}
