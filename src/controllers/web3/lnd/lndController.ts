@@ -61,15 +61,17 @@ export const createInvoice = async (req: Request, res: Response) => {
 
         let request = {
             value: amount,
-            memo
+            memo,
+            expiry: new Date(Date.now() + 3600000),
         };
 
         let lndClient = await client();
         lndClient.addInvoice(request, async (err: any, response: any) => {
             if (err) {
-                // throw new Error("Error creating invoice");
+                console.error("Encountered error lnd: ", err);
+                
                 return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                    message: "Payment processed but failed to save to database",
+                    message: "Invoice creation failed",
                     error: err instanceof Error ? err.message : 'Unknown error'
                 });
             }
@@ -94,6 +96,8 @@ export const createInvoice = async (req: Request, res: Response) => {
             });
         });
     } catch (error) {
+        console.error("Encountered error: ", error);
+        
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             message: "Failed to create invoice",
             //@ts-ignore
