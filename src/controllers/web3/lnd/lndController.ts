@@ -64,7 +64,6 @@ export const createInvoice = async (req: Request, res: Response) => {
         await lndService.createInvoice(request, res, userId)
 
     } catch (error) {
-        console.log('Error 222: ' + error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             message: "Failed to create invoice",
             //@ts-ignore
@@ -100,7 +99,6 @@ export const sendPayment = async (req: Request, res: Response) => {
         await lndService.sendPayment(request, res, userId, invoice)
 
     } catch (error) {
-        console.log('Error 222: ' + error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             message: "Failed to send payment",
             //@ts-ignore
