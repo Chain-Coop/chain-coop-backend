@@ -53,13 +53,13 @@ let credentials = grpc.credentials.combineChannelCredentials(
 let lnrpcDescriptor = grpc.loadPackageDefinition(packageDefinition);
 let lnrpc = lnrpcDescriptor.lnrpc;
 export const client = new lnrpc.Lightning(
-  'lightning-node.m.voltageapp.io:10009',
+  'lightning-test-node.t.voltageapp.io:10009',
   credentials
 );
 
 let routerLnrpcDescriptor = grpc.loadPackageDefinition(routerPackageDefinition);
 let routerrpc = routerLnrpcDescriptor.routerrpc;
 export const routerClient = new routerrpc.Router(
-  'lightning-node.m.voltageapp.io:10009',
+  'lightning-test-node.t.voltageapp.io:10009',
   credentials
 );

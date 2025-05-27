@@ -22,34 +22,41 @@ interface IAddInvoice {
 }
 
 export const createInvoice = async (request: IAddInvoice, res: Response, user_id: string) => {
-    client.addInvoice(request, async (err: Error | null, response: any) => {
+    try {
+        client.addInvoice(request, async (err: Error | null, response: any) => {
 
-        if (err) {
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                message: "Error creating invoice",
-                //@ts-ignore
-                error: err.message,
+            if (err) {
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    message: "Error creating invoice",
+                    //@ts-ignore
+                    error: err.message,
+                });
+            }
+
+            let invoice = {
+                userId: user_id,
+                invoiceId: response.add_index,
+                bolt11: response.payment_addr,
+                amount: request.value,
+                memo: request.memo,
+                expiresAt: new Date(Date.now() + 3600000),
+                paymentHash: response.r_hash,
+                payment_request: response.payment_request
+            };
+
+            let resp = await create(invoice);
+
+            res.status(StatusCodes.CREATED).json({
+                message: "Created invoice successfully",
+                resp
             });
-        }
-
-        let invoice = {
-            userId: user_id,
-            invoiceId: response.add_index,
-            bolt11: response.payment_addr,
-            amount: request.value,
-            memo: request.memo,
-            expiresAt: new Date(Date.now() + 3600000),
-            paymentHash: response.r_hash,
-            payment_request: response.payment_request
-        };
-
-        let resp = await create(invoice);
-
-        res.status(StatusCodes.CREATED).json({
-            message: "Created invoice successfully",
-            resp
         });
-    });
+
+    } catch (error) {
+        console.log(`Error creating invoice`, error);
+        throw Error('Something went wrong please retry')
+    }
+
 };
 
 
@@ -68,46 +75,50 @@ export const sendPayment = async (
     userId: string,
     invoice: any,
 ) => {
-    // call the SendPaymentV2 RPC
-    const call = routerClient.sendPaymentV2(request);
-    call.on('data', async (response: any) => {
-        console.log(response);
+    try {
+        // call the SendPaymentV2 RPC
+        const call = routerClient.sendPaymentV2(request);
 
-        if (response.status === 'SUCCEEDED' || response.status === 'FAILED') {
+        call.on('data', async (response: any) => {
+            console.log(response);
 
-            const payload = {
-                userId,
-                paymentId: invoice.invoiceId,
-                bolt11: invoice.bolt11,
-                amount: response.value,
-                fee: response.fee,
-                payment_index: response.payment_index,
-                preimage: response.payment_preimage,
-                status: response.status.toLowerCase(),
-                failureReason: response.failure_reason,
-                paymentHash: response.paymentHash,
-                hop: response.first_hop_custom_records,
-                succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
-                failedAt: response.status === 'FAILED' ? new Date() : undefined,
-                routingHints: response.htlcs,
-            };
+            if (response.status === 'SUCCEEDED' || response.status === 'FAILED') {
 
-            let resp = await create(payload);
+                const payload = {
+                    userId,
+                    paymentId: invoice.invoiceId,
+                    bolt11: invoice.bolt11,
+                    amount: response.value,
+                    fee: response.fee,
+                    payment_index: response.payment_index,
+                    preimage: response.payment_preimage,
+                    status: response.status.toLowerCase(),
+                    failureReason: response.failure_reason,
+                    paymentHash: response.paymentHash,
+                    hop: response.first_hop_custom_records,
+                    succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
+                    failedAt: response.status === 'FAILED' ? new Date() : undefined,
+                    routingHints: response.htlcs,
+                };
 
-            res.status(response.status === 'SUCCEEDED' ? StatusCodes.CREATED : StatusCodes.CONFLICT).json({
-                message: response.status === 'SUCCEEDED' ? "Payment sent successfully" : "Payment failed",
-                resp
-            });
+                let resp = await createPayment(payload);
 
-
-        }
-    });
-    call.on('error', (err: Error) => {
-        res.status(500).json({ message: 'Payment failed', error: err.message });
-    });
-    call.on('end', () => {
-        console.log('Payment stream ended');
-    });
+                res.status(response.status === 'SUCCEEDED' ? StatusCodes.CREATED : StatusCodes.CONFLICT).json({
+                    message: response.status === 'SUCCEEDED' ? "Payment sent successfully" : "Payment failed",
+                    resp
+                });
+            }
+        });
+        call.on('error', (err: Error) => {
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Payment failed', error: err.message });
+        });
+        call.on('end', () => {
+            console.log('Payment stream ended');
+        });
+    } catch (error) {
+        console.log(`Error making payment`, error);
+        throw Error('Something went wrong please retry')
+    }
 };
 
 
