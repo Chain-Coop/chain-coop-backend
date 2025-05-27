@@ -23,7 +23,8 @@ interface IAddInvoice {
 
 export const createInvoice = async (request: IAddInvoice, res: Response, user_id: string) => {
     try {
-        client.addInvoice(request, async (err: Error | null, response: any) => {
+        let lndClient = await client();
+        lndClient.addInvoice(request, async (err: Error | null, response: any) => {
 
             if (err) {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -76,8 +77,9 @@ export const sendPayment = async (
     invoice: any,
 ) => {
     try {
+        let lndRouterClient = await routerClient();
         // call the SendPaymentV2 RPC
-        const call = routerClient.sendPaymentV2(request);
+        const call = lndRouterClient.sendPaymentV2(request);
 
         call.on('data', async (response: any) => {
             console.log(response);
