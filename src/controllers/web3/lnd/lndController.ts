@@ -58,54 +58,134 @@ export const createInvoice = async (req: Request, res: Response) => {
     const { userId } = req.user;
     const { amount, memo = '' } = req.body;
 
-    let request = {
-      value: amount,
-      memo,
-      expiry: new Date(Date.now() + 3600000),
+    // Input validation
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: 'Valid amount is required',
+      });
+    }
+
+    if (memo && memo.length > 639) {
+      // LND memo limit
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: 'Memo too long (max 639 bytes)',
+      });
+    }
+
+    // Create invoice request with proper field names
+    const invoiceRequest = {
+      value: amount.toString(), // Ensure it's a string
+      memo: memo || '',
+      expiry: 3600, // 1 hour in seconds, not milliseconds
     };
 
-    let lndClient = await client();
-    lndClient.addInvoice(request, async (err: any, response: any) => {
-      if (err) {
-        console.error('Encountered error lnd: ', err);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          message: 'Invoice creation failed',
-          error: err instanceof Error ? err.message : 'Unknown error',
-        });
-        return;
-      }
-      console.log(response);
+    console.log('Creating invoice with request:', invoiceRequest);
 
-      let payload: IInvoiceData = {
-        userId: userId,
-        invoiceId: response.add_index,
-        bolt11: response.payment_addr,
-        amount: request.value,
-        memo: request.memo,
-        expiresAt: new Date(Date.now() + 3600000),
-        paymentHash: response.r_hash,
-        payment_request: response.payment_request,
-        status: 'pending',
-      };
+    const lndClient = await client();
 
-      let resp = await lndService.createInvoice(payload);
+    // Wrap in promise for better error handling
+    const invoiceResponse: any = await new Promise((resolve, reject) => {
+      const deadline = new Date(Date.now() + 15000); // 15 second timeout
 
-      res.status(StatusCodes.CREATED).json({
-        message: 'Created invoice successfully',
-        resp,
-      });
+      lndClient.addInvoice(
+        invoiceRequest,
+        { deadline },
+        (err: any, response: any) => {
+          if (err) {
+            console.error('LND addInvoice error:', {
+              code: err.code,
+              message: err.message,
+              details: err.details,
+              metadata: err.metadata,
+            });
+            reject(err);
+          } else {
+            console.log('LND addInvoice success:', {
+              add_index: response.add_index,
+              payment_request: response.payment_request ? 'present' : 'missing',
+              r_hash: response.r_hash ? 'present' : 'missing',
+            });
+            resolve(response);
+          }
+        }
+      );
     });
-  } catch (error) {
-    console.error('Encountered error: ', error);
 
+    // Validate response structure
+    if (!invoiceResponse.payment_request) {
+      throw new Error('Invalid response from LND: missing payment_request');
+    }
+
+    if (!invoiceResponse.r_hash) {
+      throw new Error('Invalid response from LND: missing r_hash');
+    }
+
+    // Prepare payload with validated data
+    const payload: IInvoiceData = {
+      userId: userId,
+      invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
+      bolt11: invoiceResponse.payment_request, // This should be payment_request, not payment_addr
+      amount: amount,
+      memo: memo || '',
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+      paymentHash: invoiceResponse.r_hash.toString('hex'), // Convert Buffer to hex string
+      payment_request: invoiceResponse.payment_request,
+      status: 'pending',
+    };
+
+    console.log('Saving invoice to database:', {
+      invoiceId: payload.invoiceId,
+      amount: payload.amount,
+      userId: payload.userId,
+    });
+
+    // Save to database
+    const dbResponse = await lndService.createInvoice(payload);
+
+    res.status(StatusCodes.CREATED).json({
+      message: 'Created invoice successfully',
+      data: {
+        invoiceId: payload.invoiceId,
+        payment_request: payload.payment_request,
+        amount: payload.amount,
+        expires_at: payload.expiresAt,
+      },
+    });
+  } catch (error: any) {
+    console.error('Invoice creation failed:', {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      details: error.details,
+    });
+
+    // Handle specific gRPC errors
+    if (error.code === 2) {
+      // UNKNOWN
+      return res.status(StatusCodes.BAD_GATEWAY).json({
+        message: 'Lightning network service temporarily unavailable',
+        error: 'Please try again in a few moments',
+      });
+    }
+
+    if (error.code === 14) {
+      // UNAVAILABLE
+      return res.status(StatusCodes.SERVICE_UNAVAILABLE).json({
+        message: 'Lightning network connection failed',
+        error: 'Service temporarily unavailable',
+      });
+    }
+
+    // Generic error response
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: 'Failed to create invoice',
-      //@ts-ignore
-      error: error.message,
+      error:
+        process.env.NODE_ENV === 'development'
+          ? error.message
+          : 'Internal server error',
     });
   }
 };
-
 export const sendPayment = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
