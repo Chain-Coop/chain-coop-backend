@@ -846,17 +846,16 @@ const router = Router();
  *                   example: internal server error
  */
 
-router.post('/openPool', authorize, verifyPin, kycVerified, openSavingPool);
-router.post('/updatePool', authorize, kycVerified, updatePoolWithAmount);
+router.post('/openPool', authorize, verifyPin, openSavingPool);
+router.post('/updatePool', authorize, updatePoolWithAmount);
 router.post(
   '/withdraw',
   authorize,
   verifyPin,
-  kycVerified,
   withdrawFromPoolByID
 );
-router.post('/stopPool', authorize, kycVerified, stopSavingForPool);
-router.post('/restartPool', authorize, kycVerified, restartPoolForSaving);
+router.post('/stopPool', authorize, stopSavingForPool);
+router.post('/restartPool', authorize, restartPoolForSaving);
 router.post('/getManualSaving', authorize, getManualSaving);
 router.get('/getManualSavingByUser', authorize, getManualSavingByUser);
 router.get('/getTotalAmountSaved', authorize, getTotalAmountSavedByUser);

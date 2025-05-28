@@ -9,13 +9,13 @@ import {
   SupportedLISKStables,
   SupportedETHERLINKStables,
   SupportedBSCStables,
-  SupportedGNOSISStables,
+  SupportedPOLYGONStables,
 } from '../../utils/web3/supportedStables';
 import {
   CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
   CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
   CHAINCOOPSAVING_BSC_TESTNET,
-  CHAINCOOPSAVING_GNOSIS_TESTNET,
+  CHAINCOOPSAVING_POLYGON_TESTNET,
 } from '../../constant/contract/ChainCoopSaving';
 import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
 import * as bitcoin from 'bitcoinjs-lib';
@@ -142,8 +142,8 @@ const userTokensBalance = async (
     stables = SupportedBSCStables;
   } else if (network === 'ETHERLINK') {
     stables = SupportedETHERLINKStables;
-  } else if (network === 'GNOSIS') {
-    stables = SupportedGNOSISStables;
+  } else if (network === 'POLYGON') {
+    stables = SupportedPOLYGONStables;
   } else {
     throw new Error(`Invalid network: ${network}`);
   }
@@ -406,7 +406,7 @@ const approveTokenTransfer = async (
   } else if (network === 'ETHERLINK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'GNOSIS') {
-    contractAddress = CHAINCOOPSAVING_GNOSIS_TESTNET;
+    contractAddress = CHAINCOOPSAVING_POLYGON_TESTNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }

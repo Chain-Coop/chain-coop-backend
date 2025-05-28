@@ -25,7 +25,7 @@ export enum network {
   BSC = 'BSC',
   ETHERLINK = 'ETHERLINK',
   LISK = 'LISK',
-  GNOSIS = 'GNOSIS',
+  POLYGON = 'POLYGON',
 }
 
 export interface IManualSaving extends Document {
@@ -106,11 +106,11 @@ const manualSavingSchema = new Schema<IManualSaving>(
     encryptedPrivateKey: { type: String, required: true },
     transactions: [transactionSchema],
     totalAmount: { type: String, default: '0' },
-    network:{
+    network: {
       type: String,
       enum: Object.values(network),
       required: true,
-    }
+    },
   },
   { timestamps: true }
 );

@@ -7,7 +7,14 @@ import {
 } from 'ethers';
 import { approveTokenTransfer } from '../accountService';
 import { getTokenAddressSymbol } from '../accountService';
-import { chainCoopSavingcontract } from '../../../utils/web3/contract.2.0';
+import {
+  chainCoopSavingcontract,
+  signPermit,
+} from '../../../utils/web3/contract.2.0';
+import {
+  signMetaTransaction,
+  executeMetaTransaction,
+} from '../MetaTransaction/metaTransaction';
 
 //NB DURATION IS IN SECONDS
 //lisk, usdc
@@ -22,24 +29,30 @@ const openPool = async (
   network: string
 ) => {
   try {
-    const approveTx = await approveTokenTransfer(
+    const approveTx = await signPermit(
       tokenAddressToSaveWith,
-      initialSaveAmount,
+      process.env.RELAYER_PRIVATE_KEY!,
       userPrivateKey,
+      initialSaveAmount,
       network
     );
     if (!approveTx) {
       throw Error('Failed to approve transfer');
     }
-
-    const con_tract = await chainCoopSavingcontract(network, userPrivateKey);
-    const tx = await con_tract.openSavingPool(
+    const con_tract = await chainCoopSavingcontract(network);
+    const data = con_tract.interface.encodeFunctionData('openSavingPool', [
       tokenAddressToSaveWith,
       parseUnits(initialSaveAmount, 6),
       reasonForSaving,
       lockType,
-      duration
+      duration,
+    ]);
+    const { forwardRequest, signature } = await signMetaTransaction(
+      userPrivateKey,
+      network,
+      data
     );
+    const tx = await executeMetaTransaction(forwardRequest, signature, network);
     await tx.wait(1);
     console.log('Saving Pool Created', tx);
     return tx;
@@ -48,7 +61,6 @@ const openPool = async (
     throw Error('Something went wrong please retry');
   }
 };
-//updateSaving(bytes32 _poolId,uint256 _amount)
 
 const updatePoolAmount = async (
   poolId_bytes: string,
@@ -58,66 +70,105 @@ const updatePoolAmount = async (
   network: string
 ) => {
   try {
-    const approveTx = await approveTokenTransfer(
+    const approveTx = await signPermit(
       tokenAddressToSaveWith,
-      amount,
+      process.env.RELAYER_PRIVATE_KEY!,
       userPrivateKey,
+      amount,
       network
     );
     if (!approveTx) {
       throw Error('Failed to approve transfer');
     }
-    const con_tract = await chainCoopSavingcontract(network, userPrivateKey);
-    const tx = await con_tract.updateSaving(
+    const con_tract = await chainCoopSavingcontract(network);
+    const data = con_tract.interface.encodeFunctionData('updateSaving', [
       poolId_bytes,
-      parseUnits(amount, 6)
+      parseUnits(amount, 6),
+    ]);
+    const { forwardRequest, signature } = await signMetaTransaction(
+      userPrivateKey,
+      network,
+      data
     );
-    await tx.wait();
+    const tx = await executeMetaTransaction(forwardRequest, signature, network);
+    await tx.wait(1);
     return tx;
   } catch (error) {
     console.log(error);
     throw Error('Something went wrong please retry');
   }
 };
+
 const withdrawFromPool = async (
   poolId_bytes: string,
   userPrivateKey: string,
   network: string
 ) => {
-  const con_tract = await chainCoopSavingcontract(network, userPrivateKey);
-  const tx = await con_tract.withdraw(poolId_bytes);
-  await tx.wait();
-  return tx;
+  try {
+    const con_tract = await chainCoopSavingcontract(network);
+    const data = con_tract.interface.encodeFunctionData('withdraw', [
+      poolId_bytes,
+    ]);
+    const { forwardRequest, signature } = await signMetaTransaction(
+      userPrivateKey,
+      network,
+      data
+    );
+    const tx = await executeMetaTransaction(forwardRequest, signature, network);
+    await tx.wait(1);
+    return tx;
+  } catch (error) {
+    console.log('Error withdrawing from pool:', error);
+    throw Error('Something went wrong please retry');
+  }
 };
-//stopSaving
+
+//stopSaving - Updated to use meta transaction
 const stopSaving = async (
   poolId: string,
   userPrivateKey: string,
   network: string
 ) => {
   try {
-    const con_tract = await chainCoopSavingcontract(network, userPrivateKey);
-    const tx = await con_tract.stopSaving(poolId);
-    await tx.wait();
+    const con_tract = await chainCoopSavingcontract(network);
+    const data = con_tract.interface.encodeFunctionData('stopSaving', [
+      poolId,
+    ]);
+    const { forwardRequest, signature } = await signMetaTransaction(
+      userPrivateKey,
+      network,
+      data
+    );
+    const tx = await executeMetaTransaction(forwardRequest, signature, network);
+    await tx.wait(1);
     return tx;
   } catch (error: any) {
-    console.log(error);
+    console.log('Error stopping saving:', error);
     throw Error(error.message ? error.message : 'Failed to stop Saving!');
   }
 };
-//restartSaving
+
+//restartSaving - Updated to use meta transaction
 const restartSaving = async (
   poolId: string,
   userPrivateKey: string,
   network: string
 ) => {
   try {
-    const con_tract = await chainCoopSavingcontract(network, userPrivateKey);
-    const tx = await con_tract.restartSaving(poolId);
-    await tx.wait();
+    const con_tract = await chainCoopSavingcontract(network);
+    const data = con_tract.interface.encodeFunctionData('restartSaving', [
+      poolId,
+    ]);
+    const { forwardRequest, signature } = await signMetaTransaction(
+      userPrivateKey,
+      network,
+      data
+    );
+    const tx = await executeMetaTransaction(forwardRequest, signature, network);
+    await tx.wait(1);
     return tx;
   } catch (error: any) {
-    console.log(error);
+    console.log('Error restarting saving:', error);
     throw Error(error.message ? error.message : 'Failed to restart Saving!');
   }
 };
@@ -128,11 +179,13 @@ const totalPoolCreated = async (network: string): Promise<number> => {
   const pools = await con_tract.getSavingPoolCount();
   return Number(pools);
 };
+
 //getUserContributions
 interface Contributions {
   tokenAddress: string;
   amount: number;
 }
+
 const getUserContributions = async (
   userAddress: string,
   network: string
@@ -143,7 +196,7 @@ const getUserContributions = async (
   const formatedContributions: Contributions[] = await Promise.all(
     contributions.map(async (contribution: any) => ({
       tokenAddress: contribution.tokenAddress,
-      amount: formatUnits(contribution.amount.toString(), 6),
+      amount: Number(formatUnits(contribution.amount.toString(), 6)), // Fixed: Convert to number
     }))
   );
   return formatedContributions;
@@ -184,7 +237,7 @@ const userPools = async (
         Reason: pool[2],
         poolIndex: pool[3],
         startDate: pool[4].toString(),
-        locktype: pool[7],
+        locktype: Number(pool[7]), // Fixed: Convert to number
         Duration: pool[5].toString(),
         amountSaved: formatUnits(pool[6].toString(), 6),
         isGoalAccomplished: pool[8],
@@ -197,6 +250,7 @@ const userPools = async (
     throw new Error('Failed to fetch user pools');
   }
 };
+
 const userPoolsByPoolId = async (
   poolId: string,
   network: string
@@ -209,6 +263,7 @@ const userPoolsByPoolId = async (
         typeof value === 'bigint' ? value.toString() : value
       )
     );
+    
     // Map rawUserPools to a serializable format
     const formattedPool: SavingPool = {
       saver: rawPools[0],
@@ -216,7 +271,7 @@ const userPoolsByPoolId = async (
       Reason: rawPools[2],
       poolIndex: rawPools[3],
       startDate: rawPools[4].toString(),
-      locktype: rawPools[7],
+      locktype: Number(rawPools[7]), // Fixed: Convert to number
       Duration: rawPools[5].toString(),
       amountSaved: formatUnits(rawPools[6].toString(), 6),
       isGoalAccomplished: rawPools[8],
@@ -228,6 +283,7 @@ const userPoolsByPoolId = async (
     throw new Error('Failed to fetch user pools');
   }
 };
+
 export {
   userPools,
   userPoolsByPoolId,

@@ -21,6 +21,7 @@ export enum network {
   BSC = 'BSC',
   ETHERLINK = 'ETHERLINK',
   LISK = 'LISK',
+  POLYGON = 'POLYGON',
 }
 export interface Transaction {
   txHash: string;
