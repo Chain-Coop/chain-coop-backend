@@ -117,7 +117,7 @@ const createCredentials = () => {
       }
     );
 
-    const sslCreds = grpc.credentials.createSsl();
+    const sslCreds = grpc.credentials.createSsl(tlsCert);
 
     return grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
   } catch (error) {
@@ -187,4 +187,3 @@ export const routerClient = async () => {
     throw new Error('Failed to connect to LND router');
   }
 };
-client()
