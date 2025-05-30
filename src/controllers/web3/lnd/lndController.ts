@@ -9,305 +9,238 @@
 
 import { Request, Response } from 'express';
 import * as lndService from '../../../services/web3/lndService/lndService';
-import { StatusCodes } from 'http-status-codes';
-import bolt11 from 'bolt11';
-import { client, routerClient } from '../../../utils/web3/lnd';
-import { IInvoiceData } from '../../../models/web3/lnd/invoice';
-import { Types, Error } from 'mongoose';
-import { IPaymentData } from '../../../models/web3/lnd/payment';
+import { StatusCodes } from "http-status-codes";
+import bolt11 from "bolt11";
+import { AddInvoice, PayInvoice } from "../../../utils/web3/lnd";
+import { IInvoiceData } from "../../../models/web3/lnd/invoice";
+import { Types, Error } from "mongoose";
+import { IPaymentData } from "../../../models/web3/lnd/payment";
 
 // Create a controller to get invoice by Id
 export const getInvoice = async (req: Request, res: Response) => {
-  const { invoiceId } = req.params;
-  try {
-    const invoice = await lndService.getInvoiceById(invoiceId);
-    if (!invoice) {
-      res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ message: `Invoice ${invoiceId} not found` });
-      return;
+    const { invoiceId } = req.params;
+    try {
+        const invoice = await lndService.getInvoiceById(invoiceId);
+        if (!invoice) {
+            res
+                .status(StatusCodes.NOT_FOUND)
+                .json({ message: `Invoice ${invoiceId} not found` });
+            return;
+        }
+        return res.status(StatusCodes.OK).json(invoice);
+    } catch (error: any) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error: error.message,
+        });
     }
-    return res.status(StatusCodes.OK).json(invoice);
-  } catch (error: any) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      error: error.message,
-    });
-  }
 };
 
 // Create a controller to get invoices for user
 export const getUserInvoice = async (req: Request, res: Response) => {
-  // @ts-ignore
-  const { userId } = req.user as { userId: string };
+    // @ts-ignore
+    const { userId } = req.user as { userId: string };
 
-  try {
-    const invoices = await lndService.getInvoicesByUser(userId);
-    return res.status(StatusCodes.OK).json(invoices);
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      //@ts-ignore
-      error: error.message,
-    });
-  }
+    try {
+        const invoices = await lndService.getInvoicesByUser(userId);
+        return res.status(StatusCodes.OK).json(invoices);
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            //@ts-ignore
+            error: error.message,
+        });
+    }
 };
 
 // Create invoice controller
 export const createInvoice = async (req: Request, res: Response) => {
-  try {
-    // @ts-ignore
-    const { userId } = req.user;
-    const { amount, memo = '' } = req.body;
+    try {
+        // @ts-ignore
+        const { userId } = req.user;
+        const { amount, memo = '' } = req.body;
 
-    // Input validation
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        message: 'Valid amount is required',
-      });
-    }
-
-    if (memo && memo.length > 639) {
-      // LND memo limit
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        message: 'Memo too long (max 639 bytes)',
-      });
-    }
-
-    // Create invoice request with proper field names
-    const invoiceRequest = {
-      value: amount.toString(), // Ensure it's a string
-      memo: memo || '',
-      expiry: 3600, // 1 hour in seconds, not milliseconds
-    };
-
-    console.log('Creating invoice with request:', invoiceRequest);
-
-    const lndClient = await client();
-
-    // Wrap in promise for better error handling
-    const invoiceResponse: any = await new Promise((resolve, reject) => {
-      const deadline = new Date(Date.now() + 15000); // 15 second timeout
-
-      lndClient.addInvoice(
-        invoiceRequest,
-        { deadline },
-        (err: any, response: any) => {
-          if (err) {
-            console.error('LND addInvoice error:', {
-              code: err.code,
-              message: err.message,
-              details: err.details,
-              metadata: err.metadata,
+        // Input validation
+        if (!amount || typeof amount !== 'number' || amount <= 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: 'Valid amount is required',
             });
-            reject(err);
-          } else {
-            console.log('LND addInvoice success:', {
-              add_index: response.add_index,
-              payment_request: response.payment_request ? 'present' : 'missing',
-              r_hash: response.r_hash ? 'present' : 'missing',
-            });
-            resolve(response);
-          }
         }
-      );
-    });
 
-    // Validate response structure
-    if (!invoiceResponse.payment_request) {
-      throw new Error('Invalid response from LND: missing payment_request');
+        if (memo && memo.length > 639) {
+            // LND memo limit
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: 'Memo too long (max 639 bytes)',
+            });
+        }
+
+        // Create invoice request with proper field names
+        const invoiceRequest = {
+            value: amount.toString(), // Ensure it's a string
+            memo: memo || '',
+            expiry: 3600, // 1 hour in seconds, not milliseconds
+        };
+
+        const invoiceResponse = await AddInvoice(invoiceRequest);
+
+        // Validate response structure
+        if (!invoiceResponse.payment_request) {
+            throw new Error('Invalid response from LND: missing payment_request');
+        }
+
+        if (!invoiceResponse.r_hash) {
+            throw new Error('Invalid response from LND: missing r_hash');
+        }
+
+        const paymentHashHex = Buffer.from(invoiceResponse.r_hash, 'base64').toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
+
+        // Prepare payload with validated data
+        const payload: IInvoiceData = {
+            userId: userId,
+            invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
+            bolt11: invoiceResponse.payment_request,
+            amount: amount,
+            memo: memo || '',
+            expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+            paymentHash: paymentHashHex,
+            payment_request: invoiceResponse.payment_request,
+            status: 'pending',
+        };
+
+        console.log('Saving invoice to database:', {
+            invoiceId: payload.invoiceId,
+            amount: payload.amount,
+            userId: payload.userId,
+        });
+
+        // Save to database
+        const dbResponse = await lndService.createInvoice(payload);
+
+        res.status(StatusCodes.CREATED).json({
+            message: 'Created invoice successfully',
+            data: {
+                invoiceId: payload.invoiceId,
+                payment_request: payload.payment_request,
+                amount: payload.amount,
+                expires_at: payload.expiresAt,
+            },
+        });
+    } catch (error: any) {
+        console.error('Invoice creation failed:', {
+            error: error.message,
+            stack: error.stack,
+            code: error.code,
+            details: error.details,
+        });
+
+        // Handle specific gRPC errors
+        if (error.code === 2) {
+            // UNKNOWN
+            return res.status(StatusCodes.BAD_GATEWAY).json({
+                message: 'Lightning network service temporarily unavailable',
+                error: 'Please try again in a few moments',
+            });
+        }
+
+        if (error.code === 14) {
+            // UNAVAILABLE
+            return res.status(StatusCodes.SERVICE_UNAVAILABLE).json({
+                message: 'Lightning network connection failed',
+                error: 'Service temporarily unavailable',
+            });
+        }
+
+        // Generic error response
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: 'Failed to create invoice',
+            error:
+                process.env.NODE_ENV === 'development'
+                    ? error.message
+                    : 'Internal server error',
+        });
     }
-
-    if (!invoiceResponse.r_hash) {
-      throw new Error('Invalid response from LND: missing r_hash');
-    }
-
-    // Prepare payload with validated data
-    const payload: IInvoiceData = {
-      userId: userId,
-      invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
-      bolt11: invoiceResponse.payment_request, // This should be payment_request, not payment_addr
-      amount: amount,
-      memo: memo || '',
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
-      paymentHash: invoiceResponse.r_hash.toString('hex'), // Convert Buffer to hex string
-      payment_request: invoiceResponse.payment_request,
-      status: 'pending',
-    };
-
-    console.log('Saving invoice to database:', {
-      invoiceId: payload.invoiceId,
-      amount: payload.amount,
-      userId: payload.userId,
-    });
-
-    // Save to database
-    const dbResponse = await lndService.createInvoice(payload);
-
-    res.status(StatusCodes.CREATED).json({
-      message: 'Created invoice successfully',
-      data: {
-        invoiceId: payload.invoiceId,
-        payment_request: payload.payment_request,
-        amount: payload.amount,
-        expires_at: payload.expiresAt,
-      },
-    });
-  } catch (error: any) {
-    console.error('Invoice creation failed:', {
-      error: error.message,
-      stack: error.stack,
-      code: error.code,
-      details: error.details,
-    });
-
-    // Handle specific gRPC errors
-    if (error.code === 2) {
-      // UNKNOWN
-      return res.status(StatusCodes.BAD_GATEWAY).json({
-        message: 'Lightning network service temporarily unavailable',
-        error: 'Please try again in a few moments',
-      });
-    }
-
-    if (error.code === 14) {
-      // UNAVAILABLE
-      return res.status(StatusCodes.SERVICE_UNAVAILABLE).json({
-        message: 'Lightning network connection failed',
-        error: 'Service temporarily unavailable',
-      });
-    }
-
-    // Generic error response
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: 'Failed to create invoice',
-      error:
-        process.env.NODE_ENV === 'development'
-          ? error.message
-          : 'Internal server error',
-    });
-  }
 };
+
 export const sendPayment = async (req: Request, res: Response) => {
-  try {
-    // @ts-ignore
-    const { userId } = req.user as { userId: string };
-    const { invoiceId } = req.body;
+    try {
+        // @ts-ignore
+        const { userId } = req.user as { userId: string };
+        const { invoiceId } = req.body;
 
-    if (!invoiceId) {
-      res.status(StatusCodes.BAD_REQUEST).json({
-        message: 'Invoice ID is required',
-      });
-      return;
-    }
+        if (!invoiceId) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: "Invoice ID is required"
+            });
+        }
 
-    const invoice = await lndService.getInvoiceById(invoiceId);
-    if (!invoice) {
-      res.status(StatusCodes.NOT_FOUND).json({ message: 'Invoice not found' });
-      return;
-    }
+        const invoice = await lndService.getInvoiceById(invoiceId);
+        if (!invoice) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: 'Invoice not found' });
+        }
 
-    const payment_request = invoice.payment_request;
-    const decoded = bolt11.decode(payment_request);
+        const payment_request = invoice.payment_request;
+        const decoded = bolt11.decode(payment_request);
+        const expireTag = decoded.tags.find((t: { tagName: string; }) => t.tagName === 'expire_time')
+        const timeout_seconds = typeof expireTag?.data === 'number'
+            ? expireTag.data
+            : 60  // fallback to a default if not present
 
-    const expireTag = decoded.tags.find(
-      (t: { tagName: string }) => t.tagName === 'expire_time'
-    );
-    const timeout_seconds =
-      typeof expireTag?.data === 'number' ? expireTag.data : 60; // fallback to a default if not present
+        // Check if invoice is expired
+        const createdAt = decoded.timestamp || 0;
+        const expiresAt = createdAt + timeout_seconds;
+        const now = Math.floor(Date.now() / 1000);
 
-    // Check if invoice is expired
-    const createdAt = decoded.timestamp || 0;
-    const expiresAt = createdAt + timeout_seconds;
-    const now = Math.floor(Date.now() / 1000);
+        if (now > expiresAt) {
+            res.status(StatusCodes.BAD_REQUEST).json({
+                message: "Invoice has expired"
+            });
+            return;
+        }
 
-    if (now > expiresAt) {
-      res.status(StatusCodes.BAD_REQUEST).json({
-        message: 'Invoice has expired',
-      });
-      return;
-    }
+        const request = {
+            payment_request: payment_request,
+            timeout_seconds,
+        };
 
-    const request = {
-      payment_request: payment_request,
-      timeout_seconds,
-    };
+        const response = await PayInvoice(request);
 
-    const lndRouterClient = await routerClient();
-    // call the SendPaymentV2 RPC
-    const call = lndRouterClient.sendPaymentV2(request);
-
-    // Set up response handling
-    let responseHandled = false;
-
-    call.on('data', async (response: any) => {
-      if (response.status === 'SUCCEEDED' || response.status === 'FAILED') {
-        if (responseHandled) return; // Prevent duplicate handling
-        responseHandled = true;
-
-        try {
-          const payload: IPaymentData = {
+        const payload: IPaymentData = {
             userId: new Types.ObjectId(userId),
             paymentId: response.payment_hash,
             bolt11: payment_request,
-            amount: response.value,
-            fee: response.fee,
-            payment_index: response.payment_index,
+            amount: Number(response.value),
+            fee: Number(response.fee),
+            payment_index: Number(response.payment_index),
             preimage: response.payment_preimage,
-            status: response.status.toLowerCase(),
+            status: response.status.toLowerCase() as IPaymentData["status"],
             failureReason: response.failure_reason,
-            paymentHash: response.paymentHash,
+            paymentHash: response.payment_hash,
             destination: decoded.payeeNodeKey || '',
             hops: response.htlcs?.length,
-            succeededAt:
-              response.status === 'SUCCEEDED' ? new Date() : undefined,
+            succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
             failedAt: response.status === 'FAILED' ? new Date() : undefined,
             routingHints: response.htlcs,
             metadata: {
-              route: response.route,
-              payment_error: response.payment_error,
-            },
-          };
+                route: response.htlcs,
+                payment_error: response.failure_reason
+            }
+        };
 
-          let paymentRecord = await lndService.createPayment(payload);
-          const statusCode =
-            response.status === 'SUCCEEDED'
-              ? StatusCodes.OK
-              : StatusCodes.PAYMENT_REQUIRED;
+        let paymentRecord = await lndService.createPayment(payload);
+        const statusCode = response.status === 'SUCCEEDED'
+            ? StatusCodes.OK
+            : StatusCodes.PAYMENT_REQUIRED;
 
-          res.status(statusCode).json({
+        res.status(statusCode).json({
             success: response.status === 'SUCCEEDED',
-            message:
-              response.status === 'SUCCEEDED'
-                ? 'Payment sent successfully'
-                : 'Payment failed',
+            message: response.status === 'SUCCEEDED' ? "Payment sent successfully" : "Payment failed",
             payment: paymentRecord,
-          });
-        } catch (error) {
-          console.error('Database error:', error);
-          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: 'Payment processed but failed to save to database',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
-      }
-    });
-    call.on('error', (err: Error) => {
-      if (!responseHandled) {
-        responseHandled = true;
-        console.error('Payment stream error:', err);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          message: 'Error processing payment',
-          error: err.message,
         });
-        return;
-      }
-    });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: 'Failed to send payment',
-      //@ts-ignore
-      error: error.message,
-    });
-  }
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "Failed to send payment",
+            //@ts-ignore
+            error: error.message,
+        });
+    }
 };
 
 // // Get wallet info controller

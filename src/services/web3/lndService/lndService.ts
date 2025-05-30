@@ -14,16 +14,19 @@ export const createInvoice = async (payload: IInvoiceData) => {
         const invoice = await Invoice.create(payload);
         return invoice;
     } catch (err: any) {
-        // Log the original error for debugging
         console.error('Error creating invoice:', err);
-
-        // You can wrap the original message or provide a custom one
         throw new Error(err.message || 'Failed to create invoice');
     }
 };
 
 export const createPayment = async (payload: IPaymentData) => {
-    return await Payment.create(payload);
+    try {
+        const payment = await Payment.create(payload);
+        return payment;
+    } catch (err: any) {
+        console.error('Error sending payment:', err);
+        throw new Error(err.message || 'Error sending payment');
+    }
 };
 
 // interface LndRoute {
