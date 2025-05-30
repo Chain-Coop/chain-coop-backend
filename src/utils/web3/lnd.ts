@@ -15,7 +15,7 @@ process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA';
 
 const getProtoPath = () => {
   const protoPath =
-    process.env.SERVER === 'production'
+    process.env.NODE_ENV === 'production'
       ? '/etc/secrets/lightning.proto'
       : path.resolve(__dirname, 'lightning.proto');
 
@@ -28,7 +28,7 @@ const getProtoPath = () => {
 
 const getRouterProtoPath = () => {
   const routerPath =
-    process.env.SERVER === 'production'
+    process.env.NODE_ENV === 'production'
       ? '/etc/secrets/router.proto'
       : path.resolve(__dirname, 'router.proto');
 
@@ -41,7 +41,7 @@ const getRouterProtoPath = () => {
 
 const getMacaroon = () => {
   const certPath =
-    process.env.SERVER === 'production'
+    process.env.NODE_ENV === 'production'
       ? '/etc/secrets/admin.macaroon'
       : path.resolve(__dirname, 'admin.macaroon');
 
@@ -63,7 +63,7 @@ const getMacaroon = () => {
 
 const getTLSCERT = () => {
   const certPath =
-    process.env.SERVER === 'production'
+    process.env.NODE_ENV === 'production'
       ? '/etc/secrets/tls.cert'
       : path.resolve(__dirname, 'tls.cert');
 
