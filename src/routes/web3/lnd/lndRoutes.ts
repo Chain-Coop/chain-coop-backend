@@ -20,7 +20,7 @@ const router = express.Router();
  *     tags: [LND]
  *     security:
  *       - bearerAuth: []
- *       - macaroonAuth: []               # header: Grpc-Metadata-macaroon
+ *       - macaroonAuth: []
  *     requestBody:
  *       description: Invoice data (satoshis, memo, etc.)
  *       required: true
@@ -38,7 +38,7 @@ const router = express.Router();
  *                 description: Amount in satoshis
  *                 example: 25000
  *             required:
- *               - value
+ *               - amount
  *     responses:
  *       201:
  *         description: Invoice created successfully
@@ -47,18 +47,30 @@ const router = express.Router();
  *             schema:
  *               type: object
  *               properties:
- *                 r_hash:
+ *                 message:
  *                   type: string
- *                   description: Payment hash (base64-encoded)
- *                 payment_request:
- *                   type: string
- *                   description: BOLT11 payment request
- *                 add_index:
- *                   type: string
- *                   description: Monotonically increasing invoice index
- *                 payment_addr:
- *                   type: string
- *                   description: Payment address/payment secret (base64)
+ *                   example: "Created invoice successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     invoiceId:
+ *                       type: string
+ *                       description: Monotonically increasing invoice index
+ *                     payment_request:
+ *                       type: string
+ *                       description: BOLT11 payment request
+ *                     amount:
+ *                       type: integer
+ *                       description: Amount in satoshis
+ *                     expires_at:
+ *                       type: string
+ *                       format: date-time
+ *                       description: ISO-8601 timestamp when the invoice expires
+ *                   required:
+ *                     - invoiceId
+ *                     - payment_request
+ *                     - amount
+ *                     - expires_at
  *       400:
  *         description: Invalid request data
  *       401:

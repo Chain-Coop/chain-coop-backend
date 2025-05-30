@@ -9,7 +9,7 @@ export interface IPaymentData {
   fee: number; // In satoshis
   payment_index: number;
   destination: string,
-  status: 'pending' | 'succeeded' | 'failed';
+  status: 'in_flight' | 'succeeded' | 'failed' | 'initiated';
   preimage?: string;
   failureReason?: string;
   hops?: number;
@@ -58,8 +58,8 @@ const PaymentSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'succeeded', 'failed'],
-      default: 'pending',
+      enum: ['in_flight', 'succeeded', 'failed', 'initiated'],
+      default: 'initiated',
       index: true
     },
     preimage: {
