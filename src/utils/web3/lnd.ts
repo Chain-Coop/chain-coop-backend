@@ -1,7 +1,3 @@
-// const fs = require('fs');
-// const grpc = require('@grpc/grpc-js');
-// const protoLoader = require('@grpc/proto-loader');
-// const path = require('path');
 import axios from 'axios';
 
 const LND_BASE_URL = process.env.LND_REST_URL!;
