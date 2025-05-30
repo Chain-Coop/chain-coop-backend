@@ -15,7 +15,7 @@ process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA';
 
 const getProtoPath = () => {
   const protoPath =
-    process.env.NODE_ENV === 'production'
+    process.env.SERVER === 'production'
       ? '/etc/secrets/lightning.proto'
       : path.resolve(__dirname, 'lightning.proto');
 
@@ -28,7 +28,7 @@ const getProtoPath = () => {
 
 const getRouterProtoPath = () => {
   const routerPath =
-    process.env.NODE_ENV === 'production'
+    process.env.SERVER === 'production'
       ? '/etc/secrets/router.proto'
       : path.resolve(__dirname, 'router.proto');
 
@@ -41,7 +41,7 @@ const getRouterProtoPath = () => {
 
 const getMacaroon = () => {
   const certPath =
-    process.env.NODE_ENV === 'production'
+    process.env.SERVER === 'production'
       ? '/etc/secrets/admin.macaroon'
       : path.resolve(__dirname, 'admin.macaroon');
 
@@ -50,12 +50,20 @@ const getMacaroon = () => {
   }
 
   const m = fs.readFileSync(certPath);
-  return m.toString('hex');
+
+  // Debug: Check macaroon size and format
+  console.log('Macaroon loaded, size:', m.length);
+
+  // Ensure it's converted to hex properly
+  const hexMacaroon = m.toString('hex');
+  console.log('Macaroon hex length:', hexMacaroon.length);
+
+  return hexMacaroon;
 };
 
 const getTLSCERT = () => {
   const certPath =
-    process.env.NODE_ENV === 'production'
+    process.env.SERVER === 'production'
       ? '/etc/secrets/tls.cert'
       : path.resolve(__dirname, 'tls.cert');
 
@@ -109,7 +117,7 @@ const createCredentials = () => {
       }
     );
 
-    const sslCreds = grpc.credentials.createSsl(tlsCert);
+    const sslCreds = grpc.credentials.createSsl();
 
     return grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
   } catch (error) {
@@ -179,4 +187,4 @@ export const routerClient = async () => {
     throw new Error('Failed to connect to LND router');
   }
 };
-
+client()
