@@ -7,6 +7,7 @@ import logger from "../utils/logger";
 import { UserDocument } from "../models/authModel";
 import { addtoLimit, getDailyTotal } from "./dailyServices";
 import { findUser } from "./authService";
+import User from "../models/authModel";  
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BANK_VERIFICATION_URL = "https://api.paystack.co/bank/resolve";
@@ -95,10 +96,24 @@ export const createPin = async (id: any, payload: iWallet) => {
   await wallet.save();
 };
 
+
 export const findWalletService = async (payload: any) => {
   const wallet = await Wallet.findOne(payload);
   return wallet;
 };
+
+async function getUserWithWallet(userId: string) {
+  return await User.findById(userId).populate("wallet");
+}
+
+export const findUserWallet= async (userId: any) => {
+  const user = await getUserWithWallet(userId);
+  if (user?.wallet?.pin) {
+  
+  }
+};
+
+
 
 export const updateWalletService = async (id: any, payload: iWallet) => {
   console.log("Updating wallet with ID:", id, "Payload:", payload);
