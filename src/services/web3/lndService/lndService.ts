@@ -1,7 +1,8 @@
-import User from "../../../models/user";
+import { Types } from "mongoose";
 import Invoice, { IInvoice } from "../../../models/web3/lnd/invoice";
 import Payment, { IPayment } from "../../../models/web3/lnd/payment";
-import LndWallet, { ILndWallet } from "../../../models/web3/lnd/wallet";
+import LndWallet from "../../../models/web3/lnd/wallet";
+import { v4 as uuidv4 } from 'uuid';
 
 export const getInvoiceById = async (invoiceId: string) => {
   return await Invoice.findOne({ invoiceId });
@@ -10,58 +11,6 @@ export const getInvoiceById = async (invoiceId: string) => {
 export const getInvoicesByUser = async (userId: string) => {
   return await Invoice.find({ userId }).sort({ createdAt: -1 });
 };
-
-// // Get invoice by payment hash
-// export const getInvoiceByPaymentHash = async (paymentHash: string) => {
-//     return await User.findOne({ paymentHash });
-// }
-
-// // Get user balance
-// export const getUserBalance = async (userId: string) => {
-//     const user = await User.findById(userId).select('lightningBalance');
-//     return user?.lightningBalance || 0;
-// }
-
-
-
-// // Increment user balance (you'll need a User model with balance field)
-// export const incrementUserBalance = async (userId: string, amount: number) => {
-//     // Option 1: If you have a User model with balance field
-//     return await User.findByIdAndUpdate(
-//         userId,
-//         { $inc: { lightningBalance: amount } },
-//         { new: true, upsert: true }
-//     );
-
-//     // Option 2: If you want separate balance tracking
-//     // return await UserBalance.findOneAndUpdate(
-//     //     { userId },
-//     //     { 
-//     //         $inc: { balance: amount },
-//     //         $push: { 
-//     //             transactions: {
-//     //                 type: 'credit',
-//     //                 amount,
-//     //                 timestamp: new Date(),
-//     //                 source: 'lightning_invoice'
-//     //             }
-//     //         }
-//     //     },
-//     //     { new: true, upsert: true }
-//     // );
-// }
-
-// // Update invoice status
-// export const updateInvoiceStatus = async (invoiceId: string, updates: Partial<IInvoice>) => {
-//     return await Invoice.findOneAndUpdate(
-//         { invoiceId },
-//         { $set: updates },
-//         {
-//             new: true,
-//             runValidators: true,
-//         }
-//     );
-// }
 
 export const createInvoice = async (payload: Partial<IInvoice>) => {
   try {
@@ -93,9 +42,7 @@ export const getWalletBalance = async (userId: string) => {
   }
 }
 
-
-
-export const decrementBalance = async (userId: string, amount: number) => {
+export const decrementBalance = async (userId: Types.ObjectId | string, amount: number) => {
   return await LndWallet.findByIdAndUpdate(
     userId,
     { $inc: { balance: -amount } },
@@ -106,9 +53,7 @@ export const decrementBalance = async (userId: string, amount: number) => {
   );
 }
 
-
-
-export const incrementUserBalance = async (userId: string, amount: number) => {
+export const incrementBalance = async (userId: Types.ObjectId | string, amount: number) => {
   return await LndWallet.findByIdAndUpdate(
     userId,
     { $inc: { balance: amount } },
@@ -118,16 +63,6 @@ export const incrementUserBalance = async (userId: string, amount: number) => {
     }
   );
 }
-
-
-
-
-
-import { v4 as uuidv4 } from 'uuid';
-
-
-
-
 
 // Lock funds for a specific period
 export const lockBalance = async (
