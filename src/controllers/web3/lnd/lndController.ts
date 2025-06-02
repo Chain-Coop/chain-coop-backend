@@ -12,9 +12,9 @@ import * as lndService from '../../../services/web3/lndService/lndService';
 import { StatusCodes } from "http-status-codes";
 import bolt11 from "bolt11";
 import { AddInvoice, PayInvoice } from "../../../utils/web3/lnd";
-import { IInvoiceData } from "../../../models/web3/lnd/invoice";
+import { IInvoice } from "../../../models/web3/lnd/invoice";
 import { Types, Error } from "mongoose";
-import { IPaymentData } from "../../../models/web3/lnd/payment";
+import { IPayment } from "../../../models/web3/lnd/payment";
 
 // Create a controller to get invoice by Id
 export const getInvoice = async (req: Request, res: Response) => {
@@ -93,7 +93,7 @@ export const createInvoice = async (req: Request, res: Response) => {
         const paymentHashHex = Buffer.from(invoiceResponse.r_hash, 'base64').toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
 
         // Prepare payload with validated data
-        const payload: IInvoiceData = {
+        const payload: Partial<IInvoice> = {
             userId: userId,
             invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
             bolt11: invoiceResponse.payment_request,
@@ -162,7 +162,7 @@ export const createInvoice = async (req: Request, res: Response) => {
 export const sendPayment = async (req: Request, res: Response) => {
     try {
         // @ts-ignore
-        const { userId } = req.user as { userId: string };
+        const { userId } = req.user;
         const { invoiceId } = req.body;
 
         if (!invoiceId) {
@@ -182,6 +182,23 @@ export const sendPayment = async (req: Request, res: Response) => {
         const timeout_seconds = typeof expireTag?.data === 'number'
             ? expireTag.data
             : 60  // fallback to a default if not present
+        const amountMsat = decoded.millisatoshis;
+        const amountSat = Math.ceil(Number(amountMsat) / 1000);
+
+
+        const senderBalance = await lndService.getAvailableBalance(userId);
+        const estimatedFee = Math.ceil(amountSat * 0.01); // Estimate 1% fee
+        const totalRequired = amountSat + estimatedFee;
+
+        if (senderBalance < totalRequired) {
+            return res.status(StatusCodes.PAYMENT_REQUIRED).json({
+                message: "Insufficient balance",
+                required: totalRequired,
+                available: senderBalance,
+                shortage: totalRequired - senderBalance
+            });
+        }
+
 
         // Check if invoice is expired
         const createdAt = decoded.timestamp || 0;
@@ -195,6 +212,13 @@ export const sendPayment = async (req: Request, res: Response) => {
             return;
         }
 
+        if (isNaN(amountSat) || amountSat <= 0) {
+            res.status(400).json({ error: "Invalid amount" });
+            return;
+        }
+
+        await lndService.decrementBalance(userId, amountSat)
+
         const request = {
             payment_request: payment_request,
             timeout_seconds,
@@ -202,7 +226,7 @@ export const sendPayment = async (req: Request, res: Response) => {
 
         const response = await PayInvoice(request);
 
-        const payload: IPaymentData = {
+        const payload: Partial<IPayment> = {
             userId: new Types.ObjectId(userId),
             paymentId: response.payment_hash,
             bolt11: payment_request,
@@ -210,7 +234,7 @@ export const sendPayment = async (req: Request, res: Response) => {
             fee: Number(response.fee),
             payment_index: Number(response.payment_index),
             preimage: response.payment_preimage,
-            status: response.status.toLowerCase() as IPaymentData["status"],
+            status: response.status.toLowerCase() as IPayment["status"],
             failureReason: response.failure_reason,
             paymentHash: response.payment_hash,
             destination: decoded.payeeNodeKey || '',
@@ -223,6 +247,10 @@ export const sendPayment = async (req: Request, res: Response) => {
                 payment_error: response.failure_reason
             }
         };
+
+        if (response.status === 'FAILED') {
+            await lndService.incrementUserBalance(userId, amountSat);
+        }
 
         let paymentRecord = await lndService.createPayment(payload);
         const statusCode = response.status === 'SUCCEEDED'
@@ -239,6 +267,89 @@ export const sendPayment = async (req: Request, res: Response) => {
             message: "Failed to send payment",
             //@ts-ignore
             error: error.message,
+        });
+    }
+};
+
+export const lockFunds = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const { userId } = req.user;
+        const { amount, unlockAt, purpose = 'staking' } = req.body;
+
+        // Input validation
+        if (!amount || typeof amount !== 'number' || amount <= 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: 'Valid amount is required',
+            });
+        }
+
+        if (!unlockAt || new Date(unlockAt) <= new Date()) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                message: 'Valid future unlock date is required',
+            });
+        }
+
+        const result = await lndService.lockBalance(userId, amount, new Date(unlockAt), purpose);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Funds locked successfully',
+            data: {
+                lockId: result.lockId,
+                amount,
+                unlockAt,
+                purpose,
+                availableBalance: result.wallet.balance - result.wallet.lockedBalance
+            }
+        });
+    } catch (error: any) {
+        console.error('Lock funds failed:', error);
+        res.status(StatusCodes.BAD_REQUEST).json({
+            message: 'Failed to lock funds',
+            error: error.message
+        });
+    }
+};
+
+export const getWalletInfo = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const { userId } = req.user;
+
+        const walletDetails = await lndService.getWalletDetails(userId);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Wallet details retrieved successfully',
+            data: walletDetails
+        });
+    } catch (error: any) {
+        console.error('Get wallet info failed:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: 'Failed to get wallet information',
+            error: error.message
+        });
+    }
+};
+
+export const unlockFunds = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const { userId } = req.user;
+
+        const result = await lndService.unlockCurrentFunds(userId);
+
+        res.status(StatusCodes.OK).json({
+            message: 'Funds unlocked successfully',
+            data: {
+                unlockedAmount: result.unlockedAmount,
+                availableBalance: result.wallet.balance - result.wallet.lockedBalance
+            }
+        });
+    } catch (error: any) {
+        console.error('Unlock funds failed:', error);
+        res.status(StatusCodes.BAD_REQUEST).json({
+            message: 'Failed to unlock funds',
+            error: error.message
         });
     }
 };

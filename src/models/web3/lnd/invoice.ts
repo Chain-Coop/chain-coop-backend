@@ -1,8 +1,7 @@
 // models/Invoice.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IInvoiceData {
-  // export interface IInvoice extends Document {
+export interface IInvoice {
   userId: mongoose.Types.ObjectId;
   invoiceId: string; // LND invoice ID
   bolt11: string; // BOLT11 invoice string
@@ -20,10 +19,6 @@ export interface IInvoiceData {
   };
   paymentHash: string;
 }
-
-
-// Full interface that extends Document (for database operations)
-export interface IInvoice extends IInvoiceData, Document { }
 
 const InvoiceSchema: Schema = new Schema(
   {

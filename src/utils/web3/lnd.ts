@@ -66,6 +66,25 @@ export const PayInvoice = async (payload: any): Promise<SendPaymentInterface> =>
   }
 };
 
+
+export const SubscribeInvoices = async (): Promise<void> => {
+  try {
+    const { data } = await axios.get<any>(`${LND_BASE_URL}/v1/invoices/subscribe`,
+      {
+        headers: {
+          'Grpc-Metadata-macaroon': MACAROON,
+          'Content-Type': 'application/json'
+        },
+      }
+    );
+
+    return data;
+  } catch (error: any) {
+    console.error('LND API Error:', error.response);
+    throw error;
+  }
+};
+
 // const fs = require('fs');
 // const grpc = require('@grpc/grpc-js');
 // const protoLoader = require('@grpc/proto-loader');
