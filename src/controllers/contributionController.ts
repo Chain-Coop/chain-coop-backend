@@ -494,8 +494,10 @@ if (contribution.savingsType === "Flexible") {
 // Handle savingsType: Lock
 if (contribution.savingsType === "Lock") {
   const withdrawalFee = 50;
+  const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% penalty
   const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
-  const totalDeductions = withdrawalFee + membershipFee;
+
+  const totalDeductions = withdrawalFee + earlyWithdrawalPenalty + membershipFee;
   const totalToCredit = Math.max(amount - totalDeductions, 0);
 
   if (contribution.balance < amount) {
