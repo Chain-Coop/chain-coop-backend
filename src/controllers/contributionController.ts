@@ -416,7 +416,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
 // Handle savingsType: Flexible
 if (contribution.savingsType === "Flexible") {
-  const withdrawalFee = Math.floor(amount * 0.03);
+  const withdrawalFee = 50;
   const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
 
   const totalFees = withdrawalFee + membershipFee;
@@ -493,7 +493,7 @@ if (contribution.savingsType === "Flexible") {
   
 // Handle savingsType: Lock
 if (contribution.savingsType === "Lock") {
-  const withdrawalFee = Math.floor(amount * 0.03);
+  const withdrawalFee = 50;
   const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
   const totalDeductions = withdrawalFee + membershipFee;
   const totalToCredit = Math.max(amount - totalDeductions, 0);
@@ -559,8 +559,8 @@ if (contribution.savingsType === "Lock") {
 
 // Handle savingsType: Strict  
 if (contribution.savingsType === "Strict") {
-  const withdrawalFee = Math.floor(amount * 0.03); // 3% withdrawal fee
-  const earlyWithdrawalPenalty = currentDate < endDate ? 2000 : 0;
+  const withdrawalFee = 50; // fixed withdrawal fee
+  const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% early withdrawal
   const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
   const debtFee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
 
