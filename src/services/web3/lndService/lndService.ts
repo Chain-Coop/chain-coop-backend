@@ -1,33 +1,314 @@
-import Invoice, { IInvoiceData } from "../../../models/web3/lnd/invoice";
-import Payment, { IPaymentData } from "../../../models/web3/lnd/payment";
+import User from "../../../models/user";
+import Invoice, { IInvoice } from "../../../models/web3/lnd/invoice";
+import Payment, { IPayment } from "../../../models/web3/lnd/payment";
+import LndWallet, { ILndWallet } from "../../../models/web3/lnd/wallet";
 
 export const getInvoiceById = async (invoiceId: string) => {
-    return await Invoice.findOne({ invoiceId });
+  return await Invoice.findOne({ invoiceId });
 };
 
 export const getInvoicesByUser = async (userId: string) => {
-    return await Invoice.find({ userId }).sort({ createdAt: -1 });
+  return await Invoice.find({ userId }).sort({ createdAt: -1 });
 };
 
-export const createInvoice = async (payload: IInvoiceData) => {
-    try {
-        const invoice = await Invoice.create(payload);
-        return invoice;
-    } catch (err: any) {
-        console.error('Error creating invoice:', err);
-        throw new Error(err.message || 'Failed to create invoice');
-    }
+// // Get invoice by payment hash
+// export const getInvoiceByPaymentHash = async (paymentHash: string) => {
+//     return await User.findOne({ paymentHash });
+// }
+
+// // Get user balance
+// export const getUserBalance = async (userId: string) => {
+//     const user = await User.findById(userId).select('lightningBalance');
+//     return user?.lightningBalance || 0;
+// }
+
+
+
+// // Increment user balance (you'll need a User model with balance field)
+// export const incrementUserBalance = async (userId: string, amount: number) => {
+//     // Option 1: If you have a User model with balance field
+//     return await User.findByIdAndUpdate(
+//         userId,
+//         { $inc: { lightningBalance: amount } },
+//         { new: true, upsert: true }
+//     );
+
+//     // Option 2: If you want separate balance tracking
+//     // return await UserBalance.findOneAndUpdate(
+//     //     { userId },
+//     //     { 
+//     //         $inc: { balance: amount },
+//     //         $push: { 
+//     //             transactions: {
+//     //                 type: 'credit',
+//     //                 amount,
+//     //                 timestamp: new Date(),
+//     //                 source: 'lightning_invoice'
+//     //             }
+//     //         }
+//     //     },
+//     //     { new: true, upsert: true }
+//     // );
+// }
+
+// // Update invoice status
+// export const updateInvoiceStatus = async (invoiceId: string, updates: Partial<IInvoice>) => {
+//     return await Invoice.findOneAndUpdate(
+//         { invoiceId },
+//         { $set: updates },
+//         {
+//             new: true,
+//             runValidators: true,
+//         }
+//     );
+// }
+
+export const createInvoice = async (payload: Partial<IInvoice>) => {
+  try {
+    const invoice = await Invoice.create(payload);
+    return invoice;
+  } catch (err: any) {
+    console.error('Error creating invoice:', err);
+    throw new Error(err.message || 'Failed to create invoice');
+  }
 };
 
-export const createPayment = async (payload: IPaymentData) => {
-    try {
-        const payment = await Payment.create(payload);
-        return payment;
-    } catch (err: any) {
-        console.error('Error sending payment:', err);
-        throw new Error(err.message || 'Error sending payment');
-    }
+export const createPayment = async (payload: Partial<IPayment>) => {
+  try {
+    const payment = await Payment.create(payload);
+    return payment;
+  } catch (err: any) {
+    console.error('Error sending payment:', err);
+    throw new Error(err.message || 'Error sending payment');
+  }
 };
+
+export const getWalletBalance = async (userId: string) => {
+  try {
+    const wallet = await LndWallet.findById(userId);
+    return wallet?.balance || 0
+  } catch (error: any) {
+    console.error('Error fetcing balnce:', error);
+    throw new Error(error.message || 'Error fetcing balance');
+  }
+}
+
+
+
+export const decrementBalance = async (userId: string, amount: number) => {
+  return await LndWallet.findByIdAndUpdate(
+    userId,
+    { $inc: { balance: -amount } },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+}
+
+
+
+export const incrementUserBalance = async (userId: string, amount: number) => {
+  return await LndWallet.findByIdAndUpdate(
+    userId,
+    { $inc: { balance: amount } },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+}
+
+
+
+
+
+import { v4 as uuidv4 } from 'uuid';
+
+
+
+
+
+// Lock funds for a specific period
+export const lockBalance = async (
+  userId: string,
+  amount: number,
+  maturitDate: Date,
+  purpose: string = 'staking'
+) => {
+  try {
+    const wallet = await LndWallet.findOne({ userId });
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    const availableBalance = wallet.balance - wallet.lockedBalance;
+    if (availableBalance < amount) {
+      throw new Error('Insufficient available balance to lock');
+    }
+
+    const lockId = uuidv4();
+    const lockEntry = {
+      amount,
+      lockedAt: new Date(),
+      maturitDate,
+      purpose,
+      lockId
+    };
+
+    const updatedWallet = await LndWallet.findOneAndUpdate(
+      { userId },
+      {
+        lockedBalance: amount, // Set to the new lock amount
+        lock: lockEntry // Set the single lock entry
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedWallet) {
+      throw new Error('Failed to update wallet');
+    }
+
+    return { wallet: updatedWallet, lockId };
+  } catch (error: any) {
+    console.error('Error locking balance:', error);
+    throw new Error(error.message || 'Failed to lock balance');
+  }
+};
+
+// Unlock expired funds automatically
+export const unlockExpiredFunds = async (userId: string) => {
+  try {
+    const now = new Date();
+    const wallet = await LndWallet.findOne({ userId });
+
+    if (!wallet || !wallet.lock) {
+      return { unlockedAmount: 0, expiredLock: null, wallet };
+    }
+
+    // Check if the single lock is expired
+    if (wallet.lock.maturityDate <= now) {
+      const expiredLock = wallet.lock;
+
+      const updatedWallet = await LndWallet.findOneAndUpdate(
+        { userId },
+        {
+          lockedBalance: 0,
+          $unset: { lock: "" }
+        },
+        { new: true }
+      );
+
+      if (!updatedWallet) {
+        throw new Error('Failed to update wallet');
+      }
+
+      return { unlockedAmount: expiredLock.amount, expiredLock, wallet: updatedWallet };
+    }
+
+    return { unlockedAmount: 0, expiredLock: null, wallet };
+  } catch (error: any) {
+    console.error('Error unlocking expired funds:', error);
+    throw new Error(error.message || 'Failed to unlock expired funds');
+  }
+};
+
+// Manually unlock the current lock
+export const unlockCurrentFunds = async (userId: string) => {
+  try {
+    const wallet = await LndWallet.findOne({ userId });
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    if (!wallet.lock) {
+      throw new Error('No active lock found');
+    }
+
+    const lockAmount = wallet.lock.amount;
+
+    const updatedWallet = await LndWallet.findOneAndUpdate(
+      { userId },
+      {
+        lockedBalance: 0,
+        $unset: { lock: "" } // Remove the lock field
+      },
+      { new: true }
+    );
+
+    if (!updatedWallet) {
+      throw new Error('Failed to update wallet');
+    }
+
+    return { unlockedAmount: lockAmount, wallet: updatedWallet };
+  } catch (error: any) {
+    console.error('Error unlocking current funds:', error);
+    throw new Error(error.message || 'Failed to unlock funds');
+  }
+};
+
+// Get available balance (total - locked)
+export const getAvailableBalance = async (userId: string) => {
+  try {
+    // First unlock any expired funds
+    await unlockExpiredFunds(userId);
+
+    const wallet = await LndWallet.findOne({ userId });
+    if (!wallet) {
+      return 0;
+    }
+
+    return wallet.balance - wallet.lockedBalance;
+  } catch (error: any) {
+    console.error('Error getting available balance:', error);
+    throw new Error(error.message || 'Error fetching available balance');
+  }
+};
+
+// Get wallet details including lock
+export const getWalletDetails = async (userId: string) => {
+  try {
+    // First unlock any expired funds
+    await unlockExpiredFunds(userId);
+
+    const wallet = await LndWallet.findOne({ userId }).lean();
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    return {
+      totalBalance: wallet.balance,
+      lockedBalance: wallet.lockedBalance,
+      availableBalance: wallet.balance - wallet.lockedBalance,
+      activeLock: wallet.lock || null,
+      hasActiveLock: !!wallet.lock
+    };
+  } catch (error: any) {
+    console.error('Error getting wallet details:', error);
+    throw new Error(error.message || 'Error fetching wallet details');
+  }
+};
+
+
+
+
+// // Deduct from user balance (for outgoing payments)
+// export const decrementUserBalance = async (userId: string, amount: number) => {
+//     const user = await User.findById(userId);
+//     if (!user || (user.lightningBalance || 0) < amount) {
+//         throw new Error('Insufficient balance');
+//     }
+
+//     return await User.findByIdAndUpdate(
+//         userId,
+//         { $inc: { lightningBalance: -amount } },
+//         {
+//             new: true,
+//             runValidators: true,
+//         }
+//     );
+// }
+
 
 // interface LndRoute {
 //   fee: number;

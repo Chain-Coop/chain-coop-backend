@@ -1,7 +1,7 @@
 // models/Payment.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IPaymentData {
+export interface IPayment {
   userId: mongoose.Types.ObjectId;
   paymentId: string; // LND payment ID
   bolt11?: string; // Original BOLT11 invoice if available
@@ -23,9 +23,6 @@ export interface IPaymentData {
   routingHints?: any[];
   retryCount?: number;
 }
-
-// Full interface that extends Document (for database operations)
-export interface IPayment extends IPaymentData, Document { }
 
 const PaymentSchema: Schema = new Schema(
   {
