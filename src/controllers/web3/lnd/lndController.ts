@@ -216,10 +216,7 @@ export const sendPayment = async (req: Request, res: Response) => {
             return;
         }
 
-        let recipient = invoice.userId;
-        await lndService.decrementBalance(userId, amountSat)
-        await lndService.incrementBalance(recipient, amountSat);
-
+        await lndService.decrementBalance(userId, amountSat);
 
         const request = {
             payment_request: payment_request,
@@ -252,7 +249,6 @@ export const sendPayment = async (req: Request, res: Response) => {
 
         if (response.status === 'FAILED') {
             await lndService.incrementBalance(userId, amountSat);
-            await lndService.decrementBalance(recipient, amountSat);
         }
 
         let paymentRecord = await lndService.createPayment(payload);
