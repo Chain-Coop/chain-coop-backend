@@ -7,6 +7,7 @@ export interface ContributionHistoryDocument extends Document {
   Date: Date;
   type: string;
   balance: number;
+  savingsType: string;
   status: string;
   reference: string;
 }
@@ -24,6 +25,7 @@ const contributionHistorySchema = new Schema<ContributionHistoryDocument>(
     type: { type: String, required: true },
     balance: { type: Number, required: true },
     status: { type: String, required: true },
+    savingsType: { type: String, required: true },
     reference: { type: String, unique: true },
   },
   { timestamps: true }

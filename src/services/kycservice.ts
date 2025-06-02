@@ -4,6 +4,8 @@ import { findWalletService } from "./walletService";
 import { findUser } from "./authService";
 import { createToken } from "../utils/createToken";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
+import qs from "qs";
+import User from "../models/user";
 
 interface VerifyBVNParams {
   countryCode: string;
@@ -165,6 +167,107 @@ const BVNWebhook = async (data: any) => {
   return "success";
 };
 
+
+// TIER 2 KYC Verification
+const DIDIT_AUTH_URL = "https://apx.didit.me/auth/v2/token/";
+const DIDIT_VERIFICATION_BASE_URL = "https://verification.didit.me";
+
+export const getClientToken = async (): Promise<string> => {
+  const clientID = process.env.NEXT_PUBLIC_DIDIT_CLIENT_ID;
+  const clientSecret = process.env.CLIENT_SECRET;
+  if (!clientID || !clientSecret) {
+    throw new Error("Didit client credentials not set in environment variables.");
+  }
+
+  const encodedCredentials = Buffer.from(`${clientID}:${clientSecret}`).toString("base64");
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
+
+  try {
+    const response = await axios.post(DIDIT_AUTH_URL, params, {
+      headers: {
+        Authorization: `Basic ${encodedCredentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+    //@ts-ignore
+    return response.data.access_token;
+  } catch (error: any) {
+    console.error("Error fetching client token:", error.message);
+    throw error;
+  }
+};
+
+export const createKycSession = async (vendorData: string) => {
+  // Use your callback URL from environment variables
+  const callback = process.env.KYC_CALLBACK_URL;
+  const features = "OCR + NFC + FACE"; 
+
+  try {
+    const token = await getClientToken();
+    const response = await axios.post(
+      `${DIDIT_VERIFICATION_BASE_URL}/v1/session/`,
+      {
+        callback,
+        features,
+        vendor_data: vendorData,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data; 
+  } catch (error: any) {
+    console.error("Error creating KYC session:", error.message);
+    throw error;
+  }
+};
+
+export const processKycWebhook = async (payload: any) => {
+  const { status, vendor_data, session_id } = payload;
+
+  // Validate required fields
+  if (!vendor_data || !session_id || !status) {
+    throw new Error("Missing required fields in webhook payload");
+  }
+
+  // Find the user by vendor_data (userId)
+  const user = await User.findById(vendor_data);   
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Check for session ID mismatch (if already set)
+  if (user.kycSessionId && user.kycSessionId !== session_id) {
+    throw new Error("Session ID mismatch for the user");
+  }
+
+  // Handle verified status
+  if (status.toLowerCase() === "verified") {
+    user.Tier = 2;
+    user.isVerified = true;
+  }
+
+  // Store the session ID if not already saved
+  if (!user.kycSessionId) {
+    user.kycSessionId = session_id;
+  }
+
+  // Save updates
+  await user.save();
+
+  return {
+    message: "User KYC verification processed successfully",
+    userId: user._id,
+    status: user.isVerified ? "verified" : "unverified",
+    tier: user.Tier,
+  };
+};
+
+
 export {
   sendSMSOTP,
   verifyOTP,
@@ -173,3 +276,5 @@ export {
   verifyBVN,
   BVNWebhook,
 };
+
+

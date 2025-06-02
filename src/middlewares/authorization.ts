@@ -1,7 +1,9 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { ForbiddenError, UnauthenticatedError } from "../errors";
-import { NextFunction, Request, Response } from "express";
-
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { ForbiddenError, UnauthenticatedError } from '../errors';
+import { NextFunction, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import ts from 'typescript';
+import User from '../models/authModel';
 type PayloadType = {
   user: {
     email: string;
@@ -17,11 +19,11 @@ export const authorize = (
 ): void => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new UnauthenticatedError("Not authorized");
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new UnauthenticatedError('Not authorized');
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const payload = jwt.verify(
@@ -33,8 +35,27 @@ export const authorize = (
     req.user = payload.user;
     next();
   } catch (error) {
-    throw new UnauthenticatedError("Authentication invalid");
+    throw new UnauthenticatedError('Authentication invalid');
   }
+};
+
+export const verifyPin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { pin } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  const user = await User.findById(userId).populate('wallet');
+  if (!user?.wallet || !user.wallet.pin) {
+    throw new Error('Wallet or PIN not found.');
+  }
+  const isMatch = await bcrypt.compare(pin, user.wallet.pin);
+  if (!isMatch) {
+    throw new ForbiddenError('Invalid pin');
+  }
+  next();
 };
 
 export const authorizePermissions =
@@ -42,7 +63,36 @@ export const authorizePermissions =
   (req: Request, res: Response, next: NextFunction): void => {
     // @ts-ignore
     if (!req.user || !roles.includes(req.user.role)) {
-      throw new ForbiddenError("Access denied");
+      throw new ForbiddenError('Access denied');
     }
     next();
   };
+
+export const kycVerified = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    if (!userId) {
+      throw new UnauthenticatedError('User ID not found');
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new UnauthenticatedError('User not found');
+    }
+
+    if (user.Tier !== 2) {
+      throw new ForbiddenError('User does not have the required KYC level');
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

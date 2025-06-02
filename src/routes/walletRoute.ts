@@ -14,6 +14,7 @@ import {
   DeleteCard,
   GetCards,
   verifyAccountDetailsHandler,
+  validateOtp,
 } from "../controllers/walletController";
 import { authorize } from "../middlewares/authorization";
 
@@ -188,9 +189,11 @@ const router = Router();
 
 /**
  * @swagger
- * /create-pin:
+ * /wallet/create-pin:
  *   post:
  *     summary: Create wallet pin
+  *     security:
+ *       - bearerAuth: []
  *     description: Sets a pin for the authenticated user's wallet.
  *     operationId: setWalletPin
  *     tags:
@@ -224,6 +227,7 @@ router.post("/create-pin", authorize, setWalletPin);
 router.post("/upload-receipt", authorize, uploadReceipt);
 router.post("/generate-pin-otp", authorize, GeneratePinOtp);
 router.post("/change-pin", authorize, ChangePin);
+router.post("/validate-otp", authorize, validateOtp);
 
 router.post("/fund-wallet", authorize, fundWallet);
 

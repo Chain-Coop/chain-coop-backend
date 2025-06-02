@@ -23,6 +23,7 @@ import { generateAndSendOtp } from "../utils/sendOtp";
 import { findOtp } from "../services/otpService";
 import { deleteCard, getCustomer } from "../services/paystackService";
 import { addtoLimit } from "../services/dailyServices";
+import User from "../models/user";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -165,6 +166,7 @@ const setWalletPin = async (req: Request, res: Response) => {
   }
 
   if (userWallet.isPinCreated) {
+    
     throw new BadRequestError("You have created a pin already");
   }
 
@@ -338,6 +340,26 @@ export const ChangePin = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({
     msg: "Pin Successfully Changed",
   });
+};
+
+
+export const validateOtp = async (req: Request, res: Response) => {
+  const { otp } = req.body;
+
+  if (!otp) {
+    throw new BadRequestError("OTP is required");
+  }
+
+  //@ts-ignore
+  const id = req.user.userId;
+  const user = await getUserDetails(id);
+
+  const validOtp = await findOtp(user!.email, otp);
+  if (!validOtp) {
+    throw new BadRequestError("Invalid or expired OTP");
+  }
+
+  res.status(StatusCodes.OK).json({ msg: "OTP is valid. You can now change your PIN." });
 };
 
 export const GetCards = async (req: Request, res: Response) => {

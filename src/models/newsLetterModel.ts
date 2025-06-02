@@ -11,7 +11,7 @@ const NewsLetterSchema = new Schema(
 			trim: true,
 			lowercase: true,
 			unique: true,
-		},
+		}
 	},
 	{ timestamps: true }
 );

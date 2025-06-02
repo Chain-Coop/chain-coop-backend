@@ -16,12 +16,13 @@ export const LimitChecker = async (user: UserDocument, amount: number) => {
 
   let limit = 0;
 
+  // Check for pin first
   switch (user.Tier) {
     case 0:
-      limit = 500;
+      limit = 10000;
       break;
     case 1:
-      limit = 20000;
+      limit = 50000;
       break;
     case 2:
       limit = 200000;
@@ -32,8 +33,8 @@ export const LimitChecker = async (user: UserDocument, amount: number) => {
       limit = 0;
       break;
   }
-  if ((total?.withdrawal || 0) + amount > limit) {
-    throw new BadRequestError("Withdrawal limit exceeded");
+  if (amount > limit) {
+    throw new BadRequestError("The amount you requested exceeded the limit for your tier, verify your details to withdraw a higher amount.");
   }
 };
 export const createWithdrawalRequest = async (

@@ -56,6 +56,7 @@ const UserSchema: Schema = new Schema({
     type: Boolean,
     default: false,
   },
+  kycSessionId: { type: String },
 });
 
 const User =

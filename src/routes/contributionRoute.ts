@@ -303,7 +303,7 @@ router.get("/contribute", authorize, getUserContributions);
 router.get("/history", authorize, newgetContributionHistory);
 router.get("/balance", authorize, getTotalBalance);
 router.post("/withdraw", authorize, withdrawContribution);
-router.get("/verify-contribution", verifyContribution);
+router.get("/verify", verifyContribution);
 router.get("/category/:id", authorize, getContributionsById);
 router.delete("/delete", deleteAllContributions);
 router.route("/pay-contribution").post(authorize, chargeCardforContribution);
