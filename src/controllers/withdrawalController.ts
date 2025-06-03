@@ -197,7 +197,6 @@ export const updateWithdrawalStatusController = async (
     const { withdrawalId } = req.params;
     const { status } = req.body;
 
-    // Validate the status input
     const validStatuses = [
       "pending",
       "completed",
@@ -213,7 +212,6 @@ export const updateWithdrawalStatusController = async (
       });
     }
 
-    // Find the withdrawal by its ID
     const withdrawal = await findWithdrawalById(withdrawalId);
     if (!withdrawal) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -222,83 +220,81 @@ export const updateWithdrawalStatusController = async (
       });
     }
 
-    // Update the withdrawal status
-    const updatedWithdrawal = await updateWithdrawalStatus(
-      withdrawalId,
-      status
-    );
+    // ❗Don't proceed if it's not pending
+    if (withdrawal.status !== "pending") {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        message: "Withdrawal status cannot be changed once it's not pending",
+      });
+    }
 
-    if (withdrawal.status === "failed") {
-      const userWallet = await findWalletService({ user: withdrawal.user });
+    // Now update
+const updatedWithdrawal = await updateWithdrawalStatus(withdrawalId, status);
+
+if (!updatedWithdrawal) {
+  return res.status(StatusCodes.NOT_FOUND).json({
+    status: StatusCodes.NOT_FOUND,
+    error: "Withdrawal request not found or could not be updated",
+  });
+}
+
+    // Handle accepted
+    if (status === "accepted") {
+      updatedWithdrawal.status = "completed";
+      await updatedWithdrawal.save();
+
+      await createWalletHistoryService({
+        user: updatedWithdrawal.user.toString(),
+        amount: updatedWithdrawal.amount,
+        type: "credit",
+        label: "Withdrawal Accepted",
+        ref: updatedWithdrawal._id.toString(),
+      });
+
+      return res.status(StatusCodes.OK).json({
+        status: StatusCodes.OK,
+        message: "Withdrawal accepted and completed",
+      });
+    }
+
+    // Handle rejected
+    if (status === "rejected" || status === "failed") {
+      const userWallet = await findWalletService({
+        user: updatedWithdrawal.user,
+      });
+
       if (!userWallet) {
-        return res
-          .status(StatusCodes.NOT_FOUND)
-          .json({ status: StatusCodes.NOT_FOUND, error: "Wallet not found" });
+        return res.status(StatusCodes.NOT_FOUND).json({
+          status: StatusCodes.NOT_FOUND,
+          error: "Wallet not found",
+        });
       }
 
-      userWallet.balance += withdrawal.amount;
+      userWallet.balance += updatedWithdrawal.amount;
       await userWallet.save();
 
       await createWalletHistoryService({
-        user: withdrawal.user.toString(),
-        amount: withdrawal.amount,
+        user: updatedWithdrawal.user.toString(),
+        amount: updatedWithdrawal.amount,
         type: "credit",
-        label: "Withdrawal failed",
-        ref: withdrawal._id.toString(),
+        label:
+          status === "rejected"
+            ? "Withdrawal rejected"
+            : "Withdrawal failed - refund",
+        ref: updatedWithdrawal._id.toString(),
       });
-    }
 
-    if (withdrawal.status === "pending") {
-      const withdrawal = await findWithdrawalById(withdrawalId);
-
-      if (status === "accepted") {
-        if (withdrawal) {
-          withdrawal.status = "completed";
-          await withdrawal.save();
-
-          await createWalletHistoryService({
-            user: withdrawal.user.toString(),
-            amount: withdrawal.amount,
-            type: "credit",
-            label: "Withdrawal Accepted",
-            ref: withdrawal._id.toString(),
-          });
-
-          return res.status(StatusCodes.OK).json({
-            status: StatusCodes.OK,
-            error: "Withdrawal Accepted",
-          });
-        }
-      }
-
-      if (status === "rejected") {
-        if (withdrawal) {
-          const userWallet = await findWalletService({ user: withdrawal.user });
-
-          userWallet!.balance += withdrawal.amount;
-          await userWallet!.save();
-
-          await createWalletHistoryService({
-            user: withdrawal.user.toString(),
-            amount: withdrawal.amount,
-            type: "credit",
-            label: "Withdrawal rejected",
-            ref: withdrawal._id.toString(),
-          });
-
-          return res.status(StatusCodes.NOT_IMPLEMENTED).json({
-            status: StatusCodes.NOT_IMPLEMENTED,
-            error: "Withdrawal rejected",
-          });
-        }
-      }
-    }
-
-    if (withdrawal.status !== "pending")
       return res.status(StatusCodes.OK).json({
         status: StatusCodes.OK,
-        message: "Withdrawal status cannot br revert",
+        message: `Withdrawal ${status} and amount refunded`,
       });
+    }
+
+    return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
+      message: "Withdrawal status updated",
+      data: updatedWithdrawal,
+    });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -306,6 +302,7 @@ export const updateWithdrawalStatusController = async (
     });
   }
 };
+
 
 // List all Withdrawals (Admin access)
 export const listAllWithdrawals = async (req: Request, res: Response) => {
