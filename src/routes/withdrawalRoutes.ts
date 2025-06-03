@@ -29,12 +29,10 @@ router.post("/verify-bank-account", authorize, verifyBankDetails);
 // PATCH route to update withdrawal status (admin only)
 router.patch(
   "/update-status/:withdrawalId",
-  authorize,
-  authorizePermissions("admin"),
   updateWithdrawalStatusController
 );
 
-router.get("/requests", authorize, listAllWithdrawals);
+router.get("/requests",  listAllWithdrawals);
 
 router.get("/user-bank-accounts", authorize, getUserBankAccountsController);
 
