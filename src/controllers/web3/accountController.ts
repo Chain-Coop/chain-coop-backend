@@ -10,10 +10,16 @@ import {
   checkExistingBitcoinWallet,
   transferStable,
   transferBitcoin,
+  lockBitcoinAmount,
+  unlockBitcoinAmount,
+  getBitcoinBalanceDetails,
+  validateBitcoinAddress,
+  getBitcoinLockStatus,
 } from '../../services/web3/accountService';
 import Web3Wallet, { Web3WalletDocument } from '../../models/web3Wallet';
 import { decrypt } from '../../services/encryption';
 import { tokenAddress } from '../../utils/web3/tokenaddress';
+import { StatusCodes } from 'http-status-codes';
 
 const activateWeb3Wallet = AsyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
@@ -69,14 +75,21 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
       return;
     }
     const details = await getUserWeb3Wallet(userId);
-    const detailsBTC = await getBitcoinAddress(userId);
+    const bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
     //remove encryptedKey
     const { encryptedKey, publicKey, ...user } = details;
 
     res.json({
       data: {
         ...user,
-        btcAddress: detailsBTC,
+        btcAddress: bitcoinBalanceDetails.totalBalance > 0 ? await getBitcoinAddress(userId) : null,
+        bitcoinBalance: {
+          total: bitcoinBalanceDetails.totalBalance,
+          available: bitcoinBalanceDetails.availableBalance,
+          locked: bitcoinBalanceDetails.lockedAmount,
+          isLocked: bitcoinBalanceDetails.isLocked,
+          lockDetails: bitcoinBalanceDetails.lockDetails,
+        },
       },
     });
   } catch (error) {
@@ -140,6 +153,13 @@ const withdrawBitcoin = AsyncHandler(async (req: Request, res: Response) => {
       message: 'amount and address is not defined ',
     });
   }
+  // Validate Bitcoin address
+  if (!validateBitcoinAddress(address)) {
+    res.status(400).json({
+      message: 'Invalid Bitcoin address',
+    });
+    return;
+  }
   //@ts-ignore
   const userId = req.user.userId;
   if (!userId) {
@@ -148,12 +168,152 @@ const withdrawBitcoin = AsyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const data = await transferBitcoin(userId, amount, address);
-  res.status(200).json({
-    status: 'success',
-    message: 'Bitcoin successfully sent ',
-    data,
-  });
+  try {
+    const data = await transferBitcoin(userId, amount, address);
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Bitcoin successfully sent ',
+      data,
+    });
+  } catch (error: any) {
+    console.error('Error transferring Bitcoin:', error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: error.message || 'Bitcoin transfer failed',
+    });
+  }
+
+});
+
+const lockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
+  const { amount, duration, reason } = req.body;
+
+  if (!amount || !duration) {
+    res.status(400).json({
+      message: 'Amount and duration are required',
+    });
+    return;
+  }
+
+  if (amount <= 0 || duration <= 0) {
+    res.status(400).json({
+      message: 'Amount and duration must be positive numbers',
+    });
+    return;
+  }
+
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  if (!userId) {
+    res.status(401).json({
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
+  try {
+    const wallet = await lockBitcoinAmount(userId, amount, duration, reason);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Bitcoin successfully locked',
+      data: {
+        amount: wallet.lockedAmount,
+        lockedAt: wallet.lockedAt,
+        unlocksAt: wallet.unlocksAt,
+        lockDuration: wallet.lockDuration,
+        lockReason: wallet.lockReason,
+        isLocked: wallet.isLocked,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error locking Bitcoin:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to lock Bitcoin',
+    });
+  }
+});
+
+const unlockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  if (!userId) {
+    res.status(401).json({
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
+  try {
+    const wallet = await unlockBitcoinAmount(userId);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Bitcoin successfully unlocked',
+      data: {
+        unlockedAt: new Date(),
+        isLocked: wallet.isLocked,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error unlocking Bitcoin:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to unlock Bitcoin',
+    });
+  }
+});
+
+const getBitcoinBalanceWithLocks = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  if (!userId) {
+    res.status(401).json({
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
+  try {
+    const balanceDetails = await getBitcoinBalanceDetails(userId);
+
+    res.status(200).json({
+      status: 'success',
+      data: balanceDetails,
+    });
+  } catch (error: any) {
+    console.error('Error fetching Bitcoin balance with locks:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to fetch balance',
+    });
+  }
+});
+
+const getLockStatus = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+
+  if (!userId) {
+    res.status(401).json({
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
+  try {
+    const lockStatus = await getBitcoinLockStatus(userId);
+
+    res.status(200).json({
+      status: 'success',
+      data: lockStatus,
+    });
+  } catch (error: any) {
+    console.error('Error checking lock status:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to check lock status',
+    });
+  }
 });
 
 export {
@@ -162,4 +322,8 @@ export {
   userDetails,
   withdraw,
   withdrawBitcoin,
+  lockBitcoin,
+  unlockBitcoin,
+  getBitcoinBalanceWithLocks,
+  getLockStatus,
 };
