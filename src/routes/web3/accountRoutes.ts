@@ -5,6 +5,10 @@ import {
   userDetails,
   withdraw,
   withdrawBitcoin,
+  lockBitcoin,
+  unlockBitcoin,
+  getBitcoinBalanceWithLocks,
+  getLockStatus,
 } from '../../controllers/web3/accountController';
 import { authorize, verifyPin } from '../../middlewares/authorization';
 const router = Router();
@@ -372,10 +376,325 @@ const router = Router();
  *                   example: Internal Server Error
  */
 
+/**
+ * @swagger
+ * /web3/account/lock:
+ *   post:
+ *     summary: Lock Bitcoin amount for a specified duration
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Lock a specific amount of Bitcoin for a given time period
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - duration
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Amount of Bitcoin to lock (in BTC)
+ *                 example: 0.005
+ *               duration:
+ *                 type: integer
+ *                 description: Lock duration in seconds
+ *                 example: 3600
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for locking the Bitcoin
+ *                 example: "Savings goal for next month"
+ *     responses:
+ *       200:
+ *         description: Bitcoin successfully locked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Bitcoin successfully locked
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     amount:
+ *                       type: number
+ *                       example: 0.005
+ *                     lockedAt:
+ *                       type: string
+ *                       example: "2024-12-01T10:00:00.000Z"
+ *                     unlocksAt:
+ *                       type: string
+ *                       example: "2024-12-01T11:00:00.000Z"
+ *                     lockDuration:
+ *                       type: integer
+ *                       example: 3600
+ *                     lockReason:
+ *                       type: string
+ *                       example: "Savings goal for next month"
+ *                     isLocked:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Bad Request - Missing required fields or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Amount and duration are required
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Wallet already has an active lock. Please wait for it to expire or unlock it first.
+ */
+
+/**
+ * @swagger
+ * /web3/account/unlock:
+ *   post:
+ *     summary: Unlock Bitcoin amount
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: A bearer token is required in the Authorization header to identify the user.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Bitcoin successfully unlocked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Bitcoin successfully unlocked
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     unlockedAt:
+ *                       type: string
+ *                       example: "2024-12-01T11:00:00.000Z"
+ *                     isLocked:
+ *                       type: boolean
+ *                       example: false
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lock period has not expired yet. Time remaining: 2 hours
+ */
+
+/**
+ * @swagger
+ * /web3/account/lock-status:
+ *   get:
+ *     summary: Get Bitcoin lock status
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lock status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isLocked:
+ *                       type: boolean
+ *                       example: true
+ *                     lockedAmount:
+ *                       type: number
+ *                       example: 0.005
+ *                     lockedAt:
+ *                       type: string
+ *                       example: "2024-12-01T10:00:00.000Z"
+ *                     unlocksAt:
+ *                       type: string
+ *                       example: "2024-12-01T11:00:00.000Z"
+ *                     lockDuration:
+ *                       type: integer
+ *                       example: 3600
+ *                     lockReason:
+ *                       type: string
+ *                       example: "Savings goal for next month"
+ *                     timeRemainingMs:
+ *                       type: integer
+ *                       example: 1800000
+ *                     timeRemainingHours:
+ *                       type: integer
+ *                       example: 1
+ *                     canUnlock:
+ *                       type: boolean
+ *                       example: false
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Bitcoin wallet not found for this user
+ */
+
+/**
+ * @swagger
+ * /web3/account/balance:
+ *   get:
+ *     summary: Get Bitcoin balance with lock details
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Balance details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBalance:
+ *                       type: number
+ *                       example: 0.01
+ *                     lockedAmount:
+ *                       type: number
+ *                       example: 0.005
+ *                     availableBalance:
+ *                       type: number
+ *                       example: 0.005
+ *                     isLocked:
+ *                       type: boolean
+ *                       example: true
+ *                     lockDetails:
+ *                       type: object
+ *                       properties:
+ *                         lockedAt:
+ *                           type: string
+ *                           example: "2024-12-01T10:00:00.000Z"
+ *                         unlocksAt:
+ *                           type: string
+ *                           example: "2024-12-01T11:00:00.000Z"
+ *                         lockDuration:
+ *                           type: integer
+ *                           example: 3600
+ *                         lockReason:
+ *                           type: string
+ *                           example: "Savings goal for next month"
+ *                         timeRemainingMs:
+ *                           type: integer
+ *                           example: 1800000
+ *                         canUnlock:
+ *                           type: boolean
+ *                           example: false
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Bitcoin wallet not found for this user
+ */
+
 router.post('/activate', authorize, activateWeb3Wallet);
 router.post('/activateBitcoin', authorize, activateBitcoinWallet);
 router.get('/details', authorize, userDetails);
 router.post('/withdraw', authorize, verifyPin, withdraw);
 router.post('/withdrawBitcoin', authorize, verifyPin, withdrawBitcoin);
+// Lock-related routes
+router.post('/lock', authorize, lockBitcoin);
+router.post('/unlock', authorize, unlockBitcoin);
+router.get('/lock-status', authorize, getLockStatus);
+router.get('/balance', authorize, getBitcoinBalanceWithLocks);
 
 export default router;

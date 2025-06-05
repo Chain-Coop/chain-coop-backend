@@ -279,6 +279,24 @@ const transferBitcoin = async (
       throw new Error('Bitcoin wallet not found for this user');
     }
 
+    // Check and update lock status
+    const lockCleared = wallet.checkAndUpdateLockStatus();
+    if (lockCleared) {
+      await wallet.save();
+    }
+
+    // Get available balance (excluding locked amount)
+    const availableBalance = await wallet.getAvailableBalance();
+
+    if (availableBalance < amount) {
+      const lockInfo = wallet.isLocked
+        ? ` (${wallet.lockedAmount} BTC is locked until ${wallet.unlocksAt?.toISOString()})`
+        : '';
+      throw new Error(
+        `Insufficient available balance. Available: ${availableBalance} BTC, Requested: ${amount} BTC${lockInfo}`
+      );
+    }
+
     // Get the private key
     const wif = decrypt(wallet.encryptedWif);
     const network = BITCOIN_NETWORK;
@@ -491,6 +509,185 @@ const broadcastTransaction = async (
   }
 };
 
+/**
+ * Locks a specific amount of Bitcoin for a given duration
+ * @param userId User ID
+ * @param amount Amount to lock in BTC
+ * @param durationInSeconds Lock duration in seconds
+ * @param reason Optional reason for the lock
+ * @returns Updated wallet with lock information
+ */
+const lockBitcoinAmount = async (
+  userId: string,
+  amount: number,
+  durationInSeconds: number,
+  reason?: string
+): Promise<IBitcoinWallet> => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+
+  // Check and update existing lock status
+  wallet.checkAndUpdateLockStatus();
+
+  // Check if wallet already has an active lock
+  if (wallet.isLocked) {
+    throw new Error('Wallet already has an active lock. Please wait for it to expire or unlock it first.');
+  }
+
+  // Get current balance
+  const currentBalance = await getBitcoinBalance(userId);
+  if (currentBalance < amount) {
+    throw new Error(`Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`);
+  }
+
+  // Set lock parameters
+  const lockedAt = new Date();
+  const unlocksAt = new Date(lockedAt.getTime() + durationInSeconds * 1000);
+  const amountSatoshis = Math.floor(amount * SATOSHI_TO_BTC);
+
+  wallet.lockedAmount = amount;
+  wallet.lockedAmountSatoshis = amountSatoshis;
+  wallet.lockDuration = durationInSeconds;
+  wallet.lockedAt = lockedAt;
+  wallet.unlocksAt = unlocksAt;
+  wallet.isLocked = true;
+  wallet.lockReason = reason;
+
+  await wallet.save();
+  return wallet;
+};
+
+/**
+ * Unlocks Bitcoin if the lock period has expired
+ * @param userId User ID
+ * @returns Updated wallet information
+ */
+const unlockBitcoinAmount = async (userId: string): Promise<IBitcoinWallet> => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+
+  if (!wallet.isLocked) {
+    throw new Error('No active lock found');
+  }
+
+  if (!wallet.unlocksAt || new Date() < wallet.unlocksAt) {
+    const timeRemaining = wallet.unlocksAt
+      ? Math.ceil((wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60))
+      : 0;
+    throw new Error(`Lock period has not expired yet. Time remaining: ${timeRemaining} hours`);
+  }
+
+  // Clear the lock
+  wallet.isLocked = false;
+  wallet.lockedAmount = 0;
+  wallet.lockedAmountSatoshis = 0;
+  wallet.lockDuration = 0;
+  wallet.lockedAt = undefined;
+  wallet.unlocksAt = undefined;
+  wallet.lockReason = undefined;
+
+  await wallet.save();
+  return wallet;
+};
+
+/**
+ * Gets the available (unlocked) balance for a user
+ * @param userId User ID
+ * @returns Available balance in BTC
+ */
+const getAvailableBitcoinBalance = async (userId: string): Promise<number> => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+
+  // Use the wallet method to get available balance
+  return await wallet.getAvailableBalance();
+};
+
+/**
+ * Gets detailed balance information including locked amounts
+ * @param userId User ID
+ * @returns Detailed balance information
+ */
+const getBitcoinBalanceDetails = async (userId: string) => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+
+  // Check and update lock status
+  const lockCleared = wallet.checkAndUpdateLockStatus();
+  if (lockCleared) {
+    await wallet.save();
+  }
+
+  const totalBalance = await getBitcoinBalance(userId);
+  const lockedAmount = wallet.isLocked ? wallet.lockedAmount : 0;
+  const availableBalance = Math.max(0, totalBalance - lockedAmount);
+
+  return {
+    totalBalance,
+    lockedAmount,
+    availableBalance,
+    isLocked: wallet.isLocked,
+    lockDetails: wallet.isLocked ? {
+      lockedAt: wallet.lockedAt,
+      unlocksAt: wallet.unlocksAt,
+      lockDuration: wallet.lockDuration,
+      lockReason: wallet.lockReason,
+      timeRemainingMs: wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime()) : 0,
+      canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
+    } : null,
+  };
+};
+
+/**
+ * Gets lock status for a user's wallet
+ * @param userId User ID
+ * @returns Lock status information
+ */
+const getBitcoinLockStatus = async (userId: string) => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+
+  // Check and update lock status
+  const lockCleared = wallet.checkAndUpdateLockStatus();
+  if (lockCleared) {
+    await wallet.save();
+  }
+
+  if (!wallet.isLocked) {
+    return {
+      isLocked: false,
+      message: 'No active lock',
+    };
+  }
+
+  const now = new Date();
+  const timeRemainingMs = wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime()) : 0;
+  const timeRemainingHours = Math.ceil(timeRemainingMs / (1000 * 60 * 60));
+  const canUnlock = timeRemainingMs === 0;
+
+  return {
+    isLocked: true,
+    lockedAmount: wallet.lockedAmount,
+    lockedAt: wallet.lockedAt,
+    unlocksAt: wallet.unlocksAt,
+    lockDuration: wallet.lockDuration,
+    lockReason: wallet.lockReason,
+    timeRemainingMs,
+    timeRemainingHours,
+    canUnlock,
+  };
+};
+
 export {
   transferStable,
   activateAccount,
@@ -509,4 +706,9 @@ export {
   transferBitcoin,
   validateBitcoinAddress,
   checkExistingBitcoinWallet,
+  lockBitcoinAmount,
+  unlockBitcoinAmount,
+  getAvailableBitcoinBalance,
+  getBitcoinBalanceDetails,
+  getBitcoinLockStatus,
 };
