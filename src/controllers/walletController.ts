@@ -49,7 +49,7 @@ const initiatePayment = async (req: Request, res: Response) => {
 			"https://api.paystack.co/transaction/initialize",
 			{
 				email,
-				amount: amount,
+				amount: amount * 100,
 				callback_url: "https://chaincoop.org/dashboard/wallet",
 				metadata: {
 					type: "wallet_funding",
