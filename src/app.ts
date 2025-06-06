@@ -34,6 +34,7 @@ import {
   dashboardRouter,
   savingCircleRoutes,
   blogRoutes,
+  restoreWallets
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -154,6 +155,8 @@ app.use('/api/v1/withdrawal', withdrawalRoutes);
 app.use('/api/v1/notification', notificationRouter);
 app.use('/api/v1/kyc', kycRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
+app.use('/api/v1/wallets', restoreWallets);
+
 //web3
 app.use('/api/v1/web3/account', accountRouter);
 app.use('/api/v1/web3/balance', balanceRouter);

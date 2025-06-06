@@ -14,6 +14,7 @@ import kycRouter from "./kycroutes";
 import dashboardRouter from "./dashboardRoutes";
 import savingCircleRoutes from "./savingCircle.routes";
 import blogRoutes from "./blogRoute";
+import restoreWallets from "./restoreWalletRoutes";
 
 export {
 	authRouter,
@@ -32,4 +33,5 @@ export {
 	dashboardRouter,
 	savingCircleRoutes,
 	blogRoutes,
+	restoreWallets
 };
