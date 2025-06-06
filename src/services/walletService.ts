@@ -272,7 +272,7 @@ export const chargeCardService = async (
 				authorization_code: authCode,
 				//@ts-ignore
 				email: email,
-				amount: amount * 100,
+				amount: amount,
 				metadata,
 			},
 			{
