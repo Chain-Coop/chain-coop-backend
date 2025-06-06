@@ -1,4 +1,4 @@
-// controllers/wallet.controller.ts
+// controllers/wallet.controller.
 
 import { Request, Response } from "express";
 import WalletService from "../services/restore-walletsService";
