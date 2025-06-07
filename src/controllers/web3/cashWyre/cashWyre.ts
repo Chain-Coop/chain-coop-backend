@@ -198,7 +198,7 @@ class CashwyreController {
         bankCode
       );
       let tokenAddressToSaveWith = null;
-      if (network !== 'BTC') {
+      if (network !== 'BTC' || 'BTC_LN') {
         const tokenIdNum = parseInt(tokenId, 10);
         if (isNaN(tokenIdNum)) {
           res.status(400).json({ message: 'Invalid tokenId' });
