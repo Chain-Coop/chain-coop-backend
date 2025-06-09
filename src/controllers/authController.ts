@@ -462,4 +462,5 @@ export {
   resetPassword,
   changePhoneNumber,
   getUser,
+  verifyEmailOtpOnly
 };

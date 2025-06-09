@@ -10,6 +10,7 @@ import {
 	resendOtpWhatsApp,
 	verifyOtpWA,
 	changePhoneNumber,
+	verifyEmailOtpOnly,
 } from "../controllers/authController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 const router = Router();
@@ -405,6 +406,7 @@ const router = Router();
 router.post("/register", register);
 router.get("/user", authorize, getUser);
 router.post("/verify_otp", verifyOtp);
+router.post("/api/auth/verify-email-otp", verifyEmailOtpOnly);
 router.post("/verify_whatsapp_otp", verifyOtpWA);
 router.post("/resend_otp", resendOtp);
 router.post("/resend_whatsapp_otp", resendOtpWhatsApp);
