@@ -59,6 +59,7 @@ const register = async (req: Request, res: Response) => {
       req.body.lastName
     );
 
+    // sends EMAIL OTP on user registering
     await generateAndSendOtp({
       email: email!,
       message: 'Your OTP to verify your account is',
@@ -95,26 +96,55 @@ const register = async (req: Request, res: Response) => {
   }
 };
 
-// Verify OTP and activate account
+// Enhanced Email + WhatsApp OTP Verification for account activation
 const verifyOtp = async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    throw new BadRequestError('Email and otp is required');
-  }
-  const validOtp = await findOtp(email, otp);
-  if (!validOtp) {
-    throw new UnauthenticatedError('Failed to validate OTP');
+  const { email, emailOtp, phoneOtp } = req.body;
+
+  if (!email || !emailOtp || !phoneOtp) {
+    throw new BadRequestError('Email, email OTP, and phone OTP are required');
   }
 
-  // Activate user and not verify it
-  const newUser = await updateUserByEmail(email, { status: 'active' });
-  if (!newUser) {
+  // Validate email OTP
+  const validEmailOtp = await findOtp(email, emailOtp);
+  if (!validEmailOtp) {
+    throw new UnauthenticatedError('Invalid or expired email OTP');
+  }
+
+  // Get user info (to get phone number)
+  const user = await findUser('email', email);
+  if (!user) {
     throw new NotFoundError('User not found');
   }
-  await deleteOtp(email);
-  res
-    .status(StatusCodes.OK)
-    .json({ msg: 'Your account has been activated', newUser });
+
+  const { _id: userId, phoneNumber } = user;
+
+  // Validate phone OTP
+  const validPhoneOtp = await findOtpPhone(phoneNumber, phoneOtp);
+  if (!validPhoneOtp) {
+    throw new UnauthenticatedError('Invalid or expired WhatsApp OTP');
+  }
+
+  // Mark user as active and phone verified
+  const updatedUser = await updateUserByEmail(email, {
+    status: 'active',
+    isVerified: true,
+    Tier: 1,
+  });
+
+  if (!updatedUser) {
+    throw new NotFoundError('Failed to update user status');
+  }
+
+  // Clean up both OTPs
+  await Promise.all([
+    deleteOtp(email),
+    deleteOtpPhone(phoneNumber)
+  ]);
+
+  res.status(StatusCodes.OK).json({
+    msg: 'Your account has been activated and phone verified',
+    user: updatedUser,
+  });
 };
 
 // Verify OTP through whatsApp
