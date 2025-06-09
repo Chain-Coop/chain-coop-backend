@@ -17,7 +17,10 @@ import CashwyreTransaction, {
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
 import { tokenAddress } from '../../../utils/web3/tokenaddress';
-import { sendPayment } from '../../../services/web3/lndService/lndService';
+import {
+  sendPayment,
+  createLndInvoice,
+} from '../../../services/web3/lndService/lndService';
 
 class CashwyreController {
   /**
@@ -81,6 +84,20 @@ class CashwyreController {
       let userAddress;
       if (network === 'BTC') {
         userAddress = bitcoinWallet;
+      } else if (network === 'BTC_LN') {
+        // For BTC_LN, we need to create an LND invoice
+        const lndInvoice = await createLndInvoice(
+          userId,
+          amount,
+          'Cashwyre Onramp'
+        );
+        if (!lndInvoice) {
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to create LND invoice',
+          });
+        }
+        userAddress = lndInvoice.payment_request; // Use the payment request as the address
       } else {
         userAddress = wallet.address;
       }

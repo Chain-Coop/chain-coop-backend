@@ -4,6 +4,7 @@ import Payment, { IPayment } from '../../../models/web3/lnd/payment';
 import LndWallet from '../../../models/web3/lnd/wallet';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  AddInvoice,
   decodeInvoice,
   PayInvoice,
   PaymentInvoice,
@@ -301,6 +302,50 @@ export const sendPayment = async (userId: string, invoice: string) => {
   } catch (error: any) {
     console.error('Error sending payment:', error);
     throw new Error(error.message || 'Failed to send payment');
+  }
+};
+export const createLndInvoice = async (
+  userId: any,
+  amount: number,
+  memo: string
+) => {
+  try {
+    const invoiceRequest = {
+      value: amount.toString(), // Ensure it's a string
+      memo: memo || '',
+      expiry: 3600, // 1 hour in seconds, not milliseconds
+    };
+
+    const invoiceResponse = await AddInvoice(invoiceRequest);
+    if (!invoiceResponse.payment_request) {
+      throw new Error('Invalid response from LND: missing payment_request');
+    }
+
+    if (!invoiceResponse.r_hash) {
+      throw new Error('Invalid response from LND: missing r_hash');
+    }
+    const paymentHashHex = Buffer.from(
+      invoiceResponse.r_hash,
+      'base64'
+    ).toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
+
+    // Prepare payload with validated data
+    const payload: Partial<IInvoice> = {
+      userId: userId,
+      invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
+      bolt11: invoiceResponse.payment_request,
+      amount: amount,
+      memo: memo || '',
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+      paymentHash: paymentHashHex,
+      payment_request: invoiceResponse.payment_request,
+      status: 'pending',
+    };
+    const data = await createInvoice(payload);
+    return data;
+  } catch (error: any) {
+    console.error('Error creating LND invoice:', error);
+    throw new Error(error.message || 'Failed to create LND invoice');
   }
 };
 

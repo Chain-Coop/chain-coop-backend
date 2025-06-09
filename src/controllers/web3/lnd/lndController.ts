@@ -59,7 +59,7 @@ export const createInvoice = async (req: Request, res: Response) => {
     const { amount, memo = '' } = req.body;
 
     // Input validation
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    if (!amount && amount <= 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: 'Valid amount is required',
       });
@@ -72,50 +72,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       });
     }
 
-    // Create invoice request with proper field names
-    const invoiceRequest = {
-      value: amount.toString(), // Ensure it's a string
-      memo: memo || '',
-      expiry: 3600, // 1 hour in seconds, not milliseconds
-    };
-
-    const invoiceResponse = await AddInvoice(invoiceRequest);
-
-    // Validate response structure
-    if (!invoiceResponse.payment_request) {
-      throw new Error('Invalid response from LND: missing payment_request');
-    }
-
-    if (!invoiceResponse.r_hash) {
-      throw new Error('Invalid response from LND: missing r_hash');
-    }
-
-    const paymentHashHex = Buffer.from(
-      invoiceResponse.r_hash,
-      'base64'
-    ).toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
-
-    // Prepare payload with validated data
-    const payload: Partial<IInvoice> = {
-      userId: userId,
-      invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
-      bolt11: invoiceResponse.payment_request,
-      amount: amount,
-      memo: memo || '',
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
-      paymentHash: paymentHashHex,
-      payment_request: invoiceResponse.payment_request,
-      status: 'pending',
-    };
-
-    console.log('Saving invoice to database:', {
-      invoiceId: payload.invoiceId,
-      amount: payload.amount,
-      userId: payload.userId,
-    });
-
-    // Save to database
-    const dbResponse = await lndService.createInvoice(payload);
+    const payload = await lndService.createLndInvoice(userId, amount, memo);
 
     res.status(StatusCodes.CREATED).json({
       message: 'Created invoice successfully',
