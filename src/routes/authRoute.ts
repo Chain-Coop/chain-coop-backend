@@ -133,7 +133,7 @@ const router = Router();
  * @swagger
  * /auth/verify_otp:
  *   post:
- *     summary: Verify OTP for account activation
+ *     summary: Verify both email and WhatsApp OTPs for account activation
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -141,16 +141,23 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - emailOtp
+ *               - phoneOtp
  *             properties:
  *               email:
  *                 type: string
  *                 example: user@example.com
- *               otp:
+ *               emailOtp:
  *                 type: string
  *                 example: "123456"
+ *               phoneOtp:
+ *                 type: string
+ *                 example: "654321"
  *     responses:
  *       200:
- *         description: Account activated successfully
+ *         description: Account activated and phone verified successfully
  *         content:
  *           application/json:
  *             schema:
@@ -158,14 +165,18 @@ const router = Router();
  *               properties:
  *                 msg:
  *                   type: string
- *                   example: Your account has been activated
- *                 newUser:
+ *                   example: Your account has been activated and phone verified
+ *                 user:
  *                   type: object
+ *                   description: Updated user object
+ *       400:
+ *         description: Missing required fields
  *       401:
- *         description: Invalid OTP
+ *         description: Invalid or expired OTP
  *       404:
- *         description: User not found
+ *         description: User not found or failed to update user status
  */
+
 
 /**
  * @swagger
