@@ -177,6 +177,45 @@ const router = Router();
  *         description: User not found or failed to update user status
  */
 
+/**
+ * @swagger
+ * /auth/verify_email_otp:
+ *   post:
+ *     summary: Verify email OTP (no account status update)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Email OTP verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: Email OTP verified successfully
+ *       400:
+ *         description: Email and OTP are required
+ *       401:
+ *         description: Invalid or expired email OTP
+ */
+
 
 /**
  * @swagger
@@ -417,7 +456,7 @@ const router = Router();
 router.post("/register", register);
 router.get("/user", authorize, getUser);
 router.post("/verify_otp", verifyOtp);
-router.post("/api/auth/verify-email-otp", verifyEmailOtpOnly);
+router.post("/verify_email_otp", verifyEmailOtpOnly);
 router.post("/verify_whatsapp_otp", verifyOtpWA);
 router.post("/resend_otp", resendOtp);
 router.post("/resend_whatsapp_otp", resendOtpWhatsApp);
