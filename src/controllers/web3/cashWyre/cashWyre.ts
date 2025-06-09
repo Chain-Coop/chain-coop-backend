@@ -17,6 +17,7 @@ import CashwyreTransaction, {
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
 import { tokenAddress } from '../../../utils/web3/tokenaddress';
+import { sendPayment } from '../../../services/web3/lndService/lndService';
 
 class CashwyreController {
   /**
@@ -391,6 +392,12 @@ class CashwyreController {
           transaction.cryptoAmount,
           transaction.offrampAddress || ''
         );
+      } else if (network === 'BTC_LN') {
+        const lightningPayment = await sendPayment(
+          userId,
+          transaction.offrampAddress || ''
+        );
+        txHash = lightningPayment.paymentHash;
       } else {
         const wallet = await getUserWeb3Wallet(userId);
         if (!wallet) {

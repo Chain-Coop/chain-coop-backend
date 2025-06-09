@@ -11,22 +11,51 @@ export interface AddInvoiceResponse {
 }
 
 export interface SendPaymentInterface {
-  payment_hash: string,
-  value: string,
-  creation_date: string,
-  fee: string,
-  payment_preimage: string,
-  value_sat: string,
-  value_msat: string,
-  payment_request: string,
-  status: string,
-  fee_sat: string,
-  fee_msat: string,
-  creation_time_ns: string,
-  htlcs: any[],
-  payment_index: string,
-  failure_reason: string,
-  first_hop_custom_records: object,
+  payment_hash: string;
+  value: string;
+  creation_date: string;
+  fee: string;
+  payment_preimage: string;
+  value_sat: string;
+  value_msat: string;
+  payment_request: string;
+  status: string;
+  fee_sat: string;
+  fee_msat: string;
+  creation_time_ns: string;
+  htlcs: any[];
+  payment_index: string;
+  failure_reason: string;
+  first_hop_custom_records: object;
+}
+export interface PaymentInvoice {
+  memo: string;
+  r_preimage: string;
+  r_hash: string;
+  value: string;
+  value_msat: string;
+  creation_date: string;
+  settle_date: string;
+  payment_request: string;
+  description_hash: string;
+  expiry: number;
+  fallback_addr: string;
+  cltv_expiry: number;
+  route_hints: any[];
+  private: boolean;
+  add_index: string;
+  settle_index: string;
+  amt_paid_sat: string;
+  amt_paid_msat: string;
+  state: string;
+  htlcs: any[];
+  features: {};
+  is_keysend: boolean;
+  payment_addr: string;
+  is_amp: boolean;
+  amp_invoice_state: {};
+  is_blinded: boolean;
+  blinded_path_config: {};
 }
 
 export const AddInvoice = async (payload: any): Promise<AddInvoiceResponse> => {
@@ -37,7 +66,7 @@ export const AddInvoice = async (payload: any): Promise<AddInvoiceResponse> => {
       {
         headers: {
           'Grpc-Metadata-macaroon': MACAROON,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
       }
     );
@@ -47,15 +76,40 @@ export const AddInvoice = async (payload: any): Promise<AddInvoiceResponse> => {
     throw error;
   }
 };
-
-export const PayInvoice = async (payload: any): Promise<SendPaymentInterface> => {
+export const decodeInvoice = async (
+  invoice: string
+): Promise<PaymentInvoice> => {
   try {
-    const { data } = await axios.post<SendPaymentInterface>(`${LND_BASE_URL}/v2/router/send`,
+    const { data } = await axios.post<PaymentInvoice>(
+      `${LND_BASE_URL}/v2/invoices/lookup`,
+      {
+        payment_request: invoice,
+      },
+      {
+        headers: {
+          'Grpc-Metadata-macaroon': MACAROON,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return data;
+  } catch (error: any) {
+    console.error('LND API Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const PayInvoice = async (
+  payload: any
+): Promise<SendPaymentInterface> => {
+  try {
+    const { data } = await axios.post<SendPaymentInterface>(
+      `${LND_BASE_URL}/v2/router/send`,
       JSON.stringify(payload),
       {
         headers: {
           'Grpc-Metadata-macaroon': MACAROON,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
       }
     );
@@ -66,14 +120,14 @@ export const PayInvoice = async (payload: any): Promise<SendPaymentInterface> =>
   }
 };
 
-
 export const SubscribeInvoices = async (): Promise<void> => {
   try {
-    const { data } = await axios.get<any>(`${LND_BASE_URL}/v1/invoices/subscribe`,
+    const { data } = await axios.get<any>(
+      `${LND_BASE_URL}/v1/invoices/subscribe`,
       {
         headers: {
           'Grpc-Metadata-macaroon': MACAROON,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
       }
     );

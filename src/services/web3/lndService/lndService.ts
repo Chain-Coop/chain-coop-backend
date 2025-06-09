@@ -1,8 +1,13 @@
-import { Types } from "mongoose";
-import Invoice, { IInvoice } from "../../../models/web3/lnd/invoice";
-import Payment, { IPayment } from "../../../models/web3/lnd/payment";
-import LndWallet from "../../../models/web3/lnd/wallet";
+import { Types } from 'mongoose';
+import Invoice, { IInvoice } from '../../../models/web3/lnd/invoice';
+import Payment, { IPayment } from '../../../models/web3/lnd/payment';
+import LndWallet from '../../../models/web3/lnd/wallet';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  decodeInvoice,
+  PayInvoice,
+  PaymentInvoice,
+} from '../../../utils/web3/lnd';
 
 export const getInvoiceById = async (invoiceId: string) => {
   return await Invoice.findOne({ invoiceId });
@@ -35,14 +40,17 @@ export const createPayment = async (payload: Partial<IPayment>) => {
 export const getWalletBalance = async (userId: string) => {
   try {
     const wallet = await LndWallet.findById(userId);
-    return wallet?.balance || 0
+    return wallet?.balance || 0;
   } catch (error: any) {
     console.error('Error fetcing balnce:', error);
     throw new Error(error.message || 'Error fetcing balance');
   }
-}
+};
 
-export const decrementBalance = async (userId: Types.ObjectId | string, amount: number) => {
+export const decrementBalance = async (
+  userId: Types.ObjectId | string,
+  amount: number
+) => {
   return await LndWallet.findByIdAndUpdate(
     userId,
     { $inc: { balance: -amount } },
@@ -51,9 +59,12 @@ export const decrementBalance = async (userId: Types.ObjectId | string, amount: 
       runValidators: true,
     }
   );
-}
+};
 
-export const incrementBalance = async (userId: Types.ObjectId | string, amount: number) => {
+export const incrementBalance = async (
+  userId: Types.ObjectId | string,
+  amount: number
+) => {
   return await LndWallet.findByIdAndUpdate(
     userId,
     { $inc: { balance: amount } },
@@ -62,7 +73,7 @@ export const incrementBalance = async (userId: Types.ObjectId | string, amount: 
       runValidators: true,
     }
   );
-}
+};
 
 // Lock funds for a specific period
 export const lockBalance = async (
@@ -88,14 +99,14 @@ export const lockBalance = async (
       lockedAt: new Date(),
       maturitDate,
       purpose,
-      lockId
+      lockId,
     };
 
     const updatedWallet = await LndWallet.findOneAndUpdate(
       { userId },
       {
         lockedBalance: amount, // Set to the new lock amount
-        lock: lockEntry // Set the single lock entry
+        lock: lockEntry, // Set the single lock entry
       },
       { new: true, runValidators: true }
     );
@@ -129,7 +140,7 @@ export const unlockExpiredFunds = async (userId: string) => {
         { userId },
         {
           lockedBalance: 0,
-          $unset: { lock: "" }
+          $unset: { lock: '' },
         },
         { new: true }
       );
@@ -138,7 +149,11 @@ export const unlockExpiredFunds = async (userId: string) => {
         throw new Error('Failed to update wallet');
       }
 
-      return { unlockedAmount: expiredLock.amount, expiredLock, wallet: updatedWallet };
+      return {
+        unlockedAmount: expiredLock.amount,
+        expiredLock,
+        wallet: updatedWallet,
+      };
     }
 
     return { unlockedAmount: 0, expiredLock: null, wallet };
@@ -166,7 +181,7 @@ export const unlockCurrentFunds = async (userId: string) => {
       { userId },
       {
         lockedBalance: 0,
-        $unset: { lock: "" } // Remove the lock field
+        $unset: { lock: '' }, // Remove the lock field
       },
       { new: true }
     );
@@ -216,16 +231,78 @@ export const getWalletDetails = async (userId: string) => {
       lockedBalance: wallet.lockedBalance,
       availableBalance: wallet.balance - wallet.lockedBalance,
       activeLock: wallet.lock || null,
-      hasActiveLock: !!wallet.lock
+      hasActiveLock: !!wallet.lock,
     };
   } catch (error: any) {
     console.error('Error getting wallet details:', error);
     throw new Error(error.message || 'Error fetching wallet details');
   }
 };
+export const sendPayment = async (userId: string, invoice: string) => {
+  try {
+    const decoded = await decodeInvoice(invoice);
+    if (!decoded) {
+      throw new Error('Invalid invoice format');
+    }
+    const payment_request = decoded.payment_request;
+    const timeout_seconds = decoded.expiry;
+    const amountMsat = decoded.value_msat;
+    const amountSat = decoded.value ? Number(decoded.value) : 0;
 
+    const senderBalance = await getAvailableBalance(userId);
+    const estimatedFee = Math.ceil(Number(amountSat) * 0.01); // Estimate 1% fee
+    const totalRequired = Number(amountSat) + estimatedFee;
 
-
+    if (senderBalance < totalRequired) {
+      throw new Error('Insufficient balance for payment');
+    }
+    const createdAt = decoded.creation_date;
+    const expiresAt = Number(createdAt) + timeout_seconds;
+    const now = Math.floor(Date.now() / 1000);
+    if (expiresAt < now) {
+      throw new Error('Invoice has expired');
+    }
+    if (amountSat <= 0) {
+      throw new Error('Payment amount must be greater than zero');
+    }
+    await decrementBalance(userId, amountSat);
+    const request = {
+      payment_request: payment_request,
+      timeout_seconds,
+      fee_limit_sat: estimatedFee,
+    };
+    const response = await PayInvoice(request);
+    const payload: Partial<IPayment> = {
+      userId: new Types.ObjectId(userId),
+      paymentId: response.payment_hash,
+      bolt11: payment_request,
+      amount: Number(response.value),
+      fee: Number(response.fee),
+      payment_index: Number(response.payment_index),
+      preimage: response.payment_preimage,
+      status: response.status.toLowerCase() as IPayment['status'],
+      failureReason: response.failure_reason,
+      paymentHash: response.payment_hash,
+      destination: decoded.fallback_addr || '',
+      hops: response.htlcs?.length,
+      succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
+      failedAt: response.status === 'FAILED' ? new Date() : undefined,
+      routingHints: response.htlcs,
+      metadata: {
+        route: response.htlcs,
+        payment_error: response.failure_reason,
+      },
+    };
+    if (response.status === 'FAILED') {
+      await incrementBalance(userId, amountSat);
+    }
+    const payment = await createPayment(payload);
+    return payment;
+  } catch (error: any) {
+    console.error('Error sending payment:', error);
+    throw new Error(error.message || 'Failed to send payment');
+  }
+};
 
 // // Deduct from user balance (for outgoing payments)
 // export const decrementUserBalance = async (userId: string, amount: number) => {
@@ -243,7 +320,6 @@ export const getWalletDetails = async (userId: string) => {
 //         }
 //     );
 // }
-
 
 // interface LndRoute {
 //   fee: number;
