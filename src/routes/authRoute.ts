@@ -10,6 +10,7 @@ import {
 	resendOtpWhatsApp,
 	verifyOtpWA,
 	changePhoneNumber,
+	verifyEmailOtpOnly,
 } from "../controllers/authController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 const router = Router();
@@ -132,7 +133,7 @@ const router = Router();
  * @swagger
  * /auth/verify_otp:
  *   post:
- *     summary: Verify OTP for account activation
+ *     summary: Verify both email and WhatsApp OTPs for account activation
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -140,6 +141,57 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - emailOtp
+ *               - phoneOtp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               emailOtp:
+ *                 type: string
+ *                 example: "123456"
+ *               phoneOtp:
+ *                 type: string
+ *                 example: "654321"
+ *     responses:
+ *       200:
+ *         description: Account activated and phone verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: Your account has been activated and phone verified
+ *                 user:
+ *                   type: object
+ *                   description: Updated user object
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Invalid or expired OTP
+ *       404:
+ *         description: User not found or failed to update user status
+ */
+
+/**
+ * @swagger
+ * /auth/verify_email_otp:
+ *   post:
+ *     summary: Verify email OTP (no account status update)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
  *             properties:
  *               email:
  *                 type: string
@@ -149,7 +201,7 @@ const router = Router();
  *                 example: "123456"
  *     responses:
  *       200:
- *         description: Account activated successfully
+ *         description: Email OTP verified successfully
  *         content:
  *           application/json:
  *             schema:
@@ -157,14 +209,13 @@ const router = Router();
  *               properties:
  *                 msg:
  *                   type: string
- *                   example: Your account has been activated
- *                 newUser:
- *                   type: object
+ *                   example: Email OTP verified successfully
+ *       400:
+ *         description: Email and OTP are required
  *       401:
- *         description: Invalid OTP
- *       404:
- *         description: User not found
+ *         description: Invalid or expired email OTP
  */
+
 
 /**
  * @swagger
@@ -405,6 +456,7 @@ const router = Router();
 router.post("/register", register);
 router.get("/user", authorize, getUser);
 router.post("/verify_otp", verifyOtp);
+router.post("/verify_email_otp", verifyEmailOtpOnly);
 router.post("/verify_whatsapp_otp", verifyOtpWA);
 router.post("/resend_otp", resendOtp);
 router.post("/resend_whatsapp_otp", resendOtpWhatsApp);

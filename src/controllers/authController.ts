@@ -59,24 +59,21 @@ const register = async (req: Request, res: Response) => {
       req.body.lastName
     );
 
+    // sends EMAIL OTP on user registering
     await generateAndSendOtp({
       email: email!,
       message: 'Your OTP to verify your account is',
       subject: 'Email verification',
     });
 
-    // await generateAndSendOtpWA(req.body.phoneNumber);
-
     // sends WhatsApp OTP on user registering
-
-    // OTP is down so a temporal bypass has been implemented
-    // await generateAndSendOtpWA(phoneNumber)
-    //   .then((response) => {
-    //     console.log("OTP sent successfully to WhatsApp:", response);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error sending OTP to WhatsApp:", error);
-    // });
+    await generateAndSendOtpWA(phoneNumber)
+      .then((response) => {
+        console.log("OTP sent successfully to WhatsApp:", response);
+      })
+      .catch((error) => {
+        console.error("Error sending OTP to WhatsApp:", error);
+    });
 
 
     const walletPayload: iWallet = {
@@ -99,26 +96,76 @@ const register = async (req: Request, res: Response) => {
   }
 };
 
-// Verify OTP and activate account
+// Enhanced Email + WhatsApp OTP Verification for account activation
 const verifyOtp = async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    throw new BadRequestError('Email and otp is required');
-  }
-  const validOtp = await findOtp(email, otp);
-  if (!validOtp) {
-    throw new UnauthenticatedError('Failed to validate OTP');
+  const { email, emailOtp, phoneOtp } = req.body;
+
+  if (!email || !emailOtp || !phoneOtp) {
+    throw new BadRequestError('Email, email OTP, and phone OTP are required');
   }
 
-  // Activate user and not verify it
-  const newUser = await updateUserByEmail(email, { status: 'active' });
-  if (!newUser) {
+  // Validate email OTP
+  const validEmailOtp = await findOtp(email, emailOtp);
+  if (!validEmailOtp) {
+    throw new UnauthenticatedError('Invalid or expired email OTP');
+  }
+
+  // Get user info (to get phone number)
+  const user = await findUser('email', email);
+  if (!user) {
     throw new NotFoundError('User not found');
   }
+
+  const { _id: userId, phoneNumber } = user;
+
+  // Validate phone OTP
+  const validPhoneOtp = await findOtpPhone(phoneNumber, phoneOtp);
+  if (!validPhoneOtp) {
+    throw new UnauthenticatedError('Invalid or expired WhatsApp OTP');
+  }
+
+  // Mark user as active and phone verified
+  const updatedUser = await updateUserByEmail(email, {
+    status: 'active',
+    isVerified: true,
+    Tier: 1,
+  });
+
+  if (!updatedUser) {
+    throw new NotFoundError('Failed to update user status');
+  }
+
+  // Clean up both OTPs
+  await Promise.all([
+    deleteOtp(email),
+    deleteOtpPhone(phoneNumber)
+  ]);
+
+  res.status(StatusCodes.OK).json({
+    msg: 'Your account has been activated and phone verified',
+    user: updatedUser,
+  });
+};
+
+ // Email OTP Validation (No status update)
+const verifyEmailOtpOnly = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new BadRequestError('Email and OTP are required');
+  }
+
+  const validOtp = await findOtp(email, otp);
+  if (!validOtp) {
+    throw new UnauthenticatedError('Invalid or expired email OTP');
+  }
+
+  // Delete OTP to prevent reuse
   await deleteOtp(email);
-  res
-    .status(StatusCodes.OK)
-    .json({ msg: 'Your account has been activated', newUser });
+
+  res.status(StatusCodes.OK).json({
+    msg: 'Email OTP verified successfully',
+  });
 };
 
 // Verify OTP through whatsApp
@@ -253,11 +300,11 @@ const login = async (req: Request, res: Response) => {
     //  }
 
     // TEMPORARY BYPASS WHATSAPP OTP VERIFICATION
-    if (user.Tier === 0 && user.isVerified === false) {
-      user.Tier = 1;
-      user.isVerified = true;
-      await user.save();
-    }
+    // if (user.Tier === 0 && user.isVerified === false) {
+    //   user.Tier = 1;
+    //   user.isVerified = true;
+    //   await user.save();
+    // }
 
     const token = await user.createJWT();
 
@@ -415,4 +462,5 @@ export {
   resetPassword,
   changePhoneNumber,
   getUser,
+  verifyEmailOtpOnly
 };
