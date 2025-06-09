@@ -533,7 +533,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Lock period has not expired yet. Time remaining: 2 hours
+ *                   example: "Lock period has not expired yet. Time remaining: 2 hours"
  */
 
 /**

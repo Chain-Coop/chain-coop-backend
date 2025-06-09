@@ -82,7 +82,7 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
     res.json({
       data: {
         ...user,
-        btcAddress: bitcoinBalanceDetails.totalBalance > 0 ? await getBitcoinAddress(userId) : null,
+        btcAddress: await getBitcoinAddress(userId),
         bitcoinBalance: {
           total: bitcoinBalanceDetails.totalBalance,
           available: bitcoinBalanceDetails.availableBalance,
@@ -181,7 +181,6 @@ const withdrawBitcoin = AsyncHandler(async (req: Request, res: Response) => {
       message: error.message || 'Bitcoin transfer failed',
     });
   }
-
 });
 
 const lockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
@@ -264,31 +263,33 @@ const unlockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
   }
 });
 
-const getBitcoinBalanceWithLocks = AsyncHandler(async (req: Request, res: Response) => {
-  //@ts-ignore
-  const userId = req.user.userId;
+const getBitcoinBalanceWithLocks = AsyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
 
-  if (!userId) {
-    res.status(401).json({
-      message: 'Unauthorized',
-    });
-    return;
+    if (!userId) {
+      res.status(401).json({
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    try {
+      const balanceDetails = await getBitcoinBalanceDetails(userId);
+
+      res.status(200).json({
+        status: 'success',
+        data: balanceDetails,
+      });
+    } catch (error: any) {
+      console.error('Error fetching Bitcoin balance with locks:', error);
+      res.status(500).json({
+        message: error.message || 'Failed to fetch balance',
+      });
+    }
   }
-
-  try {
-    const balanceDetails = await getBitcoinBalanceDetails(userId);
-
-    res.status(200).json({
-      status: 'success',
-      data: balanceDetails,
-    });
-  } catch (error: any) {
-    console.error('Error fetching Bitcoin balance with locks:', error);
-    res.status(500).json({
-      message: error.message || 'Failed to fetch balance',
-    });
-  }
-});
+);
 
 const getLockStatus = AsyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
