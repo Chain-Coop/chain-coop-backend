@@ -147,6 +147,27 @@ const verifyOtp = async (req: Request, res: Response) => {
   });
 };
 
+ // Email OTP Validation (No status update)
+const verifyEmailOtpOnly = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new BadRequestError('Email and OTP are required');
+  }
+
+  const validOtp = await findOtp(email, otp);
+  if (!validOtp) {
+    throw new UnauthenticatedError('Invalid or expired email OTP');
+  }
+
+  // Delete OTP to prevent reuse
+  await deleteOtp(email);
+
+  res.status(StatusCodes.OK).json({
+    msg: 'Email OTP verified successfully',
+  });
+};
+
 // Verify OTP through whatsApp
 const verifyOtpWA = async (req: Request, res: Response) => {
   const { userId, phoneNumber, otp } = req.body;
