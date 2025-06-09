@@ -65,18 +65,14 @@ const register = async (req: Request, res: Response) => {
       subject: 'Email verification',
     });
 
-    // await generateAndSendOtpWA(req.body.phoneNumber);
-
     // sends WhatsApp OTP on user registering
-
-    // OTP is down so a temporal bypass has been implemented
-    // await generateAndSendOtpWA(phoneNumber)
-    //   .then((response) => {
-    //     console.log("OTP sent successfully to WhatsApp:", response);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error sending OTP to WhatsApp:", error);
-    // });
+    await generateAndSendOtpWA(phoneNumber)
+      .then((response) => {
+        console.log("OTP sent successfully to WhatsApp:", response);
+      })
+      .catch((error) => {
+        console.error("Error sending OTP to WhatsApp:", error);
+    });
 
 
     const walletPayload: iWallet = {
