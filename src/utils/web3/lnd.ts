@@ -1,4 +1,5 @@
 import axios from 'axios';
+import bolt11 from 'bolt11';
 
 const LND_BASE_URL = process.env.LND_REST_URL!;
 const MACAROON = process.env.LND_MACAROON!;
@@ -76,23 +77,17 @@ export const AddInvoice = async (payload: any): Promise<AddInvoiceResponse> => {
     throw error;
   }
 };
-export const decodeInvoice = async (
-  invoice: string
-): Promise<PaymentInvoice> => {
+
+export const decodeInvoice = async (invoice: string): Promise<any> => {
   try {
-    const { data } = await axios.post<PaymentInvoice>(
-      `${LND_BASE_URL}/v2/invoices/lookup`,
-      {
-        payment_request: invoice,
-      },
-      {
-        headers: {
-          'Grpc-Metadata-macaroon': MACAROON,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return data;
+    // Decode the Lightning invoice to extract the payment hash
+    const decoded = bolt11.decode(invoice);
+    const paymentHash = decoded.tagsObject.payment_hash;
+    if (!paymentHash) {
+      throw new Error('Payment hash is missing from invoice.');
+    }
+
+    return decoded;
   } catch (error: any) {
     console.error('LND API Error:', error.response?.data || error.message);
     throw error;

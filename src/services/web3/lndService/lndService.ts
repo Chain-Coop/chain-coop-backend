@@ -246,9 +246,9 @@ export const sendPayment = async (userId: string, invoice: string) => {
       throw new Error('Invalid invoice format');
     }
     const payment_request = decoded.payment_request;
-    const timeout_seconds = decoded.expiry;
-    const amountMsat = decoded.value_msat;
-    const amountSat = decoded.value ? Number(decoded.value) : 0;
+    const timeout_seconds = decoded.timeExpireDate;
+
+    const amountSat = decoded.satoshis ? Number(decoded.satoshis) : 0;
 
     const senderBalance = await getAvailableBalance(userId);
     const estimatedFee = Math.ceil(Number(amountSat) * 0.01); // Estimate 1% fee
