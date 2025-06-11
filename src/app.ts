@@ -9,6 +9,7 @@ import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import cloudinary from 'cloudinary';
 import fileUpload from 'express-fileupload';
 import { RequestHandler } from 'express';
+import { initializeServices } from './services/web3/lndService/startupService';
 
 import {
   clearAllPendingContributionsService,
@@ -34,7 +35,7 @@ import {
   dashboardRouter,
   savingCircleRoutes,
   blogRoutes,
-  restoreWallets
+  restoreWallets,
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -210,6 +211,7 @@ const start = async () => {
           error
         )
       );
+    initializeServices();
   } catch (error) {
     console.error('Failed to start application:', error);
     process.exit(1);

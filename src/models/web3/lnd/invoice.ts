@@ -6,14 +6,15 @@ export interface IInvoice {
   invoiceId: string; // LND invoice ID
   bolt11: string; // BOLT11 invoice string
   preimage?: string;
-  payment_request: string,
+  payment_request: string;
   amount: number; // In satoshis
   amountPaid?: number; // Actual amount paid (in case of overpayment)
   memo: string;
   status: 'pending' | 'paid' | 'expired' | 'cancelled';
   expiresAt: Date;
   paidAt?: Date;
-  settlementFee?: number;
+  settleDate?: Date;
+  settleIndex?: number; // Optional, if you want to track settlement index
   metadata?: {
     [key: string]: any;
   };
@@ -71,7 +72,10 @@ const InvoiceSchema: Schema = new Schema(
     paidAt: {
       type: Date,
     },
-    settlementFee: {
+    settleDate: {
+      type: Date,
+    },
+    settleIndex: {
       type: Number,
     },
     metadata: {
