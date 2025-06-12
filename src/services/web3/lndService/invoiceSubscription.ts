@@ -88,10 +88,20 @@ class InvoiceSubscriptionService extends EventEmitter {
 
       this.ws.on('message', (data: WebSocket.Data) => {
         try {
-          const invoice: InvoiceUpdateEvent = JSON.parse(data.toString());
-          this.handleInvoiceMessage(invoice);
+          const message = JSON.parse(data.toString());
+          
+          // Check if this is an invoice update message
+          if (message && typeof message === 'object') {
+            // LND sometimes sends different message types, ensure this looks like an invoice
+            if (message.result || message.r_hash || message.payment_request) {
+              this.handleInvoiceMessage(message as InvoiceUpdateEvent);
+            } else {
+              console.log('Received non-invoice message:', message);
+            }
+          }
         } catch (error) {
           console.error('Error parsing invoice message:', error);
+          console.error('Raw message data:', data.toString());
         }
       });
 
@@ -111,6 +121,7 @@ class InvoiceSubscriptionService extends EventEmitter {
       this.scheduleReconnect();
     }
   }
+
   public startHTTPSubscription(): void {
     try {
       const source = axios({
@@ -168,6 +179,16 @@ class InvoiceSubscriptionService extends EventEmitter {
   }
 
   private handleInvoiceMessage(invoice: InvoiceUpdateEvent): void {
+    // Validate that we have essential invoice data before processing
+    if (!invoice.r_hash || !invoice.state) {
+      console.log('Received incomplete invoice data, skipping...', {
+        hasRHash: !!invoice.r_hash,
+        hasState: !!invoice.state,
+        rawData: invoice
+      });
+      return;
+    }
+
     console.log('Received invoice update:', {
       state: invoice.state,
       settled: invoice.settled,
@@ -188,6 +209,17 @@ class InvoiceSubscriptionService extends EventEmitter {
     invoice: InvoiceUpdateEvent
   ): Promise<void> {
     try {
+      // Validate essential fields for settled invoices
+      if (!invoice.r_hash) {
+        console.error('Cannot process settled invoice: missing r_hash');
+        return;
+      }
+
+      if (!invoice.amt_paid_sat && !invoice.amt_paid) {
+        console.error('Cannot process settled invoice: missing payment amount');
+        return;
+      }
+
       console.log(`Invoice settled: ${invoice.r_hash}`);
 
       // Convert r_hash from base64 to hex for database lookup
@@ -211,18 +243,22 @@ class InvoiceSubscriptionService extends EventEmitter {
         return;
       }
 
+      // Use amt_paid_sat if available, otherwise fall back to amt_paid converted to sats
+      const amountToCredit = invoice.amt_paid_sat 
+        ? parseInt(invoice.amt_paid_sat)
+        : Math.floor(parseInt(invoice.amt_paid || '0') / 1000); // Convert msat to sat
+
       // Update invoice status in database
       await Invoice.findByIdAndUpdate(dbInvoice._id, {
         status: 'paid',
         paidAt: new Date(),
-        settleDate: new Date(parseInt(invoice.settle_date) * 1000),
-        amountPaid: parseInt(invoice.amt_paid),
-        amount: parseInt(invoice.amt_paid_sat),
+        settleDate: invoice.settle_date ? new Date(parseInt(invoice.settle_date) * 1000) : new Date(),
+        amountPaid: parseInt(invoice.amt_paid || '0'),
+        amount: amountToCredit,
         settleIndex: invoice.settle_index,
       });
 
       // Credit the user's balance
-      const amountToCredit = parseInt(invoice.amt_paid_sat);
       await incrementBalance(dbInvoice.userId, amountToCredit);
 
       console.log(
@@ -246,10 +282,22 @@ class InvoiceSubscriptionService extends EventEmitter {
       });
     }
   }
+
   private async handleInvoiceUpdated(
     invoice: InvoiceUpdateEvent
   ): Promise<void> {
     try {
+      // Validate essential fields before processing
+      if (!invoice.r_hash) {
+        console.log('Cannot update invoice: missing r_hash');
+        return;
+      }
+
+      if (!invoice.state) {
+        console.log('Cannot update invoice: missing state');
+        return;
+      }
+
       const paymentHashHex = Buffer.from(invoice.r_hash, 'base64').toString(
         'hex'
       );
@@ -271,10 +319,13 @@ class InvoiceSubscriptionService extends EventEmitter {
           ...(invoice.state === 'CANCELED' && { canceledAt: new Date() }),
         }
       );
+
+      console.log(`Updated invoice ${paymentHashHex} to status: ${newStatus}`);
     } catch (error) {
       console.error('Error updating invoice:', error);
     }
   }
+
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error(
@@ -325,6 +376,7 @@ class InvoiceSubscriptionService extends EventEmitter {
   public getConnectionStatus(): boolean {
     return this.isConnected;
   }
+
   public async syncMissedInvoices(): Promise<void> {
     try {
       // Get all pending invoices from database
@@ -367,7 +419,9 @@ class InvoiceSubscriptionService extends EventEmitter {
     }
   }
 }
+
 export const invoiceSubscriptionService = new InvoiceSubscriptionService();
+
 export const startInvoiceSubscription = () => {
   console.log('Starting invoice subscription service...');
 
@@ -379,4 +433,5 @@ export const startInvoiceSubscription = () => {
 
   return invoiceSubscriptionService;
 };
+
 export default InvoiceSubscriptionService;
