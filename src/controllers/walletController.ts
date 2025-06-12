@@ -98,6 +98,7 @@ const verifyPayment = async (req: Request, res: Response) => {
 		const paymentData = response.data.data;
 		if (paymentData.status === "success") {
 			const { amount, customer } = paymentData;
+			const amountInNaira = amount / 100;
 			const user = await findUser("email", customer.email);
 			if (!user) {
 				throw new BadRequestError("user not found");
@@ -109,11 +110,11 @@ const verifyPayment = async (req: Request, res: Response) => {
 			}
 
 			const updatedWallet = await updateWalletService(wallet._id, {
-				balance: wallet.balance + amount / 100,
+				balance: wallet.balance + amountInNaira,
 			});
 
 			const historyPayload: iWalletHistory = {
-				amount: amount,
+				amount: amountInNaira,
 				label: "Wallet top up via Paystack",
 				ref: reference,
 				type: "credit",
