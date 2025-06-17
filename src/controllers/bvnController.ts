@@ -1,69 +1,57 @@
 // controllers/qoreidController.ts
 import { Request, Response } from 'express';
 import { verifyBVNBooleanMatchQoreID } from '../services/bvnService';
-import User from '../models/user';
+import User from '../models/authModel';
+
+interface BVNMatchCheckSummary {
+  bvn_match_check?: {
+    status?: string;
+    fieldMatches?: {
+      firstname?: boolean;
+      lastname?: boolean;
+    };
+  };
+}
+
+interface BVNVerificationStatus {
+  state?: string;
+  status?: string;
+}
+
+interface BVNBooleanMatchResult {
+  success: boolean;
+  data?: {
+    summary?: BVNMatchCheckSummary;
+    status?: BVNVerificationStatus;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
 
 export const verifyBVNBooleanMatchController = async (req: Request, res: Response) => {
   try {
-    const {
-      idNumber,
-      firstname,
-      lastname,
-      dob,
-      phone,
-      email,
-      gender,
-    } = req.body;
-
+    const { idNumber } = req.body;
     const userId = req.user?.userId;
 
-    if (!idNumber || !firstname || !lastname) {
-      return res.status(400).json({
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: 'idNumber, firstname, and lastname are required',
+        message: 'User not found',
       });
     }
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized: User not authenticated',
-      });
-    }
-
-    interface BVNMatchResult {
-      success: boolean;
-      data?: {
-        summary?: {
-          bvn_match_check?: {
-            status?: string;
-            fieldMatches?: {
-              firstname?: boolean;
-              lastname?: boolean;
-            };
-          };
-        };
-        status?: {
-          state?: string;
-          status?: string;
-        };
-      };
-      [key: string]: any;
-    }
+    const { firstName, lastName } = user as any;
 
     const rawResult = await verifyBVNBooleanMatchQoreID({
       idNumber,
-      firstname,
-      lastname,
-      dob,
-      phone,
-      email,
-      gender,
+      firstname: firstName,
+      lastname: lastName,
     });
 
-    const result: BVNMatchResult = {
+    const result: BVNBooleanMatchResult = {
       ...rawResult,
-      data: rawResult.data as BVNMatchResult['data'],
+      data: rawResult.data as BVNBooleanMatchResult['data'],
     };
 
     if (!result.success) {
@@ -72,14 +60,6 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
 
     // Handle user tier update if EXACT_MATCH
     if (result.data?.summary?.bvn_match_check?.status === 'EXACT_MATCH') {
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found',
-        });
-      }
-
       if (user.Tier === 2) {
         return res.status(200).json({
           success: true,
