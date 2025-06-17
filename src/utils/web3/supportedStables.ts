@@ -7,10 +7,10 @@ export const SupportedETHERLINKStables = [
   { USDC: '0xa7b791a758a7b85a23a7af075c9be95b69aa95fd' },
 ];
 export const SupportedBSCStables = [
-  { USDT: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd' },
-  { USDC: '0xb7aBbAAE122C7Fa8826e965F20f5C6F0655E6DeD' },
+  { USDT: '0x55d398326f99059ff775485246999027b3197955' },
+  { USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' },
 ];
 export const SupportedPOLYGONStables = [
-  { USDT: '0x4b0c83e92216eF651601D3081dCE7aba3fa19A10' },
-  { USDC: '0xbce575b03da962b048d17239c5fa9af2478cb547' },
+  { USDT: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f' },
+  { USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174' },
 ];
