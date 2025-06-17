@@ -11,17 +11,17 @@ import {
 import {
   LISKRPC_TESTNET,
   ETHERLINK_TESTNET,
-  BSC_TESTNET,
-  POLYGON_TESTNET,
+  BSC_MAINNET,
+  POLYGON_MAINNET,
 } from '../../../constant/rpcs';
 import {
-  FORWARDER_CONTRACT_BSC_TESTNET,
+  FORWARDER_CONTRACT_BSC_MAINNET,
   FORWARDER_CONTRACT_ETHERLINK_TESTNET,
-  FORWARDER_CONTRACT_POLYGON_TESTNET,
+  FORWARDER_CONTRACT_POLYGON_MAINNET,
   FORWARDER_CONTRACT_LISK_TESTNET,
   CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
-  CHAINCOOPSAVING_BSC_TESTNET,
-  CHAINCOOPSAVING_POLYGON_TESTNET,
+  CHAINCOOPSAVING_BSC_MAINNET,
+  CHAINCOOPSAVING_POLYGON_MAINNET,
   CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
 } from '../../../constant/contract/ChainCoopSaving';
 
@@ -78,15 +78,15 @@ export async function signMetaTransaction(
     forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK_TESTNET;
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_TESTNET);
+    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_BSC_TESTNET;
-    contractAddress = CHAINCOOPSAVING_BSC_TESTNET;
+    forwarderContractAddress = FORWARDER_CONTRACT_BSC_MAINNET;
+    contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
+    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_TESTNET;
-    contractAddress = CHAINCOOPSAVING_POLYGON_TESTNET;
+    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_MAINNET;
+    contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
   } else {
     throw new Error('Unsupported network');
   }
@@ -190,11 +190,11 @@ export async function executeMetaTransaction(
     provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
     forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_TESTNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_BSC_TESTNET;
+    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
+    forwarderContractAddress = FORWARDER_CONTRACT_BSC_MAINNET;
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_TESTNET;
+    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
+    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_MAINNET;
   } else {
     throw new Error('Unsupported network');
   }
