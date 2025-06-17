@@ -11,6 +11,7 @@ export interface UserDocument extends Document {
   Tier: 0 | 1 | 2;
   isVerified: boolean;
   isCrypto: boolean;
+  customerCode?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -57,6 +58,10 @@ const UserSchema: Schema = new Schema({
     default: false,
   },
   kycSessionId: { type: String },
+    customerCode: {
+    type: String,
+    required: false,
+  },
 });
 
 const User =

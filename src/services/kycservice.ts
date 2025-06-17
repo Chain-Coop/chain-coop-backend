@@ -101,20 +101,26 @@ const createPaystackCustomer = async (
 };
 
 const setBVN = async (bvn: string, userId: string) => {
-  const user = await findWalletService({ user: userId });
-  if (!user || bvn.length !== 11) {
-    return false;
+  if (!bvn || bvn.length !== 11) {
+    throw new Error("Invalid BVN. Must be 11 digits.");
   }
 
-  const tryBvn = encrypt(bvn);
-  if (!tryBvn) {
-    return false;
+  const wallet = await findWalletService({ user: userId });
+  if (!wallet) {
+    throw new Error("Wallet not found");
   }
-  user.bvn = tryBvn;
-  console.log(user.bvn, user._id);
-  await user.save();
+
+  const encryptedBvn = encrypt(bvn);
+  if (!encryptedBvn || typeof encryptedBvn !== "string") {
+    throw new Error("Failed to encrypt BVN.");
+  }
+  wallet.bvn = encryptedBvn;
+
+  await wallet.save();
+
   return true;
 };
+
 
 const verifyBVN = async ({
   countryCode = "NG",
@@ -126,32 +132,58 @@ const verifyBVN = async ({
   lastName,
   customer_code,
 }: VerifyBVNParams) => {
+  const payload = {
+    country: countryCode,
+    type,
+    account_number: accountNumber,
+    bvn,
+    bank_code: bankcode,
+    first_name: firstName,
+    last_name: lastName,
+  };
+
   try {
-    const data = {
-      country: countryCode,
-      type: type,
-      account_number: accountNumber,
-      bvn: bvn,
-      bank_code: bankcode,
-      first_name: firstName,
-      last_name: lastName,
-    };
     const response = await axios.post(
       `https://api.paystack.co/customer/${customer_code}/identification`,
-      data,
+      payload,
       {
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
       }
     );
 
-    return response.data;
-  } catch (error) {
-    //@ts-ignore
-    return error.response.data;
+    // Assert the type of response.data
+    const data = response.data as {
+      status: boolean;
+      data: { status: string; [key: string]: any };
+      [key: string]: any;
+    };
+
+    // Success response
+    if (data.status === true && data.data.status === "verified") {
+      return {
+        success: true,
+        message: "BVN successfully verified with Paystack",
+        data: data.data,
+      };
+    }
+
+    return {
+      success: false,
+      message: "BVN verification failed",
+      data: data.data,
+    };
+  } catch (error: any) {
+    console.error("BVN Verification Error:", error?.response?.data || error.message);
+    return {
+      success: false,
+      message: error?.response?.data?.message || "Failed to verify BVN",
+    };
   }
 };
+
 
 const BVNWebhook = async (data: any) => {
   const user = await findUser("email", data.email);

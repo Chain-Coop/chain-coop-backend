@@ -2,13 +2,14 @@ import { Router } from "express";
 import {
   sendOTP,
   sendWhatsappOTPController,
-  setBVNController,
-  verifyBVNController,
+  //setBVNController,
+  //verifyBVNController,
   verifyOTPController,
   verifyWhatsappOTPController,
   initiateTier2Kyc,
   handleKycCallback
 } from "../controllers/kycontroller";
+import { verifyBVNBooleanMatchController } from '../controllers/bvnController';
 import { authorize } from "../middlewares/authorization";
 
 const router = Router();
@@ -268,11 +269,12 @@ const router = Router();
 
 router.post("/send-otp", authorize, sendOTP);
 router.post("/verify-otp", authorize, verifyOTPController);
-router.post("/set-bvn", authorize, setBVNController);
-router.post("/verify-bvn", authorize, verifyBVNController);
+//router.post("/set-bvn", authorize, setBVNController);
+router.post("/verify-bvn/",authorize, verifyBVNBooleanMatchController);
 router.post("/sendwaotp", authorize, sendWhatsappOTPController);
 router.post("/verifywaotp", authorize, verifyWhatsappOTPController);
 router.post("/callback", handleKycCallback);
+//router.get('/status', authorize, checkBVNStatusController);
 
 //TIER 2 Verification routes
 router.post('/tier2/:userId', initiateTier2Kyc);
