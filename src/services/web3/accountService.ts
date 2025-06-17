@@ -14,8 +14,8 @@ import {
 import {
   CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
   CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
-  CHAINCOOPSAVING_BSC_TESTNET,
-  CHAINCOOPSAVING_POLYGON_TESTNET,
+  CHAINCOOPSAVING_BSC_MAINNET,
+  CHAINCOOPSAVING_POLYGON_MAINNET,
 } from '../../constant/contract/ChainCoopSaving';
 import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
 import * as bitcoin from 'bitcoinjs-lib';
@@ -420,11 +420,11 @@ const approveTokenTransfer = async (
   if (network === 'LISK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
   } else if (network === 'BSC') {
-    contractAddress = CHAINCOOPSAVING_BSC_TESTNET;
+    contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
   } else if (network === 'ETHERLINK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'GNOSIS') {
-    contractAddress = CHAINCOOPSAVING_POLYGON_TESTNET;
+    contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }
