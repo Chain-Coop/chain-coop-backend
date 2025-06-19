@@ -20,6 +20,7 @@ import Web3Wallet, { Web3WalletDocument } from '../../models/web3Wallet';
 import { decrypt } from '../../services/encryption';
 import { tokenAddress } from '../../utils/web3/tokenaddress';
 import { StatusCodes } from 'http-status-codes';
+import { bitcoin } from 'bitcoinjs-lib/src/networks';
 
 const activateWeb3Wallet = AsyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
@@ -74,21 +75,30 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'No Wallet found' });
       return;
     }
+    const hasBitcoinWallet = await checkExistingBitcoinWallet(userId);
+    let bitcoinBalanceDetails;
+    let bitcoinAddress;
+
+    if (!hasBitcoinWallet) {
+      bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
+      bitcoinAddress = await getBitcoinAddress(userId);
+    }
+
     const details = await getUserWeb3Wallet(userId);
-    const bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
+
     //remove encryptedKey
     const { encryptedKey, publicKey, ...user } = details;
 
     res.json({
       data: {
         ...user,
-        btcAddress: await getBitcoinAddress(userId),
+        btcAddress: bitcoinAddress || null,
         bitcoinBalance: {
-          total: bitcoinBalanceDetails.totalBalance,
-          available: bitcoinBalanceDetails.availableBalance,
-          locked: bitcoinBalanceDetails.lockedAmount,
-          isLocked: bitcoinBalanceDetails.isLocked,
-          lockDetails: bitcoinBalanceDetails.lockDetails,
+          total: bitcoinBalanceDetails?.totalBalance || 0,
+          available: bitcoinBalanceDetails?.availableBalance || 0,
+          locked: bitcoinBalanceDetails?.lockedAmount || 0,
+          isLocked: bitcoinBalanceDetails?.isLocked || false,
+          lockDetails: bitcoinBalanceDetails?.lockDetails || null,
         },
       },
     });
