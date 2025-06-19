@@ -44,15 +44,33 @@ const initiatePayment = async (req: Request, res: Response) => {
 
 	await DepositLimitChecker(user, amount);
 
+	// Calculate Paystack fee
+	const feePercentage = 0.015;
+	const flatFee = 100;
+	const cap = 2000;
+
+	let charge = amount * feePercentage;
+	if (amount > 2500) {
+		charge += flatFee;
+	}
+	if (charge > cap) {
+		charge = cap;
+	}
+
+	const roundedCharge = Math.ceil(charge);
+	const totalAmountToPay = amount + roundedCharge;
+
 	try {
 		const response: any = await axios.post(
 			"https://api.paystack.co/transaction/initialize",
 			{
 				email,
-				amount: amount * 100,
+				amount: totalAmountToPay * 100, // Paystack expects amount in kobo
 				callback_url: "https://chaincoop.org/dashboard/wallet",
 				metadata: {
 					type: "wallet_funding",
+					original_amount: amount,
+					charge: roundedCharge
 				},
 			},
 			{
@@ -65,6 +83,9 @@ const initiatePayment = async (req: Request, res: Response) => {
 		res.status(StatusCodes.OK).json({
 			message: "Payment initiated successfully",
 			paymentUrl: response.data.data.authorization_url,
+			amount,
+			charge: roundedCharge,
+			totalAmountToPay
 		});
 	} catch (error: any) {
 		console.error(error);
@@ -74,6 +95,7 @@ const initiatePayment = async (req: Request, res: Response) => {
 		});
 	}
 };
+
 
 const verifyPayment = async (req: Request, res: Response) => {
 	const { reference } = req.body;

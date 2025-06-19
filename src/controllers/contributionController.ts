@@ -59,59 +59,65 @@ export interface iContribution {
 
 
 export const createContribution = async (req: Request, res: Response) => {
-  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate, savingsType, contributionType} = req.body;
+  const { amount, currency, contributionPlan, savingsCategory, startDate, endDate, savingsType, contributionType } = req.body;
 
   //@ts-ignore
   const email = req.user.email;
   //@ts-ignore
   const userId = req.user.userId;
 
-  // Check for required fields
   if (
     !amount ||
     !currency ||
     !email ||
-    // !contributionPlan || 
     !savingsCategory ||
     !startDate ||
-    !endDate  ||
-    // !savingsType ||
+    !endDate ||
     !contributionType
   ) {
     throw new BadRequestError("All fields are required");
   }
 
-    // Enforce the rule: savingsType "Strict" must have contributionType "one-time"
-    // if (savingsType === "Strict" && contributionType !== "one-time") {
-    //   throw new BadRequestError(
-    //     "For 'Strict' savingsType, contributionType must be 'one-time'."
-    //   );
-    // }
-  
+  const objectId = new mongoose.Types.ObjectId(userId);
 
-  // Validate that contributionPlan is provided when savingsType is not "Strict"
-  //if (savingsType !== "Strict"  && savingsType !== "One-time" && !contributionPlan) {
- //   throw new BadRequestError("Contribution plan is required for non-Strict savings types.");
- // }
-const objectId = new mongoose.Types.ObjectId(userId);
+  // Paystack fee calculation (Nigerian rates)
+  const calculatePaystackFee = (amt: number): number => {
+    let fee = amt * 0.015;
+    if (amt >= 2500) {
+      fee += 100;
+    }
+    return Math.min(fee, 2000);
+  };
+
+  const paystackFee = calculatePaystackFee(amount);
+  const totalAmountToPay = amount + paystackFee;
+
   try {
     const result = await createContributionService({
-      amount,
+      amount: totalAmountToPay,
       currency,
       contributionPlan,
       savingsCategory,
       startDate,
       endDate,
       email,
-      user: objectId ,
+      user: objectId,
       savingsType,
       contributionType,
     });
 
-    // Respond with the created contribution data
-    res.status(StatusCodes.OK).json({ 
-      result,
-     });
+    // Append fee info to the response
+    res.status(StatusCodes.OK).json({
+      result: {
+        ...result,
+        paymentInfo: {
+          baseAmount: amount,
+          paystackFee,
+          totalAmountToPay,
+          note: "This includes Paystack processing fees"
+        }
+      }
+    });
   } catch (error: any) {
     console.error("Error in createContribution:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -120,6 +126,7 @@ const objectId = new mongoose.Types.ObjectId(userId);
     });
   }
 };
+
 
 export const attemptPayment = async (req: Request, res: Response) => {
   //@ts-ignore
