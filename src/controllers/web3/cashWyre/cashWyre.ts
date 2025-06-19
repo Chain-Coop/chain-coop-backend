@@ -72,17 +72,10 @@ class CashwyreController {
           'Reference, transaction reference are required'
         );
       }
-      const wallet = await getUserWeb3Wallet(userId);
-      const bitcoinWallet = await getBitcoinAddress(userId);
-      if (!wallet) {
-        res.status(400).json({ message: 'Please activate wallet' });
-        return;
-      }
-      if (!bitcoinWallet) {
-        res.status(400).json({ message: 'Please activate Bitcoin wallet' });
-      }
+
       let userAddress;
       if (network === 'BTC') {
+        const bitcoinWallet = await getBitcoinAddress(userId);
         userAddress = bitcoinWallet;
       } else if (network === 'BTC_LN') {
         // For BTC_LN, we need to create an LND invoice
@@ -99,6 +92,7 @@ class CashwyreController {
         }
         userAddress = lndInvoice.payment_request; // Use the payment request as the address
       } else {
+        const wallet = await getUserWeb3Wallet(userId);
         userAddress = wallet.address;
       }
 
