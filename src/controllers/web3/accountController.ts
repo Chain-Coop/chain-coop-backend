@@ -79,7 +79,7 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
     let bitcoinBalanceDetails;
     let bitcoinAddress;
 
-    if (!hasBitcoinWallet) {
+    if (hasBitcoinWallet) {
       bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
       bitcoinAddress = await getBitcoinAddress(userId);
     }
