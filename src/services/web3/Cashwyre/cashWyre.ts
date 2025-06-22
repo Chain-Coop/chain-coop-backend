@@ -7,6 +7,7 @@ import CashwyreTransaction, {
   CashwyreTransactionStatus,
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
+import GenerateCryproAddress, { IGenerateCryproAddress } from '../../../models/web3/cashwyre';
 
 class CashwyreService {
   private axiosInstance: Axios.AxiosInstance;
@@ -27,6 +28,66 @@ class CashwyreService {
     //   console.log('Payload:', config.data);
     //   return config;
     // });
+  }
+
+  async generateCryptoAddress(
+    firstName: string,
+    lastName: string,
+    email: string,
+    assetType: string,
+    network: string,
+    amount: number,
+    requestId: string
+  ) {
+    try {
+      const data: any = await this.axiosInstance.post(
+        '/CustomerCryptoAddress/createCryptoAddress',
+        {
+          BusinessCode: CashwyreConfig.BusinessCode,
+          FirstName: firstName,
+          LastName: lastName,
+          Email: email,
+          AssetType: assetType,
+          Network: network,
+          Amount: amount,
+          AppId: CashwyreConfig.AppId,
+          RequestId: requestId,
+        }
+      );
+      if (!data) {
+        throw new NotFoundError('Quote was not fetched');
+      }
+      return data?.data;
+    } catch (error: any) {
+      console.error(error.message);
+      throw new Error(error.message);
+    }
+  }
+
+  async createCryptoAddress(
+    userId: string,
+    assetType: string,
+    network: string,
+    amount: number,
+    requestId: string,
+    address: string,
+    code: string,
+    status: string,
+    customerId: string
+  ): Promise<IGenerateCryproAddress> {
+    const cryptoAddress = new GenerateCryproAddress({
+      userId: new mongoose.Types.ObjectId(userId),
+      assetType,
+      network,
+      amount,
+      requestId,
+      address,
+      code,
+      status,
+      customerId,
+    });
+
+    return await cryptoAddress.save();
   }
 
   async getOnrampQuote(

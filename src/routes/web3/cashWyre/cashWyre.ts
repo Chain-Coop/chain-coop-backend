@@ -860,6 +860,102 @@ const router = Router();
  *                   example: "Failed to get transactions"
  */
 
+
+
+/**
+ * @swagger
+ * /web3/cashwyre/create-address:
+ *   post:
+ *     summary: Generate crypto address
+ *     description: This is used to generate crypto addresses for customers
+ *     tags: [Cashwyre]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - assetType
+ *               - network
+ *               - amount
+ *               - requestId
+ *             properties:
+ *               assetType:
+ *                 type: string
+ *                 description: The type of cryptocurrency asset
+ *                 example: bitcoin
+ *               amount:
+ *                 type: number
+ *                 description: The amount of asset to transact
+ *                 example: 0.0001
+ *               network:
+ *                 type: string
+ *                 description: The blockchain network identifier
+ *                 example: "BTC"
+ *               requestId:
+ *                 type: string
+ *                 description: The unique request identifier
+ *                 example: "OFFC4BC4CASHBITCOINNGN0066120250504151346"
+ *     responses:
+ *       200:
+ *         description: Address has been successfully created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Crypto address has been successfully created"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     address:
+ *                       type: string
+ *                       example: "bc1qwqpm3d6j7tetfhhjjkjtvw8zky2zr5pweaseze"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     assetType:
+ *                       type: string
+ *                       example: "bitcoin"
+ *                     network:
+ *                       type: string
+ *                       example: "BTC"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "assetType, network, amount, and requestId are required"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to generate crypto address"
+ */
+
 router.post('/onramp/quote', authorize, CashwyreController.getOnrampQuote);
 router.post(
   '/onramp/confirm',
@@ -888,5 +984,5 @@ router.get('/banks', CashwyreController.getSupportedBanks);
 router.post('/verify-account', CashwyreController.verifyBankAccount);
 
 router.get('/transactions', authorize, CashwyreController.getUserTransactions);
-
+router.post('/create-address', authorize, CashwyreController.generateCryptoAddress)
 export default router;

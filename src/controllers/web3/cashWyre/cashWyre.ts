@@ -21,8 +21,67 @@ import {
   sendPayment,
   createLndInvoice,
 } from '../../../services/web3/lndService/lndService';
+import { getUserDetails } from '../../../services/authService';
+import { StatusCodes } from 'http-status-codes';
 
 class CashwyreController {
+  /**
+   * Get onramp quote
+   * @route POST /api/cashwyre/onramp/quote
+   */
+  async generateCryptoAddress(req: Request, res: Response) {
+    try {
+      const { amount, assetType, network, requestId } = req.body;
+      // @ts-ignore
+      const userId = req.user.userId;
+
+      if (!assetType || !network) {
+        throw new BadRequestError('Asset type, and network are required');
+      }
+      const user = await getUserDetails(userId);
+
+      const { data } = await CashwyreService.generateCryptoAddress(
+        user!.firstName,
+        user!.lastName,
+        user!.email,
+        assetType,
+        network,
+        amount,
+        requestId
+      );
+
+      const { address, code, status, customerId, ...rest } = data;
+
+      await CashwyreService.createCryptoAddress(
+        userId,
+        assetType,
+        network,
+        amount,
+        requestId,
+        address,
+        code,
+        status,
+        customerId
+      );
+
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Crypto address has been successfully created',
+        data: {
+          address,
+          status,
+          assetType,
+          network,
+        },
+      });
+    } catch (error: any) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to create crypto address',
+      });
+    }
+  }
+
   /**
    * Get onramp quote
    * @route POST /api/cashwyre/onramp/quote
