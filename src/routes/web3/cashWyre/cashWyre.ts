@@ -895,10 +895,6 @@ const router = Router();
  *                 type: string
  *                 description: The blockchain network identifier
  *                 example: "BTC"
- *               requestId:
- *                 type: string
- *                 description: The unique request identifier
- *                 example: "OFFC4BC4CASHBITCOINNGN0066120250504151346"
  *     responses:
  *       200:
  *         description: Address has been successfully created

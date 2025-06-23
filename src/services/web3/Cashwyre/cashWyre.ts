@@ -40,23 +40,26 @@ class CashwyreService {
     requestId: string
   ) {
     try {
+      const payload = {
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        assetType: assetType,
+        network: network,
+        amount: amount,
+        businessCode: CashwyreConfig.BusinessCode,
+        appId: CashwyreConfig.BusinessCode,
+        requestId: requestId,
+      };
+
       const data: any = await this.axiosInstance.post(
         '/CustomerCryptoAddress/createCryptoAddress',
-        {
-          BusinessCode: CashwyreConfig.BusinessCode,
-          FirstName: firstName,
-          LastName: lastName,
-          Email: email,
-          AssetType: assetType,
-          Network: network,
-          Amount: amount,
-          AppId: CashwyreConfig.AppId,
-          RequestId: requestId,
-        }
+        payload
       );
       if (!data) {
-        throw new NotFoundError('Quote was not fetched');
+        throw new NotFoundError('Address was not generated');
       }
+
       return data?.data;
     } catch (error: any) {
       console.error(error.message);

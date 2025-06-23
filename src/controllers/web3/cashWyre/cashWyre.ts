@@ -26,12 +26,12 @@ import { StatusCodes } from 'http-status-codes';
 
 class CashwyreController {
   /**
-   * Get onramp quote
-   * @route POST /api/cashwyre/onramp/quote
+   * Generate crypto address
+   * @route POST /api/cashwyre/create-address
    */
   async generateCryptoAddress(req: Request, res: Response) {
     try {
-      const { amount, assetType, network, requestId } = req.body;
+      const { amount, assetType, network } = req.body;
       // @ts-ignore
       const userId = req.user.userId;
 
@@ -39,18 +39,19 @@ class CashwyreController {
         throw new BadRequestError('Asset type, and network are required');
       }
       const user = await getUserDetails(userId);
+      const requestId = uuidv4();
+      const email = 'info@chaincoop.org';
 
       const { data } = await CashwyreService.generateCryptoAddress(
         user!.firstName,
         user!.lastName,
-        user!.email,
+        email,
+        // user!.email,
         assetType,
         network,
         amount,
         requestId
       );
-
-      const { address, code, status, customerId, ...rest } = data;
 
       await CashwyreService.createCryptoAddress(
         userId,
@@ -58,18 +59,18 @@ class CashwyreController {
         network,
         amount,
         requestId,
-        address,
-        code,
-        status,
-        customerId
+        data!.address,
+        data!.code,
+        data!.status,
+        data!.customerId
       );
 
       return res.status(StatusCodes.OK).json({
         success: true,
         message: 'Crypto address has been successfully created',
         data: {
-          address,
-          status,
+          address: data!.address,
+          status: data!.status,
           assetType,
           network,
         },

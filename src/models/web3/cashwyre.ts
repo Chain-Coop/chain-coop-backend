@@ -52,7 +52,6 @@ const GenerateCryproAddressSchema: Schema = new Schema(
     },
     customerId: {
       type: String,
-      required: true
     },
   },
   {
