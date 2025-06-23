@@ -29,11 +29,10 @@ const openPool = async (
   network: string
 ) => {
   try {
-    const approveTx = await signPermit(
+    const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      process.env.RELAYER_PRIVATE_KEY!,
-      userPrivateKey,
       initialSaveAmount,
+      userPrivateKey,
       network
     );
     if (!approveTx) {
@@ -70,11 +69,10 @@ const updatePoolAmount = async (
   network: string
 ) => {
   try {
-    const approveTx = await signPermit(
+    const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      process.env.RELAYER_PRIVATE_KEY!,
-      userPrivateKey,
       amount,
+      userPrivateKey,
       network
     );
     if (!approveTx) {
@@ -131,9 +129,7 @@ const stopSaving = async (
 ) => {
   try {
     const con_tract = await chainCoopSavingcontract(network);
-    const data = con_tract.interface.encodeFunctionData('stopSaving', [
-      poolId,
-    ]);
+    const data = con_tract.interface.encodeFunctionData('stopSaving', [poolId]);
     const { forwardRequest, signature } = await signMetaTransaction(
       userPrivateKey,
       network,
@@ -263,7 +259,7 @@ const userPoolsByPoolId = async (
         typeof value === 'bigint' ? value.toString() : value
       )
     );
-    
+
     // Map rawUserPools to a serializable format
     const formattedPool: SavingPool = {
       saver: rawPools[0],
