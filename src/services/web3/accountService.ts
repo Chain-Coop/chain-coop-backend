@@ -290,7 +290,9 @@ const transferBitcoin = async (
 
     if (availableBalance < amount) {
       const lockInfo = wallet.isLocked
-        ? ` (${wallet.lockedAmount} BTC is locked until ${wallet.unlocksAt?.toISOString()})`
+        ? ` (${
+            wallet.lockedAmount
+          } BTC is locked until ${wallet.unlocksAt?.toISOString()})`
         : '';
       throw new Error(
         `Insufficient available balance. Available: ${availableBalance} BTC, Requested: ${amount} BTC${lockInfo}`
@@ -423,13 +425,16 @@ const approveTokenTransfer = async (
     contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
   } else if (network === 'ETHERLINK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
-  } else if (network === 'GNOSIS') {
+  } else if (network === 'POLYGON') {
     contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }
 
-  const tx = await con_tract.approve(contractAddress, parseUnits(amount, 6));
+  const tx = await con_tract.approve(
+    contractAddress,
+    parseUnits(amount, await con_tract.decimals())
+  );
   console.log('Transaction hash:', tx);
   await tx.wait(1);
   return tx;
@@ -533,13 +538,17 @@ const lockBitcoinAmount = async (
 
   // Check if wallet already has an active lock
   if (wallet.isLocked) {
-    throw new Error('Wallet already has an active lock. Please wait for it to expire or unlock it first.');
+    throw new Error(
+      'Wallet already has an active lock. Please wait for it to expire or unlock it first.'
+    );
   }
 
   // Get current balance
   const currentBalance = await getBitcoinBalance(userId);
   if (currentBalance < amount) {
-    throw new Error(`Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`);
+    throw new Error(
+      `Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`
+    );
   }
 
   // Set lock parameters
@@ -576,9 +585,13 @@ const unlockBitcoinAmount = async (userId: string): Promise<IBitcoinWallet> => {
 
   if (!wallet.unlocksAt || new Date() < wallet.unlocksAt) {
     const timeRemaining = wallet.unlocksAt
-      ? Math.ceil((wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60))
+      ? Math.ceil(
+          (wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60)
+        )
       : 0;
-    throw new Error(`Lock period has not expired yet. Time remaining: ${timeRemaining} hours`);
+    throw new Error(
+      `Lock period has not expired yet. Time remaining: ${timeRemaining} hours`
+    );
   }
 
   // Clear the lock
@@ -635,14 +648,18 @@ const getBitcoinBalanceDetails = async (userId: string) => {
     lockedAmount,
     availableBalance,
     isLocked: wallet.isLocked,
-    lockDetails: wallet.isLocked ? {
-      lockedAt: wallet.lockedAt,
-      unlocksAt: wallet.unlocksAt,
-      lockDuration: wallet.lockDuration,
-      lockReason: wallet.lockReason,
-      timeRemainingMs: wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime()) : 0,
-      canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
-    } : null,
+    lockDetails: wallet.isLocked
+      ? {
+          lockedAt: wallet.lockedAt,
+          unlocksAt: wallet.unlocksAt,
+          lockDuration: wallet.lockDuration,
+          lockReason: wallet.lockReason,
+          timeRemainingMs: wallet.unlocksAt
+            ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime())
+            : 0,
+          canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
+        }
+      : null,
   };
 };
 
@@ -671,7 +688,9 @@ const getBitcoinLockStatus = async (userId: string) => {
   }
 
   const now = new Date();
-  const timeRemainingMs = wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime()) : 0;
+  const timeRemainingMs = wallet.unlocksAt
+    ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime())
+    : 0;
   const timeRemainingHours = Math.ceil(timeRemainingMs / (1000 * 60 * 60));
   const canUnlock = timeRemainingMs === 0;
 
