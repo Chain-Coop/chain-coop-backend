@@ -861,13 +861,12 @@ const router = Router();
  */
 
 
-
 /**
  * @swagger
  * /web3/cashwyre/create-address:
  *   post:
  *     summary: Generate crypto address
- *     description: This is used to generate crypto addresses for customers
+ *     description: This is used to generate crypto addresses for customers. BTC addresses are persistent per user, while Lightning Network addresses are temporary (1 hour expiry).
  *     tags: [Cashwyre]
  *     security:
  *       - bearerAuth: []
@@ -880,24 +879,23 @@ const router = Router();
  *             required:
  *               - assetType
  *               - network
- *               - amount
- *               - requestId
  *             properties:
  *               assetType:
  *                 type: string
  *                 description: The type of cryptocurrency asset
  *                 example: bitcoin
- *               amount:
- *                 type: number
- *                 description: The amount of asset to transact
- *                 example: 0.0001
  *               network:
  *                 type: string
  *                 description: The blockchain network identifier
+ *                 enum: [BTC, BTC_LN]
  *                 example: "BTC"
+ *               amount:
+ *                 type: number
+ *                 description: The amount of asset to transact (required for Lightning Network)
+ *                 example: 0.0001
  *     responses:
  *       200:
- *         description: Address has been successfully created
+ *         description: Address has been successfully created or retrieved
  *         content:
  *           application/json:
  *             schema:
@@ -908,7 +906,7 @@ const router = Router();
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Crypto address has been successfully created"
+ *                   example: "BTC address has been successfully created"
  *                 data:
  *                   type: object
  *                   properties:
@@ -924,6 +922,19 @@ const router = Router();
  *                     network:
  *                       type: string
  *                       example: "BTC"
+ *                     amount:
+ *                       type: number
+ *                       description: Present for Lightning Network addresses
+ *                       example: 0.0001
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Present for Lightning Network addresses
+ *                       example: "2023-12-25T13:00:00.000Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-12-25T12:00:00.000Z"
  *       400:
  *         description: Bad Request
  *         content:
@@ -936,7 +947,7 @@ const router = Router();
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: "assetType, network, amount, and requestId are required"
+ *                   example: "Asset type and network are required"
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -949,8 +960,279 @@ const router = Router();
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: "Failed to generate crypto address"
+ *                   example: "Failed to create crypto address"
  */
+
+/**
+ * @swagger
+ * /web3/cashwyre/btc-address:
+ *   get:
+ *     summary: Get user's BTC address
+ *     description: Retrieves the user's persistent Bitcoin address if it exists
+ *     tags: [Cashwyre]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: BTC address retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "BTC address retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                     userId:
+ *                       type: string
+ *                       example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                     address:
+ *                       type: string
+ *                       example: "bc1qwqpm3d6j7tetfhhjjkjtvw8zky2zr5pweaseze"
+ *                     assetType:
+ *                       type: string
+ *                       example: "bitcoin"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     requestId:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     code:
+ *                       type: string
+ *                       example: "200"
+ *                     customerId:
+ *                       type: string
+ *                       example: "cust_123456789"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-12-25T12:00:00.000Z"
+ *       404:
+ *         description: No BTC address found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "No BTC address found for this user"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve BTC address"
+ */
+
+/**
+ * @swagger
+ * /web3/cashwyre/lightning-addresses:
+ *   get:
+ *     summary: Get user's Lightning Network addresses
+ *     description: Retrieves the user's Lightning Network addresses, with optional filtering for active addresses only
+ *     tags: [Cashwyre]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Filter to show only active (non-expired) Lightning addresses
+ *         example: "true"
+ *     responses:
+ *       200:
+ *         description: Lightning addresses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lightning addresses retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                       userId:
+ *                         type: string
+ *                         example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                       address:
+ *                         type: string
+ *                         example: "lnbc10u1p3xnhl2pp5jptserfk3zk4qy..."
+ *                       assetType:
+ *                         type: string
+ *                         example: "bitcoin"
+ *                       amount:
+ *                         type: number
+ *                         example: 0.0001
+ *                       status:
+ *                         type: string
+ *                         example: "active"
+ *                       requestId:
+ *                         type: string
+ *                         example: "550e8400-e29b-41d4-a716-446655440000"
+ *                       code:
+ *                         type: string
+ *                         example: "200"
+ *                       customerId:
+ *                         type: string
+ *                         example: "cust_123456789"
+ *                       expiresAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-12-25T13:00:00.000Z"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-12-25T12:00:00.000Z"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve lightning addresses"
+ */
+
+/**
+ * @swagger
+ * /web3/cashwyre/address/{addressString}:
+ *   get:
+ *     summary: Find address by address string
+ *     description: Retrieves address details by the actual address string. Used primarily for webhook processing to identify which address received payment.
+ *     tags: [Cashwyre]
+ *     parameters:
+ *       - in: path
+ *         name: addressString
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The actual crypto address string
+ *         example: "bc1qwqpm3d6j7tetfhhjjkjtvw8zky2zr5pweaseze"
+ *     responses:
+ *       200:
+ *         description: Address found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Address found"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                     userId:
+ *                       type: string
+ *                       example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                     address:
+ *                       type: string
+ *                       example: "bc1qwqpm3d6j7tetfhhjjkjtvw8zky2zr5pweaseze"
+ *                     assetType:
+ *                       type: string
+ *                       example: "bitcoin"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     requestId:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     code:
+ *                       type: string
+ *                       example: "200"
+ *                     customerId:
+ *                       type: string
+ *                       example: "cust_123456789"
+ *                     networkType:
+ *                       type: string
+ *                       enum: [BTC, BTC_LN]
+ *                       description: Determined by presence of expiresAt field
+ *                       example: "BTC"
+ *                     amount:
+ *                       type: number
+ *                       description: Present for Lightning Network addresses
+ *                       example: 0.0001
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Present for Lightning Network addresses
+ *                       example: "2023-12-25T13:00:00.000Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-12-25T12:00:00.000Z"
+ *       404:
+ *         description: Address not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Address not found"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to find address"
+ */
+
 
 router.post('/onramp/quote', authorize, CashwyreController.getOnrampQuote);
 router.post(
@@ -980,5 +1262,9 @@ router.get('/banks', CashwyreController.getSupportedBanks);
 router.post('/verify-account', CashwyreController.verifyBankAccount);
 
 router.get('/transactions', authorize, CashwyreController.getUserTransactions);
-router.post('/create-address', authorize, CashwyreController.generateCryptoAddress)
+// crypto route
+router.post('/create-address', authorize, CashwyreController.generateCryptoAddress);
+router.get('/btc-address', authorize, CashwyreController.getUserBTCAddress);
+router.get('/lightning-addresses', authorize, CashwyreController.getUserLightningAddresses);
+router.get('/address/:addressString', CashwyreController.findAddressByString);
 export default router;

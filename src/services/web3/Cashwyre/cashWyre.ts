@@ -7,7 +7,13 @@ import CashwyreTransaction, {
   CashwyreTransactionStatus,
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
-import GenerateCryproAddress, { IGenerateCryproAddress } from '../../../models/web3/cashwyre';
+import { BTCAddress, IBTCAddress, ILightningAddress, LightningAddress } from '../../../models/web3/cashwyre';
+// import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
+
+export enum NetworkType {
+  BTC = 'BTC',
+  BTC_LN = 'BTC_LN'
+}
 
 class CashwyreService {
   private axiosInstance: Axios.AxiosInstance;
@@ -35,27 +41,28 @@ class CashwyreService {
     lastName: string,
     email: string,
     assetType: string,
-    network: string,
+    network: NetworkType,
     amount: number,
     requestId: string
   ) {
     try {
       const payload = {
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        assetType: assetType,
-        network: network,
-        amount: amount,
+        firstName,
+        lastName,
+        email,
+        assetType,
+        network,
+        amount,
         businessCode: CashwyreConfig.BusinessCode,
         appId: CashwyreConfig.BusinessCode,
-        requestId: requestId,
+        requestId,
       };
 
       const data: any = await this.axiosInstance.post(
         '/CustomerCryptoAddress/createCryptoAddress',
         payload
       );
+      
       if (!data) {
         throw new NotFoundError('Address was not generated');
       }
@@ -67,21 +74,43 @@ class CashwyreService {
     }
   }
 
-  async createCryptoAddress(
+  // Create BTC address
+  async createBTCAddress(
     userId: string,
     assetType: string,
-    network: string,
+    requestId: string,
+    address: string,
+    code: string,
+    status: string,
+    customerId?: string
+  ): Promise<IBTCAddress> {
+    const btcAddress = new BTCAddress({
+      userId: new mongoose.Types.ObjectId(userId),
+      assetType,
+      requestId,
+      address,
+      code,
+      status,
+      customerId,
+    });
+
+    return await btcAddress.save();
+  }
+
+  // Create Lightning address
+  async createLightningAddress(
+    userId: string,
+    assetType: string,
     amount: number,
     requestId: string,
     address: string,
     code: string,
     status: string,
-    customerId: string
-  ): Promise<IGenerateCryproAddress> {
-    const cryptoAddress = new GenerateCryproAddress({
+    customerId?: string
+  ): Promise<ILightningAddress> {
+    const lightningAddress = new LightningAddress({
       userId: new mongoose.Types.ObjectId(userId),
       assetType,
-      network,
       amount,
       requestId,
       address,
@@ -90,8 +119,130 @@ class CashwyreService {
       customerId,
     });
 
-    return await cryptoAddress.save();
+    return await lightningAddress.save();
   }
+
+  // Check if user already has BTC address
+  async getUserBTCAddress(userId: string): Promise<IBTCAddress | null> {
+    return await BTCAddress.findOne({
+      userId: new mongoose.Types.ObjectId(userId)
+    });
+  }
+
+  // Get user's active lightning addresses
+  async getUserActiveLightningAddresses(userId: string): Promise<ILightningAddress[]> {
+    return await LightningAddress.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      expiresAt: { $gt: new Date() },
+      status: 'active'
+    }).sort({ createdAt: -1 });
+  }
+
+  // Get all user's lightning addresses (including expired)
+  async getUserAllLightningAddresses(userId: string): Promise<ILightningAddress[]> {
+    return await LightningAddress.find({
+      userId: new mongoose.Types.ObjectId(userId)
+    }).sort({ createdAt: -1 });
+  }
+
+  // Find address by address string (for webhooks)
+  async findAddressByString(addressString: string): Promise<IBTCAddress | ILightningAddress | null> {
+    // Try BTC first
+    const btcAddress = await BTCAddress.findOne({ address: addressString });
+    if (btcAddress) return btcAddress;
+
+    // Then try Lightning
+    const lightningAddress = await LightningAddress.findOne({ address: addressString });
+    return lightningAddress;
+  }
+
+  // async generateCryptoAddress(
+  //   firstName: string,
+  //   lastName: string,
+  //   email: string,
+  //   assetType: string,
+  //   network: NetworkType,
+  //   amount: number,
+  //   requestId: string
+  // ) {
+  //   try {
+  //     const payload = {
+  //       firstName: firstName,
+  //       lastName: lastName,
+  //       email: email,
+  //       assetType: assetType,
+  //       network: network,
+  //       amount: amount,
+  //       businessCode: CashwyreConfig.BusinessCode,
+  //       appId: CashwyreConfig.BusinessCode,
+  //       requestId: requestId,
+  //     };
+  //     console.log("PAYLOAD: ", payload)
+
+  //     const data: any = await this.axiosInstance.post(
+  //       '/CustomerCryptoAddress/createCryptoAddress',
+  //       payload
+  //     );
+  //     if (!data) {
+  //       throw new NotFoundError('Address was not generated');
+  //     }
+
+  //     console.log("DATA IN SERVICE: ", data?.data)
+  //     return data?.data;
+  //   } catch (error: any) {
+  //     console.error(error.message);
+  //     throw new Error(error.message);
+  //   }
+  // }
+
+  // async createCryptoAddress(
+  //   userId: string,
+  //   assetType: string,
+  //   network: NetworkType,
+  //   amount: number,
+  //   requestId: string,
+  //   address: string,
+  //   code: string,
+  //   status: string,
+  //   customerId: string
+  // ): Promise<IGenerateCryproAddress> {
+  //   const cryptoAddress = new GenerateCryproAddress({
+  //     userId: new mongoose.Types.ObjectId(userId),
+  //     assetType,
+  //     network,
+  //     amount,
+  //     requestId,
+  //     address,
+  //     code,
+  //     status,
+  //     customerId,
+  //   });
+
+  //   return await cryptoAddress.save();
+  // }
+
+  // // Helper method to check if user already has active BTC address
+  // async checkExistingBTCAddress(userId: string): Promise<IGenerateCryproAddress | null> {
+  //   if (!userId) return null;
+
+  //   return await GenerateCryproAddress.findOne({
+  //     userId: new mongoose.Types.ObjectId(userId),
+  //     network: NetworkType.BTC,
+  //     status: 'active'
+  //   });
+  // }
+
+  // // Helper method to get active BTC_LN addresses for a user
+  // async getActiveBTCLNAddresses(userId: string): Promise<IGenerateCryproAddress[]> {
+  //   if (!userId) return [];
+
+  //   return await GenerateCryproAddress.find({
+  //     userId: new mongoose.Types.ObjectId(userId),
+  //     network: NetworkType.BTC_LN,
+  //     status: 'active',
+  //     expiresAt: { $gt: new Date() }
+  //   });
+  // }
 
   async getOnrampQuote(
     amount: number,
