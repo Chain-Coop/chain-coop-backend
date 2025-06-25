@@ -9,6 +9,7 @@ import {
   unlockBitcoin,
   getBitcoinBalanceWithLocks,
   getLockStatus,
+  transferGasfees,
 } from '../../controllers/web3/accountController';
 import { authorize, verifyPin } from '../../middlewares/authorization';
 const router = Router();
@@ -136,6 +137,38 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /web3/account/transferGasfees:
+ *  get:
+ *    summary: Transfer gas fees to the user's Web3 wallet
+ *    tags:
+ *      - [Web3]
+ *    security:
+ *      - bearerAuth: []
+ *    responses:
+ *      200:
+ *        description: Gas fees transferred successfully.
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                message:
+ *                  type: string
+ *                  example: Gas fees transferred successfully
+ *      400:
+ *        description: No Wallet found
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                message:
+ *                  type: string
+ *                  example: No Wallet found
  */
 
 /**
@@ -696,5 +729,6 @@ router.post('/lock', authorize, lockBitcoin);
 router.post('/unlock', authorize, unlockBitcoin);
 router.get('/lock-status', authorize, getLockStatus);
 router.get('/balance', authorize, getBitcoinBalanceWithLocks);
+router.get('/transferGasfees', authorize, transferGasfees);
 
 export default router;
