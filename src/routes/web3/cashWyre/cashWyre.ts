@@ -1266,5 +1266,4 @@ router.get('/transactions', authorize, CashwyreController.getUserTransactions);
 router.post('/create-address', authorize, CashwyreController.generateCryptoAddress);
 router.get('/btc-address', authorize, CashwyreController.getUserBTCAddress);
 router.get('/lightning-addresses', authorize, CashwyreController.getUserLightningAddresses);
-router.get('/address/:addressString', CashwyreController.findAddressByString);
 export default router;

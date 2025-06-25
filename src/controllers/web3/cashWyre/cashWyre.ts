@@ -23,7 +23,6 @@ import {
 } from '../../../services/web3/lndService/lndService';
 import { getUserDetails } from '../../../services/authService';
 import { StatusCodes } from 'http-status-codes';
-import mongoose from 'mongoose';
 
 class CashwyreController {
   /**
@@ -204,42 +203,6 @@ class CashwyreController {
       return res.status(error.statusCode || 500).json({
         success: false,
         message: error.message || 'Failed to retrieve lightning addresses',
-      });
-    }
-  }
-
-  /**
-   * Find address by address string (for webhooks)
-   * @route GET /api/cashwyre/address/:addressString
-   */
-  async findAddressByString(req: Request, res: Response) {
-    try {
-      const { addressString } = req.params;
-
-      const address = await CashwyreService.findAddressByString(addressString);
-
-      if (!address) {
-        return res.status(StatusCodes.NOT_FOUND).json({
-          success: false,
-          message: 'Address not found'
-        });
-      }
-
-      // Determine if it's BTC or Lightning based on the model
-      const networkType = 'expiresAt' in address ? 'BTC_LN' : 'BTC';
-
-      return res.status(StatusCodes.OK).json({
-        success: true,
-        message: 'Address found',
-        data: {
-          ...address.toObject(),
-          networkType
-        },
-      });
-    } catch (error: any) {
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.message || 'Failed to find address',
       });
     }
   }
