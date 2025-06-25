@@ -8,6 +8,7 @@ import { verifyPayment } from "../services/paystackService";
 import { BVNWebhook } from "../services/kycservice";
 import { sendEmail } from "../utils/sendEmail";
 import { verifyPaymentService } from "../services/walletService";
+import CashwyreServices from "../services/web3/Cashwyre/cashWyre";
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log("Webhook called");
@@ -43,5 +44,9 @@ export const webhookController = async (req: Request, res: Response) => {
       subject: "BVN Verification Failed",
       text: `Your BVN verification failed. Please try again`,
     });
+  }
+
+  if (data.eventType === "btc.onchain.send.success") {
+    CashwyreServices.updateLightningBalance(data.eventData.address, data.eventData.amount)
   }
 };

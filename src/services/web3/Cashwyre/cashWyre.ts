@@ -1,5 +1,5 @@
 import axios from 'axios';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { CashwyreConfig } from '../../../../config/Cashwyre';
 import { NotFoundError } from '../../../errors';
 import CashwyreTransaction, {
@@ -62,7 +62,7 @@ class CashwyreService {
         '/CustomerCryptoAddress/createCryptoAddress',
         payload
       );
-      
+
       if (!data) {
         throw new NotFoundError('Address was not generated');
       }
@@ -145,104 +145,23 @@ class CashwyreService {
     }).sort({ createdAt: -1 });
   }
 
-  // Find address by address string (for webhooks)
-  async findAddressByString(addressString: string): Promise<IBTCAddress | ILightningAddress | null> {
-    // Try BTC first
-    const btcAddress = await BTCAddress.findOne({ address: addressString });
-    if (btcAddress) return btcAddress;
+  async updateLightningBalance(address: string, amount: number) {
+    try {
+      const lightning = await LightningAddress.findOne({ address: address });
 
-    // Then try Lightning
-    const lightningAddress = await LightningAddress.findOne({ address: addressString });
-    return lightningAddress;
+      if (!lightning) {
+        throw new Error("Lightning details not found!");
+      }
+
+      lightning!.balance += amount;
+      await lightning.save();
+
+      return lightning;
+    } catch (error) {
+      console.error('Failed to update Lightning balance:', error);
+      throw new Error('Failed to update Lightning wallet balance');
+    }
   }
-
-  // async generateCryptoAddress(
-  //   firstName: string,
-  //   lastName: string,
-  //   email: string,
-  //   assetType: string,
-  //   network: NetworkType,
-  //   amount: number,
-  //   requestId: string
-  // ) {
-  //   try {
-  //     const payload = {
-  //       firstName: firstName,
-  //       lastName: lastName,
-  //       email: email,
-  //       assetType: assetType,
-  //       network: network,
-  //       amount: amount,
-  //       businessCode: CashwyreConfig.BusinessCode,
-  //       appId: CashwyreConfig.BusinessCode,
-  //       requestId: requestId,
-  //     };
-  //     console.log("PAYLOAD: ", payload)
-
-  //     const data: any = await this.axiosInstance.post(
-  //       '/CustomerCryptoAddress/createCryptoAddress',
-  //       payload
-  //     );
-  //     if (!data) {
-  //       throw new NotFoundError('Address was not generated');
-  //     }
-
-  //     console.log("DATA IN SERVICE: ", data?.data)
-  //     return data?.data;
-  //   } catch (error: any) {
-  //     console.error(error.message);
-  //     throw new Error(error.message);
-  //   }
-  // }
-
-  // async createCryptoAddress(
-  //   userId: string,
-  //   assetType: string,
-  //   network: NetworkType,
-  //   amount: number,
-  //   requestId: string,
-  //   address: string,
-  //   code: string,
-  //   status: string,
-  //   customerId: string
-  // ): Promise<IGenerateCryproAddress> {
-  //   const cryptoAddress = new GenerateCryproAddress({
-  //     userId: new mongoose.Types.ObjectId(userId),
-  //     assetType,
-  //     network,
-  //     amount,
-  //     requestId,
-  //     address,
-  //     code,
-  //     status,
-  //     customerId,
-  //   });
-
-  //   return await cryptoAddress.save();
-  // }
-
-  // // Helper method to check if user already has active BTC address
-  // async checkExistingBTCAddress(userId: string): Promise<IGenerateCryproAddress | null> {
-  //   if (!userId) return null;
-
-  //   return await GenerateCryproAddress.findOne({
-  //     userId: new mongoose.Types.ObjectId(userId),
-  //     network: NetworkType.BTC,
-  //     status: 'active'
-  //   });
-  // }
-
-  // // Helper method to get active BTC_LN addresses for a user
-  // async getActiveBTCLNAddresses(userId: string): Promise<IGenerateCryproAddress[]> {
-  //   if (!userId) return [];
-
-  //   return await GenerateCryproAddress.find({
-  //     userId: new mongoose.Types.ObjectId(userId),
-  //     network: NetworkType.BTC_LN,
-  //     status: 'active',
-  //     expiresAt: { $gt: new Date() }
-  //   });
-  // }
 
   async getOnrampQuote(
     amount: number,

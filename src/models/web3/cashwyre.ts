@@ -63,6 +63,7 @@ export interface ILightningAddress extends Document {
   userId: mongoose.Types.ObjectId;
   assetType: string;
   amount: number;
+  balance: number;
   requestId: string;
   address: string;
   code: string;
@@ -86,6 +87,11 @@ const LightningAddressSchema: Schema = new Schema(
     amount: {
       type: Number,
       required: true
+    },
+    balance: {
+      type: Number,
+      required: true,
+      default: 0,
     },
     requestId: {
       type: String,
