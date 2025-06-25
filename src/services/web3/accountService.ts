@@ -2,7 +2,13 @@ import axios from 'axios';
 import { generateAccount } from '../../utils/web3/generateAccount';
 import { generateBtcAccount } from '../../utils/web3/generateAccountBTC';
 import { contract } from '../../utils/web3/contract.2.0';
-import { formatUnits, parseEther, parseUnits } from 'ethers';
+import {
+  formatUnits,
+  JsonRpcProvider,
+  parseEther,
+  parseUnits,
+  Provider,
+} from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
 import User from '../../models/user';
 import {
@@ -17,6 +23,7 @@ import {
   CHAINCOOPSAVING_BSC_MAINNET,
   CHAINCOOPSAVING_POLYGON_MAINNET,
 } from '../../constant/contract/ChainCoopSaving';
+import { BSC_MAINNET, POLYGON_MAINNET } from '../../constant/rpcs';
 import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tinysecp from 'tiny-secp256k1';
@@ -24,7 +31,8 @@ import { networks } from 'bitcoinjs-lib';
 
 import { encrypt, decrypt } from '../encryption';
 import ECPairFactory from 'ecpair';
-import { sign } from 'crypto';
+import { Signer } from '../../utils/web3/createSingner';
+require('dotenv').config();
 
 // Initialize ECPair with the required elliptic curve implementation
 const ECPair = ECPairFactory(tinysecp);
@@ -246,6 +254,32 @@ const transferStable = async (
   } catch (error) {
     console.error('Error during token transfer:', error);
     throw new Error('Token transfer failed.');
+  }
+};
+const transferCrypto = async (
+  amount: string,
+  toAddress: string,
+  network: string
+): Promise<any> => {
+  try {
+    let provider;
+    if (network === 'BSC') {
+      provider = new JsonRpcProvider(BSC_MAINNET);
+    } else if (network === 'POLYGON') {
+      provider = new JsonRpcProvider(POLYGON_MAINNET);
+    } else {
+      throw new Error(`Unsupported network: ${network}`);
+    }
+    const signer = await Signer(process.env.RELAYER_PRIVATE_KEY!, provider);
+    const tx = await signer.sendTransaction({
+      to: toAddress,
+      value: parseEther(amount),
+    });
+    await tx.wait(1);
+    return tx;
+  } catch (error) {
+    console.error('Error during crypto transfer:', error);
+    throw new Error('Crypto transfer failed.');
   }
 };
 
@@ -709,6 +743,7 @@ const getBitcoinLockStatus = async (userId: string) => {
 
 export {
   transferStable,
+  transferCrypto,
   activateAccount,
   createUserBitcoinWallet,
   checkStableUserBalance,
