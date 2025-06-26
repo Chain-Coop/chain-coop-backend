@@ -117,6 +117,10 @@ const router = Router();
  *                 type: number
  *                 description: The fiat amount for the transaction
  *                 example: 100
+ *               amountInCrypto:
+ *                type: number  
+ *                description: The amount in cryptocurrency to receive(only for lightning)
+ *                example: 0.005
  *               crypto:
  *                 type: string
  *                 description: The cryptocurrency to receive

@@ -30,14 +30,14 @@ class CashwyreService {
       },
     });
 
-    // this.axiosInstance.interceptors.request.use((config) => {
-    //   console.log('📤 [Request]');
-    //   console.log('URL:', config.baseURL + config.url);
-    //   console.log('Method:', config.method);
-    //   console.log('Headers:', config.headers);
-    //   console.log('Payload:', config.data);
-    //   return config;
-    // });
+    this.axiosInstance.interceptors.request.use((config) => {
+      console.log('📤 [Request]');
+      console.log('URL:', config.baseURL + config.url);
+      console.log('Method:', config.method);
+      console.log('Headers:', config.headers);
+      console.log('Payload:', config.data);
+      return config;
+    });
   }
 
   async generateCryptoAddress(

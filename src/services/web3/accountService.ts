@@ -246,7 +246,7 @@ const transferStable = async (
 ): Promise<string> => {
   try {
     const con_tract = await contract(tokenAddress, network, userPrivateKey);
-    const tx = await con_tract.transfer(toAddress, parseUnits(amount, 6));
+    const tx = await con_tract.transfer(toAddress, parseUnits(amount, await con_tract.decimals()));
 
     await tx.wait();
 

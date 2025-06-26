@@ -194,8 +194,14 @@ class CashwyreController {
    */
   async confirmOnrampQuote(req: Request, res: Response) {
     try {
-      const { amount, crypto, network, reference, transactionReference } =
-        req.body;
+      const {
+        amount,
+        amountInCrypto,
+        crypto,
+        network,
+        reference,
+        transactionReference,
+      } = req.body;
       //@ts-ignore
       const userId = req.user.userId;
 
@@ -211,7 +217,7 @@ class CashwyreController {
         userAddress = bitcoinWallet;
       } else if (network === 'BTC_LN') {
         const lightningAddress = await CashwyreService.generateLightningAddress(
-          amount,
+          amountInCrypto,
           userId
         );
         if (!lightningAddress) {

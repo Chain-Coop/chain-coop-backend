@@ -195,7 +195,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /web3/cashwyre/create-address:
+ * /web3/lnd/create-address:
  *   post:
  *     summary: Generate crypto address
  *     description: This is used to generate crypto addresses for customers. BTC addresses are persistent per user, while Lightning Network addresses are temporary (1 hour expiry).
@@ -297,7 +297,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /web3/cashwyre/lightning-addresses:
+ * /web3/lnd/lightning-addresses:
  *   get:
  *     summary: Get user's Lightning Network addresses
  *     description: Retrieves the user's Lightning Network addresses, with optional filtering for active addresses only
@@ -383,7 +383,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /web3/cashwyre/send-lightning:
+ * /web3/lnd/send-lightning:
  *   post:
  *     summary: Send Lightning Network payment
  *     description: Send a Lightning Network payment to a specified lightning address
