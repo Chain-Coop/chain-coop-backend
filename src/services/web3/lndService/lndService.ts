@@ -9,33 +9,33 @@ import {
   PayInvoice,
 } from '../../../utils/web3/lnd';
 
-export const getInvoiceById = async (invoiceId: string) => {
-  return await Invoice.findOne({ invoiceId });
-};
+// export const getInvoiceById = async (invoiceId: string) => {
+//   return await Invoice.findOne({ invoiceId });
+// };
 
-export const getInvoicesByUser = async (userId: string) => {
-  return await Invoice.find({ userId }).sort({ createdAt: -1 });
-};
+// export const getInvoicesByUser = async (userId: string) => {
+//   return await Invoice.find({ userId }).sort({ createdAt: -1 });
+// };
 
-export const createInvoice = async (payload: Partial<IInvoice>) => {
-  try {
-    const invoice = await Invoice.create(payload);
-    return invoice;
-  } catch (err: any) {
-    console.error('Error creating invoice:', err);
-    throw new Error(err.message || 'Failed to create invoice');
-  }
-};
+// export const createInvoice = async (payload: Partial<IInvoice>) => {
+//   try {
+//     const invoice = await Invoice.create(payload);
+//     return invoice;
+//   } catch (err: any) {
+//     console.error('Error creating invoice:', err);
+//     throw new Error(err.message || 'Failed to create invoice');
+//   }
+// };
 
-export const createPayment = async (payload: Partial<IPayment>) => {
-  try {
-    const payment = await Payment.create(payload);
-    return payment;
-  } catch (err: any) {
-    console.error('Error sending payment:', err);
-    throw new Error(err.message || 'Error sending payment');
-  }
-};
+// export const createPayment = async (payload: Partial<IPayment>) => {
+//   try {
+//     const payment = await Payment.create(payload);
+//     return payment;
+//   } catch (err: any) {
+//     console.error('Error sending payment:', err);
+//     throw new Error(err.message || 'Error sending payment');
+//   }
+// };
 
 export const getWalletBalance = async (userId: string) => {
   try {
@@ -238,112 +238,112 @@ export const getWalletDetails = async (userId: string) => {
     throw new Error(error.message || 'Error fetching wallet details');
   }
 };
-export const sendPayment = async (userId: string, invoice: string) => {
-  try {
-    const decoded = await decodeInvoice(invoice);
-    if (!decoded) {
-      throw new Error('Invalid invoice format');
-    }
-    const payment_request = decoded.payment_request;
-    const timeout_seconds = decoded.timeExpireDate;
+// export const sendPayment = async (userId: string, invoice: string) => {
+//   try {
+//     const decoded = await decodeInvoice(invoice);
+//     if (!decoded) {
+//       throw new Error('Invalid invoice format');
+//     }
+//     const payment_request = decoded.payment_request;
+//     const timeout_seconds = decoded.timeExpireDate;
 
-    const amountSat = decoded.satoshis ? Number(decoded.satoshis) : 0;
+//     const amountSat = decoded.satoshis ? Number(decoded.satoshis) : 0;
 
-    const senderBalance = await getAvailableBalance(userId);
-    const estimatedFee = Math.ceil(Number(amountSat) * 0.01); // Estimate 1% fee
-    const totalRequired = Number(amountSat) + estimatedFee;
+//     const senderBalance = await getAvailableBalance(userId);
+//     const estimatedFee = Math.ceil(Number(amountSat) * 0.01); // Estimate 1% fee
+//     const totalRequired = Number(amountSat) + estimatedFee;
 
-    if (senderBalance < totalRequired) {
-      throw new Error('Insufficient balance for payment');
-    }
-    const createdAt = decoded.creation_date;
-    const expiresAt = Number(createdAt) + timeout_seconds;
-    const now = Math.floor(Date.now() / 1000);
-    if (expiresAt < now) {
-      throw new Error('Invoice has expired');
-    }
-    if (amountSat <= 0) {
-      throw new Error('Payment amount must be greater than zero');
-    }
-    await decrementBalance(userId, amountSat);
-    const request = {
-      payment_request: payment_request,
-      timeout_seconds,
-      fee_limit_sat: estimatedFee,
-    };
-    const response = await PayInvoice(request);
-    const payload: Partial<IPayment> = {
-      userId: new Types.ObjectId(userId),
-      paymentId: response.payment_hash,
-      bolt11: payment_request,
-      amount: Number(response.value),
-      fee: Number(response.fee),
-      payment_index: Number(response.payment_index),
-      preimage: response.payment_preimage,
-      status: response.status.toLowerCase() as IPayment['status'],
-      failureReason: response.failure_reason,
-      paymentHash: response.payment_hash,
-      destination: decoded.fallback_addr || '',
-      hops: response.htlcs?.length,
-      succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
-      failedAt: response.status === 'FAILED' ? new Date() : undefined,
-      routingHints: response.htlcs,
-      metadata: {
-        route: response.htlcs,
-        payment_error: response.failure_reason,
-      },
-    };
-    if (response.status === 'FAILED') {
-      await incrementBalance(userId, amountSat);
-    }
-    const payment = await createPayment(payload);
-    return payment;
-  } catch (error: any) {
-    console.error('Error sending payment:', error);
-    throw new Error(error.message || 'Failed to send payment');
-  }
-};
-export const createLndInvoice = async (
-  userId: any,
-  amount: number,
-  memo: string
-) => {
-  try {
-    const invoiceRequest = {
-      value: amount.toString(), // Ensure it's a string
-      memo: memo || '',
-      expiry: 3600, // 1 hour in seconds, not milliseconds
-    };
+//     if (senderBalance < totalRequired) {
+//       throw new Error('Insufficient balance for payment');
+//     }
+//     const createdAt = decoded.creation_date;
+//     const expiresAt = Number(createdAt) + timeout_seconds;
+//     const now = Math.floor(Date.now() / 1000);
+//     if (expiresAt < now) {
+//       throw new Error('Invoice has expired');
+//     }
+//     if (amountSat <= 0) {
+//       throw new Error('Payment amount must be greater than zero');
+//     }
+//     await decrementBalance(userId, amountSat);
+//     const request = {
+//       payment_request: payment_request,
+//       timeout_seconds,
+//       fee_limit_sat: estimatedFee,
+//     };
+//     const response = await PayInvoice(request);
+//     const payload: Partial<IPayment> = {
+//       userId: new Types.ObjectId(userId),
+//       paymentId: response.payment_hash,
+//       bolt11: payment_request,
+//       amount: Number(response.value),
+//       fee: Number(response.fee),
+//       payment_index: Number(response.payment_index),
+//       preimage: response.payment_preimage,
+//       status: response.status.toLowerCase() as IPayment['status'],
+//       failureReason: response.failure_reason,
+//       paymentHash: response.payment_hash,
+//       destination: decoded.fallback_addr || '',
+//       hops: response.htlcs?.length,
+//       succeededAt: response.status === 'SUCCEEDED' ? new Date() : undefined,
+//       failedAt: response.status === 'FAILED' ? new Date() : undefined,
+//       routingHints: response.htlcs,
+//       metadata: {
+//         route: response.htlcs,
+//         payment_error: response.failure_reason,
+//       },
+//     };
+//     if (response.status === 'FAILED') {
+//       await incrementBalance(userId, amountSat);
+//     }
+//     const payment = await createPayment(payload);
+//     return payment;
+//   } catch (error: any) {
+//     console.error('Error sending payment:', error);
+//     throw new Error(error.message || 'Failed to send payment');
+//   }
+// };
+// export const createLndInvoice = async (
+//   userId: any,
+//   amount: number,
+//   memo: string
+// ) => {
+//   try {
+//     const invoiceRequest = {
+//       value: amount.toString(), // Ensure it's a string
+//       memo: memo || '',
+//       expiry: 3600, // 1 hour in seconds, not milliseconds
+//     };
 
-    const invoiceResponse = await AddInvoice(invoiceRequest);
-    if (!invoiceResponse.payment_request) {
-      throw new Error('Invalid response from LND: missing payment_request');
-    }
+//     const invoiceResponse = await AddInvoice(invoiceRequest);
+//     if (!invoiceResponse.payment_request) {
+//       throw new Error('Invalid response from LND: missing payment_request');
+//     }
 
-    if (!invoiceResponse.r_hash) {
-      throw new Error('Invalid response from LND: missing r_hash');
-    }
-    const paymentHashHex = Buffer.from(
-      invoiceResponse.r_hash,
-      'base64'
-    ).toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
+//     if (!invoiceResponse.r_hash) {
+//       throw new Error('Invalid response from LND: missing r_hash');
+//     }
+//     const paymentHashHex = Buffer.from(
+//       invoiceResponse.r_hash,
+//       'base64'
+//     ).toString('hex'); // using invoiceResponse.r_hash.toString('hex') is throwing error
 
-    // Prepare payload with validated data
-    const payload: Partial<IInvoice> = {
-      userId: userId,
-      invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
-      bolt11: invoiceResponse.payment_request,
-      amount: amount,
-      memo: memo || '',
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
-      paymentHash: paymentHashHex,
-      payment_request: invoiceResponse.payment_request,
-      status: 'pending',
-    };
-    const data = await createInvoice(payload);
-    return data;
-  } catch (error: any) {
-    console.error('Error creating LND invoice:', error);
-    throw new Error(error.message || 'Failed to create LND invoice');
-  }
-};
+//     // Prepare payload with validated data
+//     const payload: Partial<IInvoice> = {
+//       userId: userId,
+//       invoiceId: invoiceResponse.add_index?.toString() || Date.now().toString(),
+//       bolt11: invoiceResponse.payment_request,
+//       amount: amount,
+//       memo: memo || '',
+//       expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+//       paymentHash: paymentHashHex,
+//       payment_request: invoiceResponse.payment_request,
+//       status: 'pending',
+//     };
+//     const data = await createInvoice(payload);
+//     return data;
+//   } catch (error: any) {
+//     console.error('Error creating LND invoice:', error);
+//     throw new Error(error.message || 'Failed to create LND invoice');
+//   }
+// };
