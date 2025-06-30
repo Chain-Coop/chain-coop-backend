@@ -11,6 +11,10 @@ import { verifyPaymentService } from '../services/walletService';
 import CashwyreServices from '../services/web3/Cashwyre/cashWyre';
 import { incrementBalance } from '../services/web3/lndService/lndService';
 import { ILightningAddress, LightningAddress } from '../models/web3/cashwyre';
+import CashwyreTransaction, {
+  CashwyreTransactionStatus,
+  CashwyreTransactionType,
+} from '../models/web3/cashWyreTransactions';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -70,6 +74,42 @@ export const CashwyreWebhookController = async (
     if (details) {
       incrementBalance(details.userId, data.eventData.amount);
     }
+  } else if (data.eventType === 'crypto.onramp.success') {
+    await CashwyreTransaction.updateOne(
+      { reference: data.eventData.RequestId },
+      {
+        $set: {
+          status: CashwyreTransactionStatus.SUCCESS,
+        },
+      }
+    );
+  } else if (data.eventType === 'crypto.offramp.success') {
+    await CashwyreTransaction.updateOne(
+      { reference: data.eventData.RequestId },
+      {
+        $set: {
+          status: CashwyreTransactionStatus.SUCCESS,
+        },
+      }
+    );
+  } else if (data.eventType === 'cryoto.onramp.failed') {
+    await CashwyreTransaction.updateOne(
+      { reference: data.eventData.RequestId },
+      {
+        $set: {
+          status: CashwyreTransactionStatus.FAILED,
+        },
+      }
+    );
+  } else if (data.eventType === 'crypto.offramp.failed') {
+    await CashwyreTransaction.updateOne(
+      { reference: data.eventData.RequestId },
+      {
+        $set: {
+          status: CashwyreTransactionStatus.FAILED,
+        },
+      }
+    );
   } else {
     console.log('Unhandled Cashwyre event type:', data.eventType);
   }
