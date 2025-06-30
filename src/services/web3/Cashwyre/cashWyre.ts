@@ -13,6 +13,7 @@ import {
   LightningAddress,
 } from '../../../models/web3/cashwyre';
 import { getUserDetails } from '../../authService';
+import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
 // import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
 
 export enum NetworkType {
@@ -123,6 +124,24 @@ class CashwyreService {
     status: string,
     customerId?: string
   ): Promise<ILightningAddress> {
+    const wallet = await LndWallet.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+    if (!wallet) {
+      const newWallet = new LndWallet({
+        userId: new mongoose.Types.ObjectId(userId),
+        balance: 0,
+        lockedBalance: 0,
+        lock: {
+          amount: 0,
+          maturityDate: new Date(),
+          purpose: '',
+          lockedAt: new Date(),
+          lockId: '',
+        },
+      });
+      await newWallet.save();
+    }
     const lightningAddress = new LightningAddress({
       userId: new mongoose.Types.ObjectId(userId),
       assetType,

@@ -22,25 +22,25 @@ const LockEntrySchema: Schema = new Schema({
   amount: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
   lockedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   maturityDate: {
     type: Date,
-    required: true
+    required: true,
+    default: Date.now,
   },
   purpose: {
     type: String,
-    default: 'staking'
+    default: 'staking',
   },
   lockId: {
     type: String,
-    required: true,
-    unique: true
-  }
+    unique: true,
+  },
 });
 
 const LndWalletSchema: Schema = new Schema(
@@ -59,7 +59,7 @@ const LndWalletSchema: Schema = new Schema(
       type: Number,
       default: 0,
     },
-    lock: LockEntrySchema
+    lock: LockEntrySchema,
   },
   {
     timestamps: true,
@@ -67,8 +67,6 @@ const LndWalletSchema: Schema = new Schema(
 );
 
 export default mongoose.model<ILndWallet>('LndWallet', LndWalletSchema);
-
-
 
 // // models/Wallet.ts
 // import mongoose, { Schema, Document } from 'mongoose';

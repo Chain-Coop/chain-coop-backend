@@ -25,6 +25,7 @@ import {
 } from '../../constant/contract/ChainCoopSaving';
 import { BSC_MAINNET, POLYGON_MAINNET } from '../../constant/rpcs';
 import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
+import LndWallet, { ILndWallet } from '../../models/web3/lnd/wallet';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tinysecp from 'tiny-secp256k1';
 import { networks } from 'bitcoinjs-lib';
@@ -98,11 +99,26 @@ async function createUserBitcoinWallet(userId: string) {
     address: bitcoinAccount.address,
     walletType: 'segwit', // Using SegWit by default
   });
+  const lightningWallet: ILndWallet = new LndWallet({
+    userId: userId,
+    balance: 0,
+    lockedBalance: 0,
+    lock: {
+      amount: 0,
+      maturityDate: new Date(),
+      purpose: '',
+      lockedAt: new Date(),
+      lockId: '',
+    },
+  });
+  await lightningWallet.save();
 
-  // Save to database
   await wallet.save();
 
-  return wallet;
+  return {
+    wallet: wallet,
+    lightningWallet: lightningWallet,
+  };
 }
 //check existing user wallet
 const checkExistingWallet = async (userId: string): Promise<boolean> => {
@@ -246,7 +262,10 @@ const transferStable = async (
 ): Promise<string> => {
   try {
     const con_tract = await contract(tokenAddress, network, userPrivateKey);
-    const tx = await con_tract.transfer(toAddress, parseUnits(amount, await con_tract.decimals()));
+    const tx = await con_tract.transfer(
+      toAddress,
+      parseUnits(amount, await con_tract.decimals())
+    );
 
     await tx.wait();
 

@@ -79,7 +79,7 @@ export const incrementBalance = async (
 export const lockBalance = async (
   userId: string,
   amount: number,
-  maturitDate: Date,
+  maturityDate: Date,
   purpose: string = 'staking'
 ) => {
   try {
@@ -97,7 +97,7 @@ export const lockBalance = async (
     const lockEntry = {
       amount,
       lockedAt: new Date(),
-      maturitDate,
+      maturityDate,
       purpose,
       lockId,
     };
@@ -221,7 +221,7 @@ export const getWalletDetails = async (userId: string) => {
     // First unlock any expired funds
     await unlockExpiredFunds(userId);
 
-    const wallet = await LndWallet.findOne({ userId }).lean();
+    const wallet = await LndWallet.findOne({ userId });
     if (!wallet) {
       throw new Error('Wallet not found');
     }
