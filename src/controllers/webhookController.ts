@@ -61,6 +61,7 @@ export const CashwyreWebhookController = async (
   res.sendStatus(200);
 
   const data = req.body;
+  console.log('Cashwyre Webhook Data:', data);
 
   if (data.eventType === 'btc.lightning.received.success') {
     CashwyreServices.updateLightningBalance(
