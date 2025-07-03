@@ -58,60 +58,84 @@ export const CashwyreWebhookController = async (
   res: Response
 ) => {
   console.log('Cashwyre Webhook called');
-  res.sendStatus(200);
 
   const data = req.body;
-  console.log('Cashwyre Webhook Data:', data);
+  console.log('Cashwyre Webhook Data:', JSON.stringify(data, null, 2));
 
-  if (data.eventType === 'btc.lightning.received.success') {
-    CashwyreServices.updateLightningBalance(
-      data.eventData.address,
-      data.eventData.amount
-    );
-    const details: ILightningAddress | null = await LightningAddress.findOne({
-      address: data.eventData.address,
-    });
+  try {
+    if (data.eventType === 'btc.lightning.received.success') {
+      console.log('Processing lightning payment received');
+      console.log('Address:', data.eventData.address);
+      console.log('Amount:', data.eventData.amount);
 
-    if (details) {
-      incrementBalance(details.userId, data.eventData.amount);
+      // Update lightning balance in Cashwyre service
+      await CashwyreServices.updateLightningBalance(
+        data.eventData.address,
+        data.eventData.amount
+      );
+
+      // Find lightning address details
+      const details: ILightningAddress | null = await LightningAddress.findOne({
+        address: data.eventData.address,
+      });
+
+      console.log('Lightning address details found:', details);
+
+      if (details) {
+        console.log('Incrementing balance for user:', details.userId);
+        await incrementBalance(details.userId, data.eventData.amount);
+        console.log('Balance incremented successfully');
+      } else {
+        console.log('No lightning address found for:', data.eventData.address);
+      }
+    } else if (data.eventType === 'crypto.onramp.success') {
+      console.log('Processing onramp success');
+      await CashwyreTransaction.updateOne(
+        { reference: data.eventData.RequestId },
+        {
+          $set: {
+            status: CashwyreTransactionStatus.SUCCESS,
+          },
+        }
+      );
+    } else if (data.eventType === 'crypto.offramp.success') {
+      console.log('Processing offramp success');
+      await CashwyreTransaction.updateOne(
+        { reference: data.eventData.RequestId },
+        {
+          $set: {
+            status: CashwyreTransactionStatus.SUCCESS,
+          },
+        }
+      );
+    } else if (data.eventType === 'crypto.onramp.failed') {
+      // Fixed typo: 'cryoto' -> 'crypto'
+      console.log('Processing onramp failed');
+      await CashwyreTransaction.updateOne(
+        { reference: data.eventData.RequestId },
+        {
+          $set: {
+            status: CashwyreTransactionStatus.FAILED,
+          },
+        }
+      );
+    } else if (data.eventType === 'crypto.offramp.failed') {
+      console.log('Processing offramp failed');
+      await CashwyreTransaction.updateOne(
+        { reference: data.eventData.RequestId },
+        {
+          $set: {
+            status: CashwyreTransactionStatus.FAILED,
+          },
+        }
+      );
+    } else {
+      console.log('Unhandled Cashwyre event type:', data.eventType);
     }
-  } else if (data.eventType === 'crypto.onramp.success') {
-    await CashwyreTransaction.updateOne(
-      { reference: data.eventData.RequestId },
-      {
-        $set: {
-          status: CashwyreTransactionStatus.SUCCESS,
-        },
-      }
-    );
-  } else if (data.eventType === 'crypto.offramp.success') {
-    await CashwyreTransaction.updateOne(
-      { reference: data.eventData.RequestId },
-      {
-        $set: {
-          status: CashwyreTransactionStatus.SUCCESS,
-        },
-      }
-    );
-  } else if (data.eventType === 'cryoto.onramp.failed') {
-    await CashwyreTransaction.updateOne(
-      { reference: data.eventData.RequestId },
-      {
-        $set: {
-          status: CashwyreTransactionStatus.FAILED,
-        },
-      }
-    );
-  } else if (data.eventType === 'crypto.offramp.failed') {
-    await CashwyreTransaction.updateOne(
-      { reference: data.eventData.RequestId },
-      {
-        $set: {
-          status: CashwyreTransactionStatus.FAILED,
-        },
-      }
-    );
-  } else {
-    console.log('Unhandled Cashwyre event type:', data.eventType);
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error processing Cashwyre webhook:', error);
+    res.sendStatus(500);
   }
 };
