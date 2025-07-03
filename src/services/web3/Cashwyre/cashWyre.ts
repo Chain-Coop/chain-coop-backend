@@ -1,5 +1,6 @@
 import axios from 'axios';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 import { CashwyreConfig } from '../../../../config/Cashwyre';
 import { NotFoundError } from '../../../errors';
 import CashwyreTransaction, {
@@ -7,6 +8,17 @@ import CashwyreTransaction, {
   CashwyreTransactionStatus,
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
+import {
+  ILightningAddress,
+  LightningAddress,
+} from '../../../models/web3/cashwyre';
+import { getUserDetails } from '../../authService';
+import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
+// import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
+
+export enum NetworkType {
+  BTC_LN = 'BTC_LN',
+}
 
 class CashwyreService {
   private axiosInstance: Axios.AxiosInstance;
@@ -19,14 +31,167 @@ class CashwyreService {
       },
     });
 
-    // this.axiosInstance.interceptors.request.use((config) => {
-    //   console.log('📤 [Request]');
-    //   console.log('URL:', config.baseURL + config.url);
-    //   console.log('Method:', config.method);
-    //   console.log('Headers:', config.headers);
-    //   console.log('Payload:', config.data);
-    //   return config;
-    // });
+    this.axiosInstance.interceptors.request.use((config) => {
+      console.log('📤 [Request]');
+      console.log('URL:', config.baseURL + config.url);
+      console.log('Method:', config.method);
+      console.log('Headers:', config.headers);
+      console.log('Payload:', config.data);
+      return config;
+    });
+  }
+
+  async generateCryptoAddress(
+    firstName: string,
+    lastName: string,
+    email: string,
+    assetType: string,
+    network: NetworkType,
+    amount: number,
+    requestId: string
+  ) {
+    try {
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        assetType,
+        network,
+        amount,
+        businessCode: CashwyreConfig.BusinessCode,
+        appId: CashwyreConfig.BusinessCode,
+        requestId,
+      };
+
+      const data: any = await this.axiosInstance.post(
+        '/CustomerCryptoAddress/createCryptoAddress',
+        payload
+      );
+
+      if (!data) {
+        throw new NotFoundError('Address was not generated');
+      }
+
+      return data?.data;
+    } catch (error: any) {
+      console.error(error.message);
+      throw new Error(error.message);
+    }
+  }
+
+  async generateLightningAddress(amount: number, userId: string) {
+    try {
+      const user = await getUserDetails(userId);
+      const requestId = uuidv4();
+
+      // Generate new Lightning address
+      const { data } = await this.generateCryptoAddress(
+        user!.firstName,
+        user!.lastName,
+        user!.email,
+        'bitcoin',
+        NetworkType.BTC_LN,
+        amount,
+        requestId
+      );
+
+      await this.createLightningAddress(
+        userId,
+        'bitcoin',
+        amount,
+        requestId,
+        data!.address,
+        data!.code,
+        data!.status,
+        data!.customerId
+      );
+
+      return data!.address;
+    } catch (error: any) {
+      console.error('Error generating Lightning address:', error.message);
+      throw new Error('Failed to generate Lightning address');
+    }
+  }
+
+  // Create Lightning address
+  async createLightningAddress(
+    userId: string,
+    assetType: string,
+    amount: number,
+    requestId: string,
+    address: string,
+    code: string,
+    status: string,
+    customerId?: string
+  ): Promise<ILightningAddress> {
+    const wallet = await LndWallet.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+    if (!wallet) {
+      const newWallet = new LndWallet({
+        userId: new mongoose.Types.ObjectId(userId),
+        balance: 0,
+        lockedBalance: 0,
+        lock: {
+          amount: 0,
+          maturityDate: new Date(),
+          purpose: '',
+          lockedAt: new Date(),
+          lockId: '',
+        },
+      });
+      await newWallet.save();
+    }
+    const lightningAddress = new LightningAddress({
+      userId: new mongoose.Types.ObjectId(userId),
+      assetType,
+      amount,
+      requestId,
+      address,
+      code,
+      status,
+      customerId,
+    });
+
+    return await lightningAddress.save();
+  }
+
+  // Get user's active lightning addresses
+  async getUserActiveLightningAddresses(
+    userId: string
+  ): Promise<ILightningAddress[]> {
+    return await LightningAddress.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      expiresAt: { $gt: new Date() },
+      status: 'active',
+    }).sort({ createdAt: -1 });
+  }
+
+  // Get all user's lightning addresses (including expired)
+  async getUserAllLightningAddresses(
+    userId: string
+  ): Promise<ILightningAddress[]> {
+    return await LightningAddress.find({
+      userId: new mongoose.Types.ObjectId(userId),
+    }).sort({ createdAt: -1 });
+  }
+
+  async updateLightningBalance(address: string, amount: number) {
+    try {
+      const lightning = await LightningAddress.findOne({ address: address });
+
+      if (!lightning) {
+        throw new Error('Lightning details not found!');
+      }
+
+      lightning!.balance += amount;
+      await lightning.save();
+
+      return lightning;
+    } catch (error) {
+      console.error('Failed to update Lightning balance:', error);
+      throw new Error('Failed to update Lightning wallet balance');
+    }
   }
 
   async getOnrampQuote(
@@ -47,6 +212,7 @@ class CashwyreService {
           Reference: reference,
           BusinessCode: CashwyreConfig.BusinessCode,
           AppId: CashwyreConfig.AppId,
+          FeeType: 'sender',
           RequestId: reference,
         }
       );
@@ -394,6 +560,46 @@ class CashwyreService {
       userId: new mongoose.Types.ObjectId(userId),
       status,
     }).sort({ createdAt: -1 });
+  }
+
+  async sendCryptoAsset(
+    userId: string,
+    amount: number,
+    address: string
+  ): Promise<any> {
+    try {
+      const user = await getUserDetails(userId);
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+
+      const requestId = uuidv4();
+      const payload = {
+        amountInCryptoAsset: amount,
+        description:
+          'Sending Bitcoin on Lightning network from Chain Coop Wallet',
+        assetType: 'bitcoin',
+        network: NetworkType.BTC_LN,
+        businessCode: CashwyreConfig.BusinessCode,
+        appId: CashwyreConfig.AppId,
+        requestId,
+        address,
+      };
+
+      const data: any = await this.axiosInstance.post(
+        '/sendCryptoAsset/sendCryptoAsset',
+        payload
+      );
+
+      if (data.success === false) {
+        throw new NotFoundError('Crypto asset was not sent');
+      }
+
+      return data.data;
+    } catch (error: any) {
+      console.error(error.message);
+      throw new Error(error.message);
+    }
   }
 }
 const CashwyreServices = new CashwyreService();

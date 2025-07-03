@@ -1,6 +1,7 @@
 // routes/lndRoutes.ts
 import express from 'express';
 import * as lndController from '../../../controllers/web3/lnd/lndController';
+import CashwyreController from '../../../controllers/web3/cashWyre/cashWyre';
 import { authorize } from '../../../middlewares/authorization';
 
 const router = express.Router();
@@ -10,349 +11,6 @@ const router = express.Router();
  * tags:
  *   name: LND
  *   description: BTC interaction with LND
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/create:
- *   post:
- *     summary: Create a new Lightning Network invoice
- *     tags: [LND]
- *     security:
- *       - bearerAuth: []
- *       - macaroonAuth: []
- *     requestBody:
- *       description: Invoice data (satoshis, memo, etc.)
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               memo:
- *                 type: string
- *                 description: Optional description for the invoice
- *                 example: "Coffee payment"
- *               amount:
- *                 type: integer
- *                 description: Amount in satoshis
- *                 example: 25000
- *             required:
- *               - amount
- *     responses:
- *       201:
- *         description: Invoice created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Created invoice successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     invoiceId:
- *                       type: string
- *                       description: Monotonically increasing invoice index
- *                     payment_request:
- *                       type: string
- *                       description: BOLT11 payment request
- *                     amount:
- *                       type: integer
- *                       description: Amount in satoshis
- *                     expires_at:
- *                       type: string
- *                       format: date-time
- *                       description: ISO-8601 timestamp when the invoice expires
- *                   required:
- *                     - invoiceId
- *                     - payment_request
- *                     - amount
- *                     - expires_at
- *       400:
- *         description: Invalid request data
- *       401:
- *         description: Unauthorized – missing or invalid macaroon
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/{invoiceId}:
- *   get:
- *     summary: Get a single invoice by its ID
- *     tags: [LND]
- *     parameters:
- *       - in: path
- *         name: invoiceId
- *         required: true
- *         description: The unique identifier (add_index) of the invoice
- *         schema:
- *           type: string
- *           example: "1"
- *     security:
- *       - bearerAuth: []              # adjust if using macaroonAuth
- *     responses:
- *       200:
- *         description: Invoice found successfully
- *       404:
- *         description: Invoice not found
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoices/user/{userId}:
- *   get:
- *     summary: Get all invoices for a given user
- *     tags: [LND]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         description: The user's unique identifier
- *         schema:
- *           type: string
- *           example: "60f7a4c8e4b0b12d4c8e4f7a"
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of invoices retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/send:
- *   post:
- *     summary: Send payment on Lightning Network invoice
- *     tags: [LND]
- *     security:
- *       - bearerAuth: []
- *       - macaroonAuth: []               # header: Grpc-Metadata-macaroon
- *     requestBody:
- *       description: Invoice identifier to pay
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               invoiceId:
- *                 type: string
- *                 description: The internal invoiceId (add_index) of the invoice stored in your system
- *                 example: "1"
- *             required:
- *               - invoiceId
- *     responses:
- *       200:
- *         description: Payment stream started; final status will be streamed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Payment recorded successfully"
- *       400:
- *         description: Bad request (e.g. missing invoiceId or invalid invoice state)
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       404:
- *         description: Invoice not found
- *       500:
- *         description: Server error (e.g. payment routing failure)
- */
-
-
-
-/**
- * @swagger
- * tags:
- *   name: LND
- *   description: BTC interaction with LND
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/create:
- *   post:
- *     summary: Create a new Lightning Network invoice
- *     tags: [LND]
- *     security:
- *       - bearerAuth: []
- *       - macaroonAuth: []
- *     requestBody:
- *       description: Invoice data (satoshis, memo, etc.)
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               memo:
- *                 type: string
- *                 description: Optional description for the invoice
- *                 example: "Coffee payment"
- *               amount:
- *                 type: integer
- *                 description: Amount in satoshis
- *                 example: 25000
- *             required:
- *               - amount
- *     responses:
- *       201:
- *         description: Invoice created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Created invoice successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     invoiceId:
- *                       type: string
- *                       description: Monotonically increasing invoice index
- *                     payment_request:
- *                       type: string
- *                       description: BOLT11 payment request
- *                     amount:
- *                       type: integer
- *                       description: Amount in satoshis
- *                     expires_at:
- *                       type: string
- *                       format: date-time
- *                       description: ISO-8601 timestamp when the invoice expires
- *                   required:
- *                     - invoiceId
- *                     - payment_request
- *                     - amount
- *                     - expires_at
- *       400:
- *         description: Invalid request data
- *       401:
- *         description: Unauthorized – missing or invalid macaroon
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/{invoiceId}:
- *   get:
- *     summary: Get a single invoice by its ID
- *     tags: [LND]
- *     parameters:
- *       - in: path
- *         name: invoiceId
- *         required: true
- *         description: The unique identifier (add_index) of the invoice
- *         schema:
- *           type: string
- *           example: "1"
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Invoice found successfully
- *       404:
- *         description: Invoice not found
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoices/user/{userId}:
- *   get:
- *     summary: Get all invoices for a given user
- *     tags: [LND]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         description: The user's unique identifier
- *         schema:
- *           type: string
- *           example: "60f7a4c8e4b0b12d4c8e4f7a"
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of invoices retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       500:
- *         description: Server error
- */
-
-/**
- * @swagger
- * /web3/lnd/invoice/send:
- *   post:
- *     summary: Send payment on Lightning Network invoice
- *     tags: [LND]
- *     security:
- *       - bearerAuth: []
- *       - macaroonAuth: []
- *     requestBody:
- *       description: Invoice identifier to pay
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               invoiceId:
- *                 type: string
- *                 description: The internal invoiceId (add_index) of the invoice stored in your system
- *                 example: "1"
- *             required:
- *               - invoiceId
- *     responses:
- *       200:
- *         description: Payment stream started; final status will be streamed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Payment recorded successfully"
- *       400:
- *         description: Bad request (e.g. missing invoiceId or invalid invoice state)
- *       401:
- *         description: Unauthorized – missing or invalid credentials
- *       404:
- *         description: Invoice not found
- *       500:
- *         description: Server error (e.g. payment routing failure)
  */
 
 /**
@@ -535,30 +193,316 @@ const router = express.Router();
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /web3/lnd/create-address:
+ *   post:
+ *     summary: Generate crypto address
+ *     description: This is used to generate crypto addresses for customers. BTC addresses are persistent per user, while Lightning Network addresses are temporary (1 hour expiry).
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - assetType
+ *               - network
+ *             properties:
+ *               assetType:
+ *                 type: string
+ *                 description: The type of cryptocurrency asset
+ *                 example: bitcoin
+ *               network:
+ *                 type: string
+ *                 description: The blockchain network identifier
+ *                 enum: [BTC, BTC_LN]
+ *                 example: "BTC"
+ *               amount:
+ *                 type: number
+ *                 description: The amount of asset to transact (required for Lightning Network)
+ *                 example: 0.0001
+ *     responses:
+ *       200:
+ *         description: Address has been successfully created or retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "BTC address has been successfully created"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     address:
+ *                       type: string
+ *                       example: "bc1qwqpm3d6j7tetfhhjjkjtvw8zky2zr5pweaseze"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     assetType:
+ *                       type: string
+ *                       example: "bitcoin"
+ *                     network:
+ *                       type: string
+ *                       example: "BTC"
+ *                     amount:
+ *                       type: number
+ *                       description: Present for Lightning Network addresses
+ *                       example: 0.0001
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Present for Lightning Network addresses
+ *                       example: "2023-12-25T13:00:00.000Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-12-25T12:00:00.000Z"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Asset type and network are required"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to create crypto address"
+ */
+
+/**
+ * @swagger
+ * /web3/lnd/lightning-addresses:
+ *   get:
+ *     summary: Get user's Lightning Network addresses
+ *     description: Retrieves the user's Lightning Network addresses, with optional filtering for active addresses only
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Filter to show only active (non-expired) Lightning addresses
+ *         example: "true"
+ *     responses:
+ *       200:
+ *         description: Lightning addresses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lightning addresses retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                       userId:
+ *                         type: string
+ *                         example: "64f8a1b2c3d4e5f6g7h8i9j0"
+ *                       address:
+ *                         type: string
+ *                         example: "lnbc10u1p3xnhl2pp5jptserfk3zk4qy..."
+ *                       assetType:
+ *                         type: string
+ *                         example: "bitcoin"
+ *                       amount:
+ *                         type: number
+ *                         example: 0.0001
+ *                       status:
+ *                         type: string
+ *                         example: "active"
+ *                       requestId:
+ *                         type: string
+ *                         example: "550e8400-e29b-41d4-a716-446655440000"
+ *                       code:
+ *                         type: string
+ *                         example: "200"
+ *                       customerId:
+ *                         type: string
+ *                         example: "cust_123456789"
+ *                       expiresAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-12-25T13:00:00.000Z"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-12-25T12:00:00.000Z"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to retrieve lightning addresses"
+ */
+
+/**
+ * @swagger
+ * /web3/lnd/send-lightning:
+ *   post:
+ *     summary: Send Lightning Network payment
+ *     description: Send a Lightning Network payment to a specified lightning address
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - lightningAddress
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: The amount to send in BTC
+ *                 example: 0.0001
+ *                 minimum: 0.00000001
+ *               lightningAddress:
+ *                 type: string
+ *                 description: The Lightning Network address or invoice to send payment to
+ *                 example: "lnbc10u1p3xnhl2pp5jptserfk3zk4qy..."
+ *     responses:
+ *       200:
+ *         description: Lightning payment sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lightning payment sent successfully"
+ *                 data:
+ *                   type: object
+ *                   description: Payment details returned by the service
+ *                   properties:
+ *                     paymentHash:
+ *                       type: string
+ *                       description: Unique identifier for the payment
+ *                       example: "64f8a1b2c3d4e5f6g7h8i9j0k1l2m3n4"
+ *       400:
+ *         description: Bad Request - Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Amount and lightning address are required"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       404:
+ *         description: Not Found - Failed to send payment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to send lightning payment"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to send lightning payment"
+ */
+
 // Invoice routes
-router.post('/invoice/create', authorize, lndController.createInvoice);
-router.get('/invoice/:invoiceId', authorize, lndController.getInvoice);
-router.get('/invoices/user/:userId', authorize, lndController.getUserInvoice);
-router.post('/invoice/send', authorize, lndController.sendPayment);
 router.post('/wallet/lock', authorize, lndController.lockFunds);
 router.post('/wallet/unlock', authorize, lndController.unlockFunds);
 router.get('/wallet/info', authorize, lndController.getWalletInfo);
-// router.get('/invoice/:id',authorize, lndController.getInvoice);
-// router.post('/invoice/webhook',authorize, lndController.setupInvoiceWebhook);
-// router.post('/invoice/decode', lndController.decodeInvoice);
-
-// // Payment routes
-// router.post('/payment/send',authorize, lndController.payInvoice);
-// router.get('/channels', authorize,lndController.getChannels);
-
-// router.get('/transactions',authorize, lndController.getTransactions);
-// router.get('/userInvoice',authorize, lndController.getUserInvoices);
-// router.get('/userPayment',authorize, lndController.getUserPayments);
-// router.get('/userWallet',authorize, lndController.getWalletDetails);
-
-// // Wallet routes
-// router.get('/wallet/info', authorize,lndController.getWalletInfo);
-// router.post('/wallet/address',authorize, lndController.createBitcoinAddress);
+// crypto route
+router.post(
+  '/create-address',
+  authorize,
+  CashwyreController.generateCryptoAddress
+);
+router.get(
+  '/lightning-addresses',
+  authorize,
+  CashwyreController.getUserLightningAddresses
+);
+router.post(
+  '/send-lightning',
+  authorize,
+  CashwyreController.sendLightningPayment
+);
 export default router;
-
-

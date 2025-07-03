@@ -9,6 +9,7 @@ import { approveTokenTransfer } from '../accountService';
 import { getTokenAddressSymbol } from '../accountService';
 import {
   chainCoopSavingcontract,
+  contract,
   signPermit,
 } from '../../../utils/web3/contract.2.0';
 import {
@@ -29,20 +30,20 @@ const openPool = async (
   network: string
 ) => {
   try {
-    const approveTx = await signPermit(
+    const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      process.env.RELAYER_PRIVATE_KEY!,
-      userPrivateKey,
       initialSaveAmount,
+      userPrivateKey,
       network
     );
     if (!approveTx) {
       throw Error('Failed to approve transfer');
     }
+    const tokenContract = await contract(tokenAddressToSaveWith, network);
     const con_tract = await chainCoopSavingcontract(network);
     const data = con_tract.interface.encodeFunctionData('openSavingPool', [
       tokenAddressToSaveWith,
-      parseUnits(initialSaveAmount, 6),
+      parseUnits(initialSaveAmount, await tokenContract.decimals()),
       reasonForSaving,
       lockType,
       duration,
@@ -70,20 +71,20 @@ const updatePoolAmount = async (
   network: string
 ) => {
   try {
-    const approveTx = await signPermit(
+    const approveTx = await approveTokenTransfer(
       tokenAddressToSaveWith,
-      process.env.RELAYER_PRIVATE_KEY!,
-      userPrivateKey,
       amount,
+      userPrivateKey,
       network
     );
     if (!approveTx) {
       throw Error('Failed to approve transfer');
     }
+    const tokenContract = await contract(tokenAddressToSaveWith, network);
     const con_tract = await chainCoopSavingcontract(network);
     const data = con_tract.interface.encodeFunctionData('updateSaving', [
       poolId_bytes,
-      parseUnits(amount, 6),
+      parseUnits(amount, await tokenContract.decimals()),
     ]);
     const { forwardRequest, signature } = await signMetaTransaction(
       userPrivateKey,
@@ -131,9 +132,7 @@ const stopSaving = async (
 ) => {
   try {
     const con_tract = await chainCoopSavingcontract(network);
-    const data = con_tract.interface.encodeFunctionData('stopSaving', [
-      poolId,
-    ]);
+    const data = con_tract.interface.encodeFunctionData('stopSaving', [poolId]);
     const { forwardRequest, signature } = await signMetaTransaction(
       userPrivateKey,
       network,
@@ -239,7 +238,10 @@ const userPools = async (
         startDate: pool[4].toString(),
         locktype: Number(pool[7]), // Fixed: Convert to number
         Duration: pool[5].toString(),
-        amountSaved: formatUnits(pool[6].toString(), 6),
+        amountSaved: formatUnits(
+          pool[6].toString(),
+          network === 'BSC' ? 18 : 6
+        ), // Fixed: Convert to string
         isGoalAccomplished: pool[8],
       }))
     );
@@ -263,7 +265,7 @@ const userPoolsByPoolId = async (
         typeof value === 'bigint' ? value.toString() : value
       )
     );
-    
+
     // Map rawUserPools to a serializable format
     const formattedPool: SavingPool = {
       saver: rawPools[0],
@@ -273,7 +275,10 @@ const userPoolsByPoolId = async (
       startDate: rawPools[4].toString(),
       locktype: Number(rawPools[7]), // Fixed: Convert to number
       Duration: rawPools[5].toString(),
-      amountSaved: formatUnits(rawPools[6].toString(), 6),
+      amountSaved: formatUnits(
+        rawPools[6].toString(),
+        network === 'BSC' ? 18 : 6
+      ), // Fixed: Convert to string
       isGoalAccomplished: rawPools[8],
       symbol: await getTokenAddressSymbol(rawPools[1], network),
     };

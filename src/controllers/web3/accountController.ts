@@ -1,4 +1,5 @@
 import AsyncHandler from 'express-async-handler';
+import axios from 'axios';
 import { Request, Response } from 'express';
 import {
   activateAccount,
@@ -15,11 +16,14 @@ import {
   getBitcoinBalanceDetails,
   validateBitcoinAddress,
   getBitcoinLockStatus,
+  transferCrypto,
 } from '../../services/web3/accountService';
 import Web3Wallet, { Web3WalletDocument } from '../../models/web3Wallet';
 import { decrypt } from '../../services/encryption';
 import { tokenAddress } from '../../utils/web3/tokenaddress';
 import { StatusCodes } from 'http-status-codes';
+import { bitcoin } from 'bitcoinjs-lib/src/networks';
+require('dotenv').config();
 
 const activateWeb3Wallet = AsyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
@@ -64,6 +68,61 @@ const activateBitcoinWallet = AsyncHandler(
     }
   }
 );
+const transferGasfees = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+    const exists = await checkExistingWallet(userId);
+    if (!exists) {
+      res.status(400).json({ message: 'No Wallet found' });
+      return;
+    }
+    const wallet = await getUserWeb3Wallet(userId);
+    const bnbRate = await axios.get<{ binancecoin: { usd: number } }>(
+      `https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=binancecoin`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.COIN_GECKO_API_KEY}`,
+        },
+      }
+    );
+
+    const bnbPrice = String((0.5 / bnbRate.data?.binancecoin.usd).toFixed(6));
+    const polRate = await axios.get<{ [key: string]: { usd: number } }>(
+      `https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=matic-network`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.COIN_GECKO_API_KEY}`,
+        },
+      }
+    );
+    const polPrice = String(
+      (0.5 / polRate.data['matic-network'].usd).toFixed(2)
+    );
+
+    const tx = await transferCrypto(bnbPrice, wallet.address, 'BSC');
+    const tx1 = await transferCrypto(polPrice, wallet.address, 'POLYGON');
+    await tx.wait(1);
+    await tx1.wait(1);
+    res.status(200).json({
+      status: 'success',
+      message: 'Gas fees transferred successfully',
+      data: {
+        bscTransactionHash: tx.hash,
+        polygonTransactionHash: tx1.hash,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 const userDetails = AsyncHandler(async (req: Request, res: Response) => {
   //@ts-ignore
@@ -74,21 +133,30 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'No Wallet found' });
       return;
     }
+    const hasBitcoinWallet = await checkExistingBitcoinWallet(userId);
+    let bitcoinBalanceDetails;
+    let bitcoinAddress;
+
+    if (hasBitcoinWallet) {
+      bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
+      bitcoinAddress = await getBitcoinAddress(userId);
+    }
+
     const details = await getUserWeb3Wallet(userId);
-    const bitcoinBalanceDetails = await getBitcoinBalanceDetails(userId);
+
     //remove encryptedKey
     const { encryptedKey, publicKey, ...user } = details;
 
     res.json({
       data: {
         ...user,
-        btcAddress: await getBitcoinAddress(userId),
+        btcAddress: bitcoinAddress || null,
         bitcoinBalance: {
-          total: bitcoinBalanceDetails.totalBalance,
-          available: bitcoinBalanceDetails.availableBalance,
-          locked: bitcoinBalanceDetails.lockedAmount,
-          isLocked: bitcoinBalanceDetails.isLocked,
-          lockDetails: bitcoinBalanceDetails.lockDetails,
+          total: bitcoinBalanceDetails?.totalBalance || 0,
+          available: bitcoinBalanceDetails?.availableBalance || 0,
+          locked: bitcoinBalanceDetails?.lockedAmount || 0,
+          isLocked: bitcoinBalanceDetails?.isLocked || false,
+          lockDetails: bitcoinBalanceDetails?.lockDetails || null,
         },
       },
     });
@@ -327,4 +395,5 @@ export {
   unlockBitcoin,
   getBitcoinBalanceWithLocks,
   getLockStatus,
+  transferGasfees,
 };

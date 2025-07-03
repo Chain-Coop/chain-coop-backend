@@ -2,7 +2,13 @@ import axios from 'axios';
 import { generateAccount } from '../../utils/web3/generateAccount';
 import { generateBtcAccount } from '../../utils/web3/generateAccountBTC';
 import { contract } from '../../utils/web3/contract.2.0';
-import { formatUnits, parseEther, parseUnits } from 'ethers';
+import {
+  formatUnits,
+  JsonRpcProvider,
+  parseEther,
+  parseUnits,
+  Provider,
+} from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
 import User from '../../models/user';
 import {
@@ -17,14 +23,17 @@ import {
   CHAINCOOPSAVING_BSC_MAINNET,
   CHAINCOOPSAVING_POLYGON_MAINNET,
 } from '../../constant/contract/ChainCoopSaving';
+import { BSC_MAINNET, POLYGON_MAINNET } from '../../constant/rpcs';
 import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
+import LndWallet, { ILndWallet } from '../../models/web3/lnd/wallet';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tinysecp from 'tiny-secp256k1';
 import { networks } from 'bitcoinjs-lib';
 
 import { encrypt, decrypt } from '../encryption';
 import ECPairFactory from 'ecpair';
-import { sign } from 'crypto';
+import { Signer } from '../../utils/web3/createSingner';
+require('dotenv').config();
 
 // Initialize ECPair with the required elliptic curve implementation
 const ECPair = ECPairFactory(tinysecp);
@@ -90,11 +99,26 @@ async function createUserBitcoinWallet(userId: string) {
     address: bitcoinAccount.address,
     walletType: 'segwit', // Using SegWit by default
   });
+  const lightningWallet: ILndWallet = new LndWallet({
+    userId: userId,
+    balance: 0,
+    lockedBalance: 0,
+    lock: {
+      amount: 0,
+      maturityDate: new Date(),
+      purpose: '',
+      lockedAt: new Date(),
+      lockId: '',
+    },
+  });
+  await lightningWallet.save();
 
-  // Save to database
   await wallet.save();
 
-  return wallet;
+  return {
+    wallet: wallet,
+    lightningWallet: lightningWallet,
+  };
 }
 //check existing user wallet
 const checkExistingWallet = async (userId: string): Promise<boolean> => {
@@ -238,7 +262,10 @@ const transferStable = async (
 ): Promise<string> => {
   try {
     const con_tract = await contract(tokenAddress, network, userPrivateKey);
-    const tx = await con_tract.transfer(toAddress, parseUnits(amount, 6));
+    const tx = await con_tract.transfer(
+      toAddress,
+      parseUnits(amount, await con_tract.decimals())
+    );
 
     await tx.wait();
 
@@ -246,6 +273,32 @@ const transferStable = async (
   } catch (error) {
     console.error('Error during token transfer:', error);
     throw new Error('Token transfer failed.');
+  }
+};
+const transferCrypto = async (
+  amount: string,
+  toAddress: string,
+  network: string
+): Promise<any> => {
+  try {
+    let provider;
+    if (network === 'BSC') {
+      provider = new JsonRpcProvider(BSC_MAINNET);
+    } else if (network === 'POLYGON') {
+      provider = new JsonRpcProvider(POLYGON_MAINNET);
+    } else {
+      throw new Error(`Unsupported network: ${network}`);
+    }
+    const signer = await Signer(process.env.RELAYER_PRIVATE_KEY!, provider);
+    const tx = await signer.sendTransaction({
+      to: toAddress,
+      value: parseEther(amount),
+    });
+    await tx.wait(1);
+    return tx;
+  } catch (error) {
+    console.error('Error during crypto transfer:', error);
+    throw new Error('Crypto transfer failed.');
   }
 };
 
@@ -290,7 +343,9 @@ const transferBitcoin = async (
 
     if (availableBalance < amount) {
       const lockInfo = wallet.isLocked
-        ? ` (${wallet.lockedAmount} BTC is locked until ${wallet.unlocksAt?.toISOString()})`
+        ? ` (${
+            wallet.lockedAmount
+          } BTC is locked until ${wallet.unlocksAt?.toISOString()})`
         : '';
       throw new Error(
         `Insufficient available balance. Available: ${availableBalance} BTC, Requested: ${amount} BTC${lockInfo}`
@@ -423,13 +478,16 @@ const approveTokenTransfer = async (
     contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
   } else if (network === 'ETHERLINK') {
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
-  } else if (network === 'GNOSIS') {
+  } else if (network === 'POLYGON') {
     contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }
 
-  const tx = await con_tract.approve(contractAddress, parseUnits(amount, 6));
+  const tx = await con_tract.approve(
+    contractAddress,
+    parseUnits(amount, await con_tract.decimals())
+  );
   console.log('Transaction hash:', tx);
   await tx.wait(1);
   return tx;
@@ -533,13 +591,17 @@ const lockBitcoinAmount = async (
 
   // Check if wallet already has an active lock
   if (wallet.isLocked) {
-    throw new Error('Wallet already has an active lock. Please wait for it to expire or unlock it first.');
+    throw new Error(
+      'Wallet already has an active lock. Please wait for it to expire or unlock it first.'
+    );
   }
 
   // Get current balance
   const currentBalance = await getBitcoinBalance(userId);
   if (currentBalance < amount) {
-    throw new Error(`Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`);
+    throw new Error(
+      `Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`
+    );
   }
 
   // Set lock parameters
@@ -576,9 +638,13 @@ const unlockBitcoinAmount = async (userId: string): Promise<IBitcoinWallet> => {
 
   if (!wallet.unlocksAt || new Date() < wallet.unlocksAt) {
     const timeRemaining = wallet.unlocksAt
-      ? Math.ceil((wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60))
+      ? Math.ceil(
+          (wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60)
+        )
       : 0;
-    throw new Error(`Lock period has not expired yet. Time remaining: ${timeRemaining} hours`);
+    throw new Error(
+      `Lock period has not expired yet. Time remaining: ${timeRemaining} hours`
+    );
   }
 
   // Clear the lock
@@ -635,14 +701,18 @@ const getBitcoinBalanceDetails = async (userId: string) => {
     lockedAmount,
     availableBalance,
     isLocked: wallet.isLocked,
-    lockDetails: wallet.isLocked ? {
-      lockedAt: wallet.lockedAt,
-      unlocksAt: wallet.unlocksAt,
-      lockDuration: wallet.lockDuration,
-      lockReason: wallet.lockReason,
-      timeRemainingMs: wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime()) : 0,
-      canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
-    } : null,
+    lockDetails: wallet.isLocked
+      ? {
+          lockedAt: wallet.lockedAt,
+          unlocksAt: wallet.unlocksAt,
+          lockDuration: wallet.lockDuration,
+          lockReason: wallet.lockReason,
+          timeRemainingMs: wallet.unlocksAt
+            ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime())
+            : 0,
+          canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
+        }
+      : null,
   };
 };
 
@@ -671,7 +741,9 @@ const getBitcoinLockStatus = async (userId: string) => {
   }
 
   const now = new Date();
-  const timeRemainingMs = wallet.unlocksAt ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime()) : 0;
+  const timeRemainingMs = wallet.unlocksAt
+    ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime())
+    : 0;
   const timeRemainingHours = Math.ceil(timeRemainingMs / (1000 * 60 * 60));
   const canUnlock = timeRemainingMs === 0;
 
@@ -690,6 +762,7 @@ const getBitcoinLockStatus = async (userId: string) => {
 
 export {
   transferStable,
+  transferCrypto,
   activateAccount,
   createUserBitcoinWallet,
   checkStableUserBalance,

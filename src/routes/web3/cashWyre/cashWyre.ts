@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import CashwyreController from '../../../controllers/web3/cashWyre/cashWyre';
 import { authorize } from '../../../middlewares/authorization';
+import { CashwyreWebhookController } from '../../../controllers/webhookController';
 
 const router = Router();
 
@@ -116,6 +117,10 @@ const router = Router();
  *                 type: number
  *                 description: The fiat amount for the transaction
  *                 example: 100
+ *               amountInCrypto:
+ *                type: number  
+ *                description: The amount in cryptocurrency to receive(only for lightning)
+ *                example: 0.005
  *               crypto:
  *                 type: string
  *                 description: The cryptocurrency to receive
@@ -358,7 +363,7 @@ const router = Router();
  *               network:
  *                 type: string
  *                 description: The ID of the network
- *                 example: "BTC,ETHERLINK,BSC,LISK,POLYGON"                   
+ *                 example: "BTC,ETHERLINK,BSC,LISK,POLYGON"
  *     responses:
  *       200:
  *         description: Quote confirmed successfully
@@ -477,8 +482,8 @@ const router = Router();
  *                 example: "6447b7e02c4815d3a57d79ba"
  *               network:
  *                 type: string
- *                 description: The network ID 
- *                 example: "BTC,BSC,POLYGON,LISK,ETHERLINK"                 
+ *                 description: The network ID
+ *                 example: "BTC,BSC,POLYGON,LISK,ETHERLINK"
  *     responses:
  *       200:
  *         description: Transfer processed successfully
@@ -888,5 +893,5 @@ router.get('/banks', CashwyreController.getSupportedBanks);
 router.post('/verify-account', CashwyreController.verifyBankAccount);
 
 router.get('/transactions', authorize, CashwyreController.getUserTransactions);
-
+router.post('/cashwyre-webhook', CashwyreWebhookController);
 export default router;

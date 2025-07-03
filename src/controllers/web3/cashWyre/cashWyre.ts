@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestError, NotFoundError } from '../../../errors';
-import CashwyreService from '../../../services/web3/Cashwyre/cashWyre';
+import CashwyreService, {
+  NetworkType,
+} from '../../../services/web3/Cashwyre/cashWyre';
 import {
   getUserWeb3Wallet,
   getBitcoinAddress,
@@ -17,12 +19,142 @@ import CashwyreTransaction, {
   ICashwyreTransaction,
 } from '../../../models/web3/cashWyreTransactions';
 import { tokenAddress } from '../../../utils/web3/tokenaddress';
-import {
-  sendPayment,
-  createLndInvoice,
-} from '../../../services/web3/lndService/lndService';
+import { getUserDetails } from '../../../services/authService';
+import { StatusCodes } from 'http-status-codes';
 
 class CashwyreController {
+  /**
+   * Generate crypto address
+   * @route POST /api/cashwyre/create-address
+   */
+  async generateCryptoAddress(req: Request, res: Response) {
+    try {
+      const { amount, assetType, network } = req.body;
+      // @ts-ignore
+      const userId = req.user.userId;
+
+      if (!assetType || !network) {
+        throw new BadRequestError('Asset type, and network are required');
+      }
+      if (!Object.values(NetworkType).includes(network)) {
+        throw new BadRequestError('Invalid network type. Must be BTC_LN');
+      }
+
+      const user = await getUserDetails(userId);
+      const requestId = uuidv4();
+
+      if (network === NetworkType.BTC_LN) {
+        if (!amount) {
+          throw new BadRequestError(
+            'Amount is required for Lightning Network addresses'
+          );
+        }
+
+        // Generate new Lightning address
+        const { data } = await CashwyreService.generateCryptoAddress(
+          user!.firstName,
+          user!.lastName,
+          user!.email,
+          assetType,
+          network,
+          amount,
+          requestId
+        );
+
+        const savedAddress = await CashwyreService.createLightningAddress(
+          userId,
+          assetType,
+          amount,
+          requestId,
+          data!.address,
+          data!.code,
+          data!.status,
+          data!.customerId
+        );
+
+        return res.status(StatusCodes.OK).json({
+          success: true,
+          message:
+            'Lightning Network address has been successfully created (valid for 1 hour)',
+          data: {
+            address: data!.address,
+            status: data!.status,
+            assetType,
+            network: 'BTC_LN',
+            amount,
+            expiresAt: savedAddress.expiresAt,
+          },
+        });
+      }
+    } catch (error: any) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to create crypto address',
+      });
+    }
+  }
+
+  /**
+   * Get user's lightning addresses
+   * @route GET /api/cashwyre/lightning-addresses
+   */
+  async getUserLightningAddresses(req: Request, res: Response) {
+    try {
+      // @ts-ignore
+      const userId = req.user.userId;
+      const { active } = req.query;
+
+      let addresses;
+      if (active === 'true') {
+        addresses = await CashwyreService.getUserActiveLightningAddresses(
+          userId
+        );
+      } else {
+        addresses = await CashwyreService.getUserAllLightningAddresses(userId);
+      }
+
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Lightning addresses retrieved successfully',
+        data: addresses,
+      });
+    } catch (error: any) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve lightning addresses',
+      });
+    }
+  }
+
+  async sendLightningPayment(req: Request, res: Response) {
+    try {
+      // @ts-ignore
+      const userId = req.user.userId;
+      const { amount, lightningAddress } = req.body;
+      if (!amount || !lightningAddress) {
+        throw new BadRequestError('Amount and lightning address are required');
+      }
+      const lightningPayment = await CashwyreService.sendCryptoAsset(
+        userId,
+        amount,
+        lightningAddress
+      );
+      if (!lightningPayment) {
+        throw new NotFoundError('Failed to send lightning payment');
+      }
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Lightning payment sent successfully',
+        data: lightningPayment,
+      });
+    } catch (error: any) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to send lightning payment',
+      });
+    }
+  }
+
   /**
    * Get onramp quote
    * @route POST /api/cashwyre/onramp/quote
@@ -62,8 +194,14 @@ class CashwyreController {
    */
   async confirmOnrampQuote(req: Request, res: Response) {
     try {
-      const { amount, crypto, network, reference, transactionReference } =
-        req.body;
+      const {
+        amount,
+        amountInCrypto,
+        crypto,
+        network,
+        reference,
+        transactionReference,
+      } = req.body;
       //@ts-ignore
       const userId = req.user.userId;
 
@@ -78,19 +216,14 @@ class CashwyreController {
         const bitcoinWallet = await getBitcoinAddress(userId);
         userAddress = bitcoinWallet;
       } else if (network === 'BTC_LN') {
-        // For BTC_LN, we need to create an LND invoice
-        const lndInvoice = await createLndInvoice(
-          userId,
-          amount,
-          'Cashwyre Onramp'
+        const lightningAddress = await CashwyreService.generateLightningAddress(
+          amountInCrypto,
+          userId
         );
-        if (!lndInvoice) {
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to create LND invoice',
-          });
+        if (!lightningAddress) {
+          throw new NotFoundError('Lightning address not found for user');
         }
-        userAddress = lndInvoice.payment_request; // Use the payment request as the address
+        userAddress = lightningAddress;
       } else {
         const wallet = await getUserWeb3Wallet(userId);
         userAddress = wallet.address;
@@ -404,11 +537,12 @@ class CashwyreController {
           transaction.offrampAddress || ''
         );
       } else if (network === 'BTC_LN') {
-        const lightningPayment = await sendPayment(
+        const lightningPayment = await CashwyreService.sendCryptoAsset(
           userId,
+          transaction.cryptoAmount,
           transaction.offrampAddress || ''
         );
-        txHash = lightningPayment.paymentHash;
+        txHash = lightningPayment.reference;
       } else {
         const wallet = await getUserWeb3Wallet(userId);
         if (!wallet) {
