@@ -58,8 +58,18 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       return res.status(400).json(result);
     }
 
-    // Handle user tier update if EXACT_MATCH
-    if (result.data?.summary?.bvn_match_check?.status === 'EXACT_MATCH') {
+    const matchStatus = result.data?.summary?.bvn_match_check?.status;
+
+    const simplifiedData = {
+      status: matchStatus || 'unknown',
+      firstnameMatch: result.data?.summary?.bvn_match_check?.fieldMatches?.firstname || false,
+      lastnameMatch: result.data?.summary?.bvn_match_check?.fieldMatches?.lastname || false,
+      verificationState: result.data?.status?.state || 'unknown',
+      verificationStatus: result.data?.status?.status || 'unknown',
+    };
+
+    // Only allow upgrade if EXACT_MATCH
+    if (matchStatus === 'EXACT_MATCH') {
       if (user.Tier === 2) {
         return res.status(200).json({
           success: true,
@@ -77,21 +87,21 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
 
       user.Tier = 2;
       await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'BVN match successful. User upgraded to Tier 2.',
+        data: simplifiedData,
+      });
     }
 
-    const simplifiedData = {
-      status: result.data?.summary?.bvn_match_check?.status || 'unknown',
-      firstnameMatch: result.data?.summary?.bvn_match_check?.fieldMatches?.firstname || false,
-      lastnameMatch: result.data?.summary?.bvn_match_check?.fieldMatches?.lastname || false,
-      verificationState: result.data?.status?.state || 'unknown',
-      verificationStatus: result.data?.status?.status || 'unknown',
-    };
-
-    res.status(200).json({
-      success: true,
-      message: 'BVN boolean match verification successful and upgraded to tier 2',
+    // If not EXACT_MATCH
+    return res.status(400).json({
+      success: false,
+      message: 'BVN verification failed. Names do not match.',
       data: simplifiedData,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
