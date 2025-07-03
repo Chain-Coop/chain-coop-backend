@@ -3,11 +3,7 @@ import Invoice, { IInvoice } from '../../../models/web3/lnd/invoice';
 import Payment, { IPayment } from '../../../models/web3/lnd/payment';
 import LndWallet from '../../../models/web3/lnd/wallet';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  AddInvoice,
-  decodeInvoice,
-  PayInvoice,
-} from '../../../utils/web3/lnd';
+import { AddInvoice, decodeInvoice, PayInvoice } from '../../../utils/web3/lnd';
 
 // export const getInvoiceById = async (invoiceId: string) => {
 //   return await Invoice.findOne({ invoiceId });
@@ -65,16 +61,18 @@ export const incrementBalance = async (
   userId: Types.ObjectId | string,
   amount: number
 ) => {
-  return await LndWallet.findByIdAndUpdate(
-    userId,
+  const result = await LndWallet.findOneAndUpdate(
+    { userId: userId }, 
     { $inc: { balance: amount } },
     {
       new: true,
       runValidators: true,
+      upsert: true, 
     }
   );
-};
 
+  return result;
+};
 // Lock funds for a specific period
 export const lockBalance = async (
   userId: string,
