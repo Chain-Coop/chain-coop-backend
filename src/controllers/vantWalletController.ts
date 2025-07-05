@@ -17,6 +17,8 @@ class VantController {
             const { bvn, dob } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
+            console.log("CREATING WALLET");
+
 
             if (!bvn || !dob) {
                 throw new BadRequestError('All fields are required: bvn, dob');
@@ -29,6 +31,7 @@ class VantController {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
                 throw new BadRequestError('Date of birth must be in YYYY-MM-DD format');
             }
+            console.log("GETTING USER DETAILS");
 
             const user = await getUserDetails(userId);
             // const bvn_result = await VantServices.verifyBvn(bvn);
@@ -42,15 +45,19 @@ class VantController {
             //     throw new BadRequestError('Your date of match does not match the one on bvn!');
             // }
 
+            console.log("GETTING EXISTING WALLET");
+
             const existingWallet = await VantServices.getUserReservedWallet(userId);
             if (existingWallet) {
                 throw new BadRequestError('User already has a reserved wallet');
             }
 
-            console.log({email: user!.email,
+            console.log({
+                email: user!.email,
                 phoneNumber: user!.phoneNumber,
                 bvn,
-                dob})
+                dob
+            })
             // Generate new virtual account
             const { data } = await VantServices.generateReservedWallet(
                 user!.email,
@@ -60,12 +67,14 @@ class VantController {
             );
 
             console.log("DATA: ", data);
-            
 
-            console.log({userId,
-                wallet_balance: data!.wallet_balance,});
-            
-            
+
+            console.log({
+                userId,
+                wallet_balance: data!.wallet_balance,
+            });
+
+
             const wallet = await VantServices.createReservedWallet(
                 userId,
                 data!.wallet_balance,
