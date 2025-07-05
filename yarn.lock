@@ -639,6 +639,7 @@ babel-runtime@^6.9.2:
     "@types/axios" "^0.9.36"
     "@types/swagger-jsdoc" "^6.0.4"
     "@types/swagger-ui-express" "^4.1.7"
+    "@types/ws" "^8.18.1"
     axios "^1.7.7"
     backend-ts "file:"
     bcryptjs "^2.4.3"
@@ -680,6 +681,7 @@ babel-runtime@^6.9.2:
     ts-node "^10.9.2"
     twilio "^5.3.7"
     uuid "^11.1.0"
+    ws "^8.18.2"
 
 balanced-match@^1.0.0:
   version "1.0.2"

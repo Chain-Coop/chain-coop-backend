@@ -51,7 +51,7 @@ import cashwyre from './routes/web3/cashWyre/cashWyre';
 import lndRoutes from './routes/web3/lnd/lndRoutes';
 //import
 import logger from './utils/logger';
-import { webhookController } from './controllers/webhookController';
+import { VantWebhookController, webhookController } from './controllers/webhookController';
 import { authorize } from './middlewares/authorization';
 import { addtoLimit, getDailyTotal } from './services/dailyServices';
 import { tryRecurringCircleService } from './services/savingCircle.services';
@@ -187,6 +187,7 @@ app.all('/', (req: Request, res: Response) => {
 });
 
 app.all('/webhook', webhookController);
+app.all('/vant-webhook', VantWebhookController);
 
 app.all('/add', authorize, async (req: Request, res: Response) => {
   //@ts-ignore

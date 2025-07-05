@@ -15,6 +15,7 @@ import CashwyreTransaction, {
   CashwyreTransactionStatus,
   CashwyreTransactionType,
 } from '../models/web3/cashWyreTransactions';
+import VantServices from '../services/vantWalletServices';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -136,6 +137,61 @@ export const CashwyreWebhookController = async (
     res.sendStatus(200);
   } catch (error) {
     console.error('Error processing Cashwyre webhook:', error);
+    res.sendStatus(500);
+  }
+};
+
+export const VantWebhookController = async (
+  req: Request,
+  res: Response
+) => {
+  console.log('Vant Webhook called');
+
+  const data = req.body;
+  console.log('Vant Webhook Data:', JSON.stringify(data, null, 2));
+
+  try {
+
+    if (data.event === "account_creation") {
+      console.log("Processing account creation webhook:", data);
+
+      const webhookData = {
+        email: data.data?.email,
+        data: data.data,
+        statusCode: data.statusCode,
+        message: data.message
+      };
+
+      // Update the reserved wallet based on webhook data
+      await VantServices.updateReservedWalletFromWebhook(webhookData);
+
+      console.log("Reserved wallet webhook processed successfully");
+
+    } else if (data.event === "transfer") {
+      console.log("Processing inward transfer webhook:", data);
+
+      const transferData = {
+        reference: data.reference,
+        amount: parseFloat(data.amount),
+        account_number: data.account_number,
+        originator_account_number: data.originator_account_number,
+        originator_account_name: data.originator_account_name,
+        originator_bank: data.originator_bank,
+        originator_narration: data.originator_narration,
+        status: data.status,
+        timestamp: data.timestamp,
+        sessionId: data.sessionId
+      };
+
+      // Process the inward transfer
+      await VantServices.processInwardTransfer(transferData);
+
+      console.log("Inward transfer webhook processed successfully");
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error processing Vant webhook:', error);
     res.sendStatus(500);
   }
 };
