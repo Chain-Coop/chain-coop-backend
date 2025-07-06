@@ -212,7 +212,7 @@ class CashwyreService {
           Reference: reference,
           BusinessCode: CashwyreConfig.BusinessCode,
           AppId: CashwyreConfig.AppId,
-          FeeType: 'sender',
+          FeeType: 'business',
           RequestId: reference,
         }
       );
