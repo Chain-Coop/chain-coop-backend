@@ -48,9 +48,15 @@ class VantController {
             console.log("GETTING EXISTING WALLET");
 
             const existingWallet = await VantServices.getUserReservedWallet(userId);
+            console.log({ existingWallet });
+
+
             if (existingWallet) {
                 throw new BadRequestError('User already has a reserved wallet');
             }
+
+            console.log({ user });
+
 
             console.log({
                 email: user!.email,
@@ -58,8 +64,9 @@ class VantController {
                 bvn,
                 dob
             })
+
             // Generate new virtual account
-            const { data } = await VantServices.generateReservedWallet(
+            const data = await VantServices.generateReservedWallet(
                 user!.email,
                 user!.phoneNumber,
                 bvn,
@@ -77,13 +84,14 @@ class VantController {
 
             const wallet = await VantServices.createReservedWallet(
                 userId,
-                data!.wallet_balance,
+                // data!.wallet_balance,
             );
             console.log("WALLET: ", wallet);
 
             return res.status(StatusCodes.OK).json({
                 success: true,
-                message: 'Wallet account has been successfully created',
+                message: data!.message,
+                // message: 'Wallet account has been successfully created',
                 data: wallet,
             });
 

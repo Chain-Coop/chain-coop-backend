@@ -83,7 +83,7 @@ class VantService {
         this.axiosInstance = axios.create({
             baseURL: VantConfig.baseURL,
             headers: {
-                Authorization: `bearer ${VantConfig.secretKey}`,
+                'X-VANT-KEY': VantConfig.secretKey,
                 'Content-Type': 'application/json'
             },
         });
@@ -104,19 +104,33 @@ class VantService {
                 email,
                 phone,
                 bvn,
-                dateOfBirth
+                date_of_birth: dateOfBirth
             };
 
-            const data: any = await this.axiosInstance.post(
+            console.log("PAYLOAD IN SERVICE: ", payload);
+
+            const {data}: any = await this.axiosInstance.post(
                 '/client/create',
                 payload
             );
 
+            // const data: any = await axios.post(`${process.env.VANT_BASE_URL_TEST}/client/create`, payload,
+            //     {
+            //         headers: {
+            //           'Content-Type': 'application/json',
+            //           'Authorization': `Bearer ${process.env.X_VANT_KEY}`, // if needed
+            //         },
+            //     }
+            // );
+
+            console.log("DATA IN SERVICE: ", data);
+            
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
+            console.log("DATA IN SERVICE AFTER CHECKING ERROR: ", data);
 
-            return data?.data;
+            return data;
         } catch (error: any) {
             console.error(error.message);
             throw new Error(error.message);
@@ -124,11 +138,11 @@ class VantService {
     }
 
     async createReservedWallet(
-        userId: string, walletBalance: string,
+        userId: string,
     ): Promise<IVantWallet> {
         const account = new VantWallet({
             userId: new mongoose.Types.ObjectId(userId),
-            walletBalance,
+            walletBalance: 0,
             accountNumbers: [],
             status: 'pending',
         });
@@ -143,6 +157,9 @@ class VantService {
         const wallet = await VantWallet.findOne({
             userId: new mongoose.Types.ObjectId(userId)
         });
+
+        console.log({ wallet });
+
 
         // if (!wallet) {
         //     throw new NotFoundError(
