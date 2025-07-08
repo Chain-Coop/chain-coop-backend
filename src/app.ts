@@ -190,7 +190,7 @@ app.all('/', (req: Request, res: Response) => {
 });
 
 app.all('/webhook', webhookController);
-app.all('/vant-webhook', VantWebhookController);
+app.all('/api/v1/vant/vant-webhook', VantWebhookController);
 
 app.all('/add', authorize, async (req: Request, res: Response) => {
   //@ts-ignore
