@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { verifyBVNBooleanMatchQoreID } from '../services/bvnService';
 import User from '../models/authModel';
+import { StatusCodes } from 'http-status-codes';
 
 interface BVNMatchCheckSummary {
   bvn_match_check?: {
@@ -40,6 +41,33 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
         message: 'User not found',
       });
     }
+
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    if (
+      user.unsuccessfulBVNAttempts.length >= 2 &&
+      user.unsuccessfulBVNAttempts[0] >= twentyFourHoursAgo
+    ) {
+
+      const firstAttempt = user.unsuccessfulBVNAttempts[0];
+      const futureTime = new Date(firstAttempt.getTime() + 24 * 60 * 60 * 1000);
+
+      const formattedTime = futureTime.toLocaleString('en-US', {
+        timeZone: 'Africa/Lagos',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+
+      return res.status(StatusCodes.FORBIDDEN).json({
+        success: false,
+        message: `You have exceeded the maximum number of BVN verification attempts. Please try again after ${formattedTime}.`,
+      });
+    }
+
 
     const { firstName, lastName } = user as any;
 
@@ -94,6 +122,12 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
         data: simplifiedData,
       });
     }
+
+    user.unsuccessfulBVNAttempts.push(new Date());
+    if (user.unsuccessfulBVNAttempts.length > 2) {
+      user.unsuccessfulBVNAttempts.shift();
+    }
+    await user.save();
 
     // If not EXACT_MATCH
     return res.status(400).json({
