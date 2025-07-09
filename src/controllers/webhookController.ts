@@ -16,6 +16,7 @@ import CashwyreTransaction, {
   CashwyreTransactionType,
 } from '../models/web3/cashWyreTransactions';
 import VantServices from '../services/vantWalletServices';
+import { StatusCodes } from 'http-status-codes';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -150,6 +151,8 @@ export const VantWebhookController = async (
   const data = req.body;
   console.log('Vant Webhook Data:', JSON.stringify(data, null, 2));
 
+  res.status(StatusCodes.OK);
+
   try {
 
     if (data.event === "account_creation") {
@@ -189,7 +192,7 @@ export const VantWebhookController = async (
       console.log("Inward transfer webhook processed successfully");
     }
 
-    res.sendStatus(200);
+    // res.sendStatus(200);
   } catch (error) {
     console.error('Error processing Vant webhook:', error);
     res.sendStatus(500);
