@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document, Types } from "mongoose";
-import User, { UserDocument } from "./user";
-import { getBitcoinBalance } from "../services/web3/accountService";
+import mongoose, { Schema, Document, Types } from 'mongoose';
+import User, { UserDocument } from './user';
+import { getBitcoinBalance } from '../services/web3/accountService';
 
 export interface IBitcoinWallet extends Document {
   user: Types.ObjectId | UserDocument;
@@ -10,21 +10,59 @@ export interface IBitcoinWallet extends Document {
   address: string;
   walletType: string; // To distinguish between wallet types (e.g., "segwit", "legacy")
   // Lock fields
+  lock: BitcoinLockEntry[];
+}
+
+export interface BitcoinLockEntry {
   lockedAmount: number;
   lockedAmountSatoshis: number;
-  lockDuration: number; // Lock duration in seconds (0 means no lock)
-  lockedAt?: Date;
-  unlocksAt?: Date;
-  isLocked: boolean;
-  lockReason?: string;
-
+  lockDuration: number;
+  lockedAt: Date;
+  maturityDate: Date;
+  purpose?: string;
+  lockId: string;
 }
+
+const BitcoinLockEntrySchema: Schema = new Schema({
+  lockedAmount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  lockedAmountSatoshis: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  lockDuration: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  lockedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  maturityDate: {
+    type: Date,
+    required: true,
+  },
+  purpose: {
+    type: String,
+    default: 'staking',
+  },
+  lockId: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+});
 
 const BitcoinWalletSchema: Schema = new Schema(
   {
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       unique: true, // Ensure a user can only have one Bitcoin wallet
     },
@@ -49,81 +87,19 @@ const BitcoinWalletSchema: Schema = new Schema(
     walletType: {
       type: String,
       required: true,
-      default: "segwit",
-      enum: ["segwit", "legacy", "taproot"], // Define acceptable wallet types
+      default: 'segwit',
+      enum: ['segwit', 'legacy', 'taproot'], // Define acceptable wallet types
     },
-    lockedAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-    lockedAmountSatoshis: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-    lockDuration: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-    },
-    lockedAt: {
-      type: Date,
-      required: false,
-    },
-    unlocksAt: {
-      type: Date,
-      required: false,
-    },
-    isLocked: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    lockReason: {
-      type: String,
-      required: false,
-      maxlength: 100,
-    },
+    lock: [BitcoinLockEntrySchema],
   },
   {
     timestamps: true,
   }
 );
-
-// Add a method to check if lock has expired
-BitcoinWalletSchema.methods.checkAndUpdateLockStatus = function () {
-  if (this.isLocked && this.unlocksAt && new Date() >= this.unlocksAt) {
-    this.isLocked = false;
-    this.lockedAmount = 0;
-    this.lockedAmountSatoshis = 0;
-    this.lockDuration = 0;
-    this.lockedAt = undefined;
-    this.unlocksAt = undefined;
-    this.lockReason = undefined;
-    return true; // Lock was cleared
-  }
-  return false; // Lock still active or no lock
-};
-
-BitcoinWalletSchema.methods.getAvailableBalance = async function () {
-  const lockCleared = this.checkAndUpdateLockStatus();
-  if (lockCleared) {
-    await this.save();
-  }
-
-  const totalBalance = await getBitcoinBalance(this.user.toString());
-
-  return Math.max(0, totalBalance - this.lockedAmount);
-};
-
-
 // Create the BitcoinWallet model
-const BitcoinWallet =
-  mongoose.models.BitcoinWallet ||
-  mongoose.model<IBitcoinWallet>("BitcoinWallet", BitcoinWalletSchema);
+const BitcoinWallet = mongoose.model<IBitcoinWallet>(
+  'BitcoinWallet',
+  BitcoinWalletSchema
+);
 
 export default BitcoinWallet;

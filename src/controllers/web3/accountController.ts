@@ -17,6 +17,7 @@ import {
   validateBitcoinAddress,
   getBitcoinLockStatus,
   transferCrypto,
+  getLockDetails,
 } from '../../services/web3/accountService';
 import Web3Wallet, { Web3WalletDocument } from '../../models/web3Wallet';
 import { decrypt } from '../../services/encryption';
@@ -154,9 +155,7 @@ const userDetails = AsyncHandler(async (req: Request, res: Response) => {
         bitcoinBalance: {
           total: bitcoinBalanceDetails?.totalBalance || 0,
           available: bitcoinBalanceDetails?.availableBalance || 0,
-          locked: bitcoinBalanceDetails?.lockedAmount || 0,
-          isLocked: bitcoinBalanceDetails?.isLocked || false,
-          lockDetails: bitcoinBalanceDetails?.lockDetails || null,
+          locked: bitcoinBalanceDetails?.lockedBalance || 0,
         },
       },
     });
@@ -287,10 +286,9 @@ const lockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
       data: {
         amount: wallet.lockedAmount,
         lockedAt: wallet.lockedAt,
-        unlocksAt: wallet.unlocksAt,
+        unlocksAt: wallet.maturityDate,
         lockDuration: wallet.lockDuration,
-        lockReason: wallet.lockReason,
-        isLocked: wallet.isLocked,
+        lockReason: wallet.purpose,
       },
     });
   } catch (error: any) {
@@ -318,10 +316,6 @@ const unlockBitcoin = AsyncHandler(async (req: Request, res: Response) => {
     res.status(200).json({
       status: 'success',
       message: 'Bitcoin successfully unlocked',
-      data: {
-        unlockedAt: new Date(),
-        isLocked: wallet.isLocked,
-      },
     });
   } catch (error: any) {
     console.error('Error unlocking Bitcoin:', error);
@@ -385,6 +379,40 @@ const getLockStatus = AsyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+const getLockSummary = AsyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  const { lockId } = req.params;
+
+  if (!userId) {
+    res.status(401).json({
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
+  if (!lockId) {
+    res.status(400).json({
+      message: 'Lock ID is required',
+    });
+    return;
+  }
+
+  try {
+    const lockDetails = await getLockDetails(userId, lockId);
+
+    res.status(200).json({
+      status: 'success',
+      data: lockDetails,
+    });
+  } catch (error: any) {
+    console.error('Error fetching lock details:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to fetch lock details',
+    });
+  }
+});
+
 export {
   activateWeb3Wallet,
   activateBitcoinWallet,
@@ -396,4 +424,5 @@ export {
   getBitcoinBalanceWithLocks,
   getLockStatus,
   transferGasfees,
+  getLockSummary,
 };

@@ -14,6 +14,7 @@ import {
 } from '../../../models/web3/cashwyre';
 import { getUserDetails } from '../../authService';
 import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
+import { getAvailableBalance } from '../lndService/lndService';
 // import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
 
 export enum NetworkType {
@@ -311,7 +312,21 @@ class CashwyreService {
       throw new Error(error.message);
     }
   }
-
+  async getCryptoRate(requestId: string, cryptoAsset: string) {
+    try {
+      const data = await this.axiosInstance.post('/businessRate/rateInfo', {
+        appId: CashwyreConfig.AppId,
+        requestId,
+        cryptoAsset,
+        businessCode: CashwyreConfig.BusinessCode,
+        currency: 'NGN',
+      });
+      if (!data) {
+        throw new NotFoundError('Crypto rate was not fetched');
+      }
+      return data.data;
+    } catch (error) {}
+  }
   async getSupportedBanks(requestId: string) {
     try {
       const data = await this.axiosInstance.post(
@@ -574,6 +589,11 @@ class CashwyreService {
         throw new NotFoundError('User not found');
       }
 
+      const getAvailableBalanceResult = await getAvailableBalance(userId);
+
+      if (getAvailableBalanceResult < amount) {
+        throw new NotFoundError('Insufficient balance to send crypto asset');
+      }
       const requestId = uuidv4();
       const payload = {
         amountInCryptoAsset: amount,
