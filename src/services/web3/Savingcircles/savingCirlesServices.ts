@@ -13,6 +13,8 @@ import {
   savingcirclescontract,
   userAddress,
 } from '../../../utils/web3/savingContract';
+import CircleAbi from '../../../constant/abi/SavingCircles.json';
+const iface = new ethers.Interface(CircleAbi.abi);
 
 interface Circle {
   owner: string;
@@ -189,6 +191,29 @@ const isTokenAllowed = async (_token: string, userPrivateKey: string) => {
   }
 };
 
+const extractCircleIdFromReceipt = (receipt: any) => {
+  try {
+    for (const log of receipt.logs) {
+      try {
+        const parsedLog = iface.parseLog(log);
+
+        if (parsedLog && parsedLog.name === 'CircleCreated') {
+          const circleId = parsedLog.args._id;
+          return circleId.toString();
+        }
+      } catch (err) {
+        // Ignore logs that can't be parsed by this ABI
+        continue;
+      }
+    }
+
+    throw new Error('CircleCreated event not found');
+  } catch (err) {
+    console.error('Error extracting circle ID:', err);
+    throw err;
+  }
+};
+
 const setTokenAllowed = async (
   _token: string,
   _allowed: boolean,
@@ -222,10 +247,9 @@ const getMemberBalances = async (_id: string, userPrivateKey: string) => {
   }
 };
 
-
-
 export {
   createSavingCircles,
+  extractCircleIdFromReceipt,
   deposit,
   depositFor,
   withdraw,
