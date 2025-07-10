@@ -22,6 +22,23 @@ import { tokenAddress } from '../../../utils/web3/tokenaddress';
 import { getUserDetails } from '../../../services/authService';
 import { StatusCodes } from 'http-status-codes';
 
+interface CashwyreRates {
+  success: boolean;
+  message: string;
+  data: {
+    cryptoAssetInfo: {
+      currency: string;
+      symbol: string;
+      rate: number;
+    };
+    currencyInfo: {
+      currency: string;
+      symbol: string;
+      rate: number;
+    };
+  };
+}
+
 class CashwyreController {
   /**
    * Generate crypto address
@@ -162,6 +179,17 @@ class CashwyreController {
   async getOnrampQuote(req: Request, res: Response) {
     try {
       const { amount, crypto, network } = req.body;
+      const rates = (await CashwyreService.getCryptoRate(
+        uuidv4(),
+        crypto
+      )) as CashwyreRates;
+      if (amount < rates.data.currencyInfo.rate * 11.5) {
+        throw new BadRequestError(
+          `Minimum amount for ${crypto} onramp is ${
+            rates.data.currencyInfo.rate * 11.5
+          }`
+        );
+      }
 
       if (!amount || !crypto || !network) {
         throw new BadRequestError('Amount, crypto, and network are required');
@@ -466,6 +494,30 @@ class CashwyreController {
       return res.status(error.statusCode || 500).json({
         success: false,
         message: error.message || 'Failed to get supported banks',
+      });
+    }
+  }
+
+  async getCryptoRates(req: Request, res: Response) {
+    try {
+      const { cryptoAsset } = req.query;
+      if (!cryptoAsset) {
+        throw new BadRequestError('Crypto asset is required');
+      }
+      const reference = uuidv4();
+      const ratesData = await CashwyreService.getCryptoRate(
+        reference,
+        cryptoAsset as string
+      );
+      return res.status(200).json({
+        success: true,
+        message: 'Crypto rates fetched successfully',
+        data: ratesData,
+      });
+    } catch (error: any) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to get crypto rates',
       });
     }
   }

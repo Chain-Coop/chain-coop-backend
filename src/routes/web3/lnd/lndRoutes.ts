@@ -485,10 +485,259 @@ const router = express.Router();
  *                   example: "Failed to send lightning payment"
  */
 
+/**
+ * @swagger
+ * /web3/lnd/wallet/lock-status:
+ *   get:
+ *     summary: Get Bitcoin lock status for user
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lock status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lock status retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     hasActiveLock:
+ *                       type: boolean
+ *                       description: Whether user has an active lock
+ *                       example: true
+ *                     totalLocks:
+ *                       type: integer
+ *                       description: Total number of locks (active and expired)
+ *                       example: 3
+ *                     activeLocks:
+ *                       type: array
+ *                       description: List of currently active locks
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           lockId:
+ *                             type: string
+ *                             example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                           amount:
+ *                             type: integer
+ *                             description: Locked amount in satoshis
+ *                             example: 100000
+ *                           unlockAt:
+ *                             type: string
+ *                             format: date-time
+ *                             description: When the lock expires
+ *                           purpose:
+ *                             type: string
+ *                             example: "staking"
+ *                           status:
+ *                             type: string
+ *                             example: "active"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /web3/lnd/wallet/lock/{lockId}:
+ *   get:
+ *     summary: Get specific lock details by ID
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: lockId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the lock
+ *         example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *     responses:
+ *       200:
+ *         description: Lock details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lock details retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     lockId:
+ *                       type: string
+ *                       example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                     amount:
+ *                       type: integer
+ *                       description: Locked amount in satoshis
+ *                       example: 100000
+ *                     lockedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the funds were locked
+ *                       example: "2025-06-01T10:00:00.000Z"
+ *                     unlockAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the funds will unlock
+ *                       example: "2025-07-01T10:00:00.000Z"
+ *                     purpose:
+ *                       type: string
+ *                       description: Purpose of the lock
+ *                       example: "staking"
+ *                     status:
+ *                       type: string
+ *                       description: Current status of the lock
+ *                       example: "active"
+ *                     isExpired:
+ *                       type: boolean
+ *                       description: Whether the lock has expired
+ *                       example: false
+ *                     timeRemaining:
+ *                       type: string
+ *                       description: Human-readable time remaining
+ *                       example: "20 days, 14 hours"
+ *       400:
+ *         description: Bad request (Lock ID is required)
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Lock not found
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /web3/lnd/wallet/available-balance:
+ *   get:
+ *     summary: Get user's available (unlocked) balance
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Available balance retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Available balance retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     availableBalance:
+ *                       type: integer
+ *                       description: Available balance in satoshis (total balance minus locked balance)
+ *                       example: 50000
+ *                     balanceInBTC:
+ *                       type: number
+ *                       description: Available balance in BTC
+ *                       example: 0.0005
+ *                     lastUpdated:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the balance was last calculated
+ *                       example: "2025-07-10T12:00:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+
+// Fix typo in controller response message:
+// Change line 150 in controller from:
+// message: 'Bitcoin balanceretrieved successfully',
+// to:
+// message: 'Bitcoin balance retrieved successfully',
+
+/**
+ * @swagger
+ * /web3/lnd/wallet/bitcoin-balance:
+ *   get:
+ *     summary: Get comprehensive Bitcoin balance information
+ *     tags: [LND]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bitcoin balance retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Bitcoin balance retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBalance:
+ *                       type: integer
+ *                       description: Total Bitcoin balance in satoshis
+ *                       example: 150000
+ *                     lockedBalance:
+ *                       type: integer
+ *                       description: Currently locked Bitcoin balance in satoshis
+ *                       example: 100000
+ *                     availableBalance:
+ *                       type: integer
+ *                       description: Available Bitcoin balance in satoshis
+ *                       example: 50000
+ *                     confirmedBalance:
+ *                       type: integer
+ *                       description: Confirmed Bitcoin balance in satoshis
+ *                       example: 150000
+ *                     unconfirmedBalance:
+ *                       type: integer
+ *                       description: Unconfirmed Bitcoin balance in satoshis
+ *                       example: 0
+ *                     balanceInBTC:
+ *                       type: object
+ *                       description: Balance amounts in BTC denomination
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 0.0015
+ *                         locked:
+ *                           type: number
+ *                           example: 0.001
+ *                         available:
+ *                           type: number
+ *                           example: 0.0005
+ *                     lastUpdated:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the balance was last updated
+ *                       example: "2025-07-10T12:00:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+
 // Invoice routes
 router.post('/wallet/lock', authorize, lndController.lockFunds);
 router.post('/wallet/unlock', authorize, lndController.unlockFunds);
 router.get('/wallet/info', authorize, lndController.getWalletInfo);
+router.get('/wallet/lock-status', authorize, lndController.getLockStatus);
+router.get('/wallet/lock/:lockId', authorize, lndController.getLockDetails);
+router.get('/wallet/available-balance', authorize, lndController.getAvailableBalance);
+router.get('/wallet/bitcoin-balance', authorize, lndController.getBitcoinBalance);
 // crypto route
 router.post(
   '/create-address',
