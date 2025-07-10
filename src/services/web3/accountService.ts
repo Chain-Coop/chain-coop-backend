@@ -108,13 +108,6 @@ async function createUserBitcoinWallet(userId: string) {
     userId: userId,
     balance: 0,
     lockedBalance: 0,
-    lock: {
-      amount: 0,
-      maturityDate: new Date(),
-      purpose: '',
-      lockedAt: new Date(),
-      lockId: '',
-    },
   });
   await lightningWallet.save();
 

@@ -21,7 +21,6 @@ export interface ILockEntry {
 const LockEntrySchema: Schema = new Schema({
   amount: {
     type: Number,
-    required: true,
     min: 0,
   },
   lockedAt: {
@@ -30,7 +29,6 @@ const LockEntrySchema: Schema = new Schema({
   },
   maturityDate: {
     type: Date,
-    required: true,
     default: Date.now,
   },
   purpose: {
