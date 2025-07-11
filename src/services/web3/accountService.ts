@@ -38,6 +38,10 @@ import { networks } from 'bitcoinjs-lib';
 import { encrypt, decrypt } from '../encryption';
 import ECPairFactory from 'ecpair';
 import { Signer } from '../../utils/web3/createSingner';
+import {
+  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
+  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+} from '../../constant/contract/SavingCircles';
 require('dotenv').config();
 
 // Initialize ECPair with the required elliptic curve implementation
@@ -466,6 +470,10 @@ const approveTokenTransfer = async (
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'POLYGON') {
     contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
+  } else if (network === 'TBSC') {
+    contractAddress = SAVINGCIRCLESCONTRACT_BSC_TESTNET;
+  } else if (network === 'TPOLYGON') {
+    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON_TESTNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }
