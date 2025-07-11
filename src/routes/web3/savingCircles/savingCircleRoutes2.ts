@@ -52,7 +52,7 @@ const router = Router();
  *                 example: "1000"
  *               token:
  *                 type: string
- *                 description: The token ID (1 for USDC, 2 for USDT)
+ *                 description: The token ID (1 for USDT, 2 for USDC)
  *                 example: "1"
  *               depositInterval:
  *                 type: integer
