@@ -7,7 +7,11 @@ import {
   BigNumberish,
 } from 'ethers';
 import { approveTokenTransfer } from '../accountService';
-import { SAVINGCIRCLESCONTRACT_LISK_TESTNET } from '../../../constant/contract/SavingCircles';
+import {
+  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
+  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+} from '../../../constant/contract/SavingCircles';
+import { BSC_TESTNET, POLYGON_TESTNET } from '../../../constant/rpcs';
 import { getTokenAddressSymbol } from '../accountService';
 import {
   savingcirclescontract,
@@ -32,10 +36,11 @@ const createSavingCircles = async (
   _token: string,
   userPrivateKey: string,
   _depositInterval: number,
-  _maxDeposits: number
+  _maxDeposits: number,
+  network: string
 ) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const circle: Circle = {
       owner: await userAddress(userPrivateKey),
       members: _members,
@@ -63,20 +68,21 @@ const deposit = async (
   _token: string,
   _id: string,
   _value: string,
-  userPrivateKey: string
+  userPrivateKey: string,
+  network: string
 ) => {
   try {
     const approveTx = await approveTokenTransfer(
       _token,
-      SAVINGCIRCLESCONTRACT_LISK_TESTNET,
       _value,
-      userPrivateKey
+      userPrivateKey,
+      network
     );
     if (!approveTx) {
       throw Error('Failed to approve transfer');
     }
     console.log('Allowance done');
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
 
     const tx = await contract.deposit(parseUnits(_id, 0), parseEther(_value));
     await tx.wait(1);
@@ -87,30 +93,13 @@ const deposit = async (
   }
 };
 
-const depositFor = async (
-  _id: number,
-  _value: number,
-  _member: string,
-  userPrivateKey: string
+const withdraw = async (
+  _id: string,
+  userPrivateKey: string,
+  network: string
 ) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
-    const tx = await contract.depositFor(
-      _id,
-      parseEther(_value.toString()),
-      _member
-    );
-    await tx.wait(1);
-    return tx;
-  } catch (error) {
-    console.error('Error making deposit for another member:', error);
-    throw new Error('Deposit failed, please retry.');
-  }
-};
-
-const withdraw = async (_id: string, userPrivateKey: string) => {
-  try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
 
     const tx = await contract.withdraw(parseUnits(_id, 0));
     await tx.wait();
@@ -120,24 +109,14 @@ const withdraw = async (_id: string, userPrivateKey: string) => {
     throw new Error('Withdrawal failed, please retry.');
   }
 };
-const withdrawFor = async (
-  _id: number,
-  _member: string,
-  userPrivateKey: string
+
+const getCircle = async (
+  _id: string,
+  userPrivateKey: string,
+  network: string
 ) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
-    const tx = await contract.withdrawFor(_id, _member);
-    await tx.wait();
-    return tx;
-  } catch (error) {
-    console.error('Error withdrawing for another member:', error);
-    throw new Error('Withdrawal failed, please retry.');
-  }
-};
-const getCircle = async (_id: string, userPrivateKey: string) => {
-  try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const circleId = ethers.parseUnits(_id, 0);
     const circle = await contract.getCircle(circleId);
     const formattedCircle = JSON.parse(
@@ -152,9 +131,9 @@ const getCircle = async (_id: string, userPrivateKey: string) => {
     throw new Error('Could not fetch circle details.');
   }
 };
-const getMemberCircles = async (userPrivateKey: string) => {
+const getMemberCircles = async (userPrivateKey: string, network: string) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const address = await userAddress(userPrivateKey);
     const circles = await contract.getMemberCircles(address);
     const formattedCircle = JSON.parse(
@@ -168,9 +147,13 @@ const getMemberCircles = async (userPrivateKey: string) => {
     throw new Error('Could not fetch member circles.');
   }
 };
-const decommissionCircle = async (_id: string, userPrivateKey: string) => {
+const decommissionCircle = async (
+  _id: string,
+  userPrivateKey: string,
+  network: string
+) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const tx = await contract.decommission(parseUnits(_id, 0));
     await tx.wait();
     return tx;
@@ -180,9 +163,13 @@ const decommissionCircle = async (_id: string, userPrivateKey: string) => {
   }
 };
 
-const isTokenAllowed = async (_token: string, userPrivateKey: string) => {
+const isTokenAllowed = async (
+  _token: string,
+  userPrivateKey: string,
+  network: string
+) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const allowed = await contract.isTokenAllowed(_token);
     return allowed;
   } catch (error) {
@@ -217,10 +204,11 @@ const extractCircleIdFromReceipt = (receipt: any) => {
 const setTokenAllowed = async (
   _token: string,
   _allowed: boolean,
-  userPrivateKey: string
+  userPrivateKey: string,
+  network: string
 ) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const tx = await contract.setTokenAllowed(_token, _allowed);
     await tx.wait();
     return tx;
@@ -230,9 +218,13 @@ const setTokenAllowed = async (
   }
 };
 
-const getMemberBalances = async (_id: string, userPrivateKey: string) => {
+const getMemberBalances = async (
+  _id: string,
+  userPrivateKey: string,
+  network: string
+) => {
   try {
-    const contract = await savingcirclescontract(userPrivateKey);
+    const contract = await savingcirclescontract(network, userPrivateKey);
     const circleId = ethers.parseUnits(_id, 0);
     const [members, balances] = await contract.getMemberBalances(circleId);
 
@@ -251,9 +243,7 @@ export {
   createSavingCircles,
   extractCircleIdFromReceipt,
   deposit,
-  depositFor,
   withdraw,
-  withdrawFor,
   getCircle,
   getMemberCircles,
   decommissionCircle,

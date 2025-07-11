@@ -14,3 +14,11 @@ export const SupportedPOLYGONStables = [
   { USDT: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f' },
   { USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174' },
 ];
+export const SupportedTBSCStables = [
+  { USDT: '0xb7aBbAAE122C7Fa8826e965F20f5C6F0655E6DeD' },
+  { USDC: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' },
+];  
+export const SupportedTPOLYGONStables = [
+  { USDT: '0xbCE575b03DA962B048d17239c5fa9Af2478cB547' },
+  { USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174' },
+];
