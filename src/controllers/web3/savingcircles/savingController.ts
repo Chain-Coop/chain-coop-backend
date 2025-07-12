@@ -21,6 +21,7 @@ import {
 } from '../../../services/web3/Savingcircles/savingCirlesServices';
 import { Circle } from '../../../models/web3/groupSaving';
 import { ethers } from 'ethers';
+import User from '../../../models/user';
 
 const createCircles = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -64,16 +65,23 @@ const createCircles = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
-  const { circleId, memberId } = req.body;
+  const { circleId, memberEmail } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
-  if (!circleId || !memberId) {
+  if (!circleId || !memberEmail) {
     res.status(400).json({
       message: 'Provide all required values: circleId, memberId',
     });
     return;
   }
   try {
+    const memberId=await User.findOne({email: memberEmail}).then(user => {
+      if (!user) {
+        res.status(404).json({ message: 'Member not found' });
+        return; 
+      }
+      return user._id;
+    });
     const circle = await Circle.findById(circleId);
     if (!circle) {
       res.status(404).json({ message: 'Circle not found' });
@@ -107,16 +115,23 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 const deleteMemberFromCircle = asyncHandler(
   async (req: Request, res: Response) => {
-    const { circleId, memberId } = req.body;
+    const { circleId, memberEmail} = req.body;
     //@ts-ignore
     const userId = req.user.userId;
-    if (!circleId || !memberId) {
+    if (!circleId || !memberEmail) {
       res.status(400).json({
         message: 'Provide all required values: circleId, memberId',
       });
       return;
     }
     try {
+      const memberId = await User.findOne({ email: memberEmail }).then(user => {
+        if (!user) {
+          res.status(404).json({ message: 'Member not found' });
+          return;
+        }
+        return user._id;
+      });
       const circle = await Circle.findById(circleId);
       if (!circle) {
         res.status(404).json({ message: 'Circle not found' });
