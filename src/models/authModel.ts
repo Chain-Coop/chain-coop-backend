@@ -28,7 +28,6 @@ export interface UserDocument extends Document {
   createdAt: Date; // added createdAt
   updatedAt: Date; // added updatedAt
   wallet?: WalletDocument;
-  unsuccessfulBVNAttempts: Date[];
 }
 
 const UserSchema = new Schema(
@@ -102,10 +101,6 @@ const UserSchema = new Schema(
     },
     isWalletActivated: { type: Boolean, default: false },
     isBitcoinWalletActivated: { type: Boolean, default: false },
-    unsuccessfulBVNAttempts: {
-      type: [Date],
-      default: [],
-    },
   },
   { timestamps: true }
 ); // added timestamps
