@@ -190,10 +190,9 @@ export const VantWebhookController = async (
       console.log("Processing account creation webhook:", data);
 
       const webhookData = {
-        email: data.data?.email,
         data: data.data,
         statusCode: data.statusCode,
-        message: data.message
+        error: data.error
       };
 
       // Update the reserved wallet based on webhook data
@@ -213,6 +212,7 @@ export const VantWebhookController = async (
         originator_bank: data.originator_bank,
         originator_narration: data.originator_narration,
         status: data.status,
+        meta: data.meta,
         timestamp: data.timestamp,
         sessionId: data.sessionId
       };

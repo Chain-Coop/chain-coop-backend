@@ -2,8 +2,8 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import { BadRequestError, NotFoundError } from '../errors';
 import { VantConfig } from '../../config/vant';
-import VantWallet, { IVantWallet } from '../models/vantWalletModel';
-
+import { VantWallet, IVantWallet, VantTransaction } from '../models/vantWalletModel';
+import { BANK_LIST } from '../utils/bankList';
 
 interface VerifyAccountResponse {
     status: string,
@@ -55,6 +55,7 @@ interface InwardTransferData {
     originator_bank: string;
     originator_narration: string;
     status: string;
+    meta: any,
     timestamp: string;
     sessionId: string;
 }
@@ -107,28 +108,14 @@ class VantService {
                 date_of_birth: dateOfBirth
             };
 
-            console.log("PAYLOAD IN SERVICE: ", payload);
-
             const { data }: any = await this.axiosInstance.post(
                 '/client/create',
                 payload
             );
 
-            // const data: any = await axios.post(`${process.env.VANT_BASE_URL_TEST}/client/create`, payload,
-            //     {
-            //         headers: {
-            //           'Content-Type': 'application/json',
-            //           'Authorization': `Bearer ${process.env.X_VANT_KEY}`, // if needed
-            //         },
-            //     }
-            // );
-
-            console.log("DATA IN SERVICE: ", data);
-
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
-            console.log("DATA IN SERVICE AFTER CHECKING ERROR: ", data);
 
             return data;
         } catch (error: any) {
@@ -155,20 +142,9 @@ class VantService {
      * Get reserved wallets for a user
      */
     async getUserReservedWallet(userId: string): Promise<IVantWallet | null> {
-        const wallet = await VantWallet.findOne({
+        return await VantWallet.findOne({
             userId: new mongoose.Types.ObjectId(userId)
-        });
-
-        console.log({ wallet });
-
-
-        // if (!wallet) {
-        //     throw new NotFoundError(
-        //         "Failed to fetch reserved wallet!"
-        //     );
-        // }
-
-        return wallet;
+        }).select('-accountNumbers._id');
     }
 
     /**
@@ -176,7 +152,6 @@ class VantService {
      */
     async getWalletBalance(accounNumber: string): Promise<any> {
         try {
-
             const { data }: any = await this.axiosInstance.post(
                 '/client/enquire-wallet',
                 accounNumber
@@ -197,75 +172,68 @@ class VantService {
      * Update reserved wallet status after webhook notification
      */
     async updateReservedWalletFromWebhook(webhookData: any) {
-        const { email, data, statusCode } = webhookData;
+        const { data, statusCode, error } = webhookData;
+
+        let updateData;
 
         if (statusCode === 200) {
-            // Success - update wallet with account details
-            console.log("IN THE 200 STATUS CODE");
-
-            const wallet = await VantWallet.findOneAndUpdate(
-                { email: email },
-                {
-                    $set: {
-                        status: 'active',
-                        walletName: data!.name,
-                        walletBalance: data!.wallet_balance || 0,
-                        accountNumbers: data!.account_numbers || []
-                    }
-                },
-                { new: true }
-            );
-            console.log("IN THE 200 STATUS CODE, WITH MY WALLET", wallet);
-
-
-            if (!wallet) {
-                throw new NotFoundError('Reserved wallet not found for webhook update');
+            updateData = {
+                status: 'active',
+                walletName: data!.name,
+                walletBalance: data!.wallet_balance || 0,
+                accountNumbers: data!.account_numbers || [],
+                $unset: {
+                    errorMessage: "",
+                }
             }
-
-            return wallet;
         } else {
-            // Failure - mark as failed
-            console.log("IN THE FAILED STATUS CODE");
-
-            const wallet = await VantWallet.findOneAndUpdate(
-                { email: email },
-                {
-                    $set: {
-                        status: 'failed'
-                    }
-                },
-                { new: true }
-            );
-            console.log("IN THE 200 STATUS CODE, WITH MY WALLET", wallet);
-
-
-            if (!wallet) {
-                throw new NotFoundError('Reserved wallet not found for webhook update');
+            updateData = {
+                status: 'failed',
+                errorMessage: error
             }
-
-            return wallet;
         }
+
+        const wallet = await VantWallet.findOneAndUpdate(
+            { email: data!.email },
+            { $set: updateData },
+            { new: true }
+        );
+
+        if (!wallet) {
+            throw new NotFoundError('Reserved wallet not found for webhook update');
+        }
+
+        return wallet;
     }
 
-    /**
-     * Get wallet balance and details
-     */
-    async verifyBvn(bvn: string): Promise<any> {
-        try {
-            const { data } = await this.axiosInstance.post(
-                '/verify-bvn',
-                bvn
-            );
+    async getWalletTransactions(
+        userId: string,
+        page: number = 1,
+        limit: number = 20,
+        type?: 'inward' | 'outward'
+    ) {
+        const skip = (page - 1) * limit;
 
-            if (!data) {
-                throw new NotFoundError('Failed to verify bvn!');
+        const filter: any = { userId: new mongoose.Types.ObjectId(userId) };
+        if (type) filter.type = type;
+
+        const transactions = await VantTransaction.find(filter)
+            .sort({ timestamp: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('walletId', 'walletName accountNumbers');
+
+        const total = await VantTransaction.countDocuments(filter);
+
+        return {
+            transactions,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
             }
-
-            return data;
-        } catch (error: any) {
-            console.error('Error verifying bvn:', error.message);
-            throw new Error('Failed to verify bvn!');
-        }
+        };
     }
 
     /**
@@ -291,7 +259,7 @@ class VantService {
                 throw new NotFoundError('Failed to verify account!');
             }
 
-            return response!.data;
+            return response;
         } catch (error: any) {
             console.error('Error verifying account:', error.message);
             throw new Error('Failed to verify account details');
@@ -303,9 +271,33 @@ class VantService {
      */
     async transferFunds(
         userId: string,
-        transferRequest: TransferRequest
+        transferRequest: TransferRequest,
+        wallet: any
     ): Promise<TransferResponse> {
         try {
+            // Create transaction record first with pending status
+            const transaction = new VantTransaction({
+                walletId: wallet._id,
+                userId: wallet.userId,
+                reference: transferRequest.reference,
+                amount: transferRequest.amount,
+                type: 'outward',
+                status: 'pending',
+                accountNumber: wallet.accountNumbers[0]?.account_number || '',
+                destinationAccountNumber: transferRequest.account_number,
+                destinationAccountName: transferRequest.name,
+                destinationBank: transferRequest.bank_code,
+                destinationBankName: transferRequest.bank,
+                narration: transferRequest.remark,
+                meta: {
+                    toSession: transferRequest.toSession,
+                    toClient: transferRequest.toClient,
+                    toBvn: transferRequest.toBvn,
+                    email: transferRequest.email
+                },
+                timestamp: new Date(),
+            });
+            await transaction.save();
 
             // Make transfer request
             const response: any = await this.axiosInstance.post(
@@ -313,16 +305,47 @@ class VantService {
                 transferRequest
             );
 
-            if (!response?.data) {
+            if (!response || response.status !== true) {
+                await VantTransaction.findByIdAndUpdate(
+                    transaction._id,
+                    {
+                        status: 'failed',
+                        meta: {
+                            ...transaction.meta,
+                            error: 'API call failed',
+                            apiResponse: response
+                        }
+                    }
+                );
                 throw new NotFoundError('Transfer failed!');
             }
 
             await VantWallet.findOneAndUpdate(
                 { userId: new mongoose.Types.ObjectId(userId) },
-                { $inc: { walletBalance: -(transferRequest!.amount) } }
+                {
+                    $inc: {
+                        walletBalance: -transferRequest.amount,
+                        totalOutwardTransfers: transferRequest.amount,
+                        transactionCount: 1
+                    },
+                    $set: {
+                        lastTransactionDate: new Date()
+                    }
+                },
             );
 
-            return response.data;
+            await VantTransaction.findByIdAndUpdate(
+                transaction._id,
+                {
+                    status: response.status ? 'successful' : 'failed',
+                    meta: {
+                        ...transaction.meta,
+                        apiResponse: response
+                    }
+                },
+            );
+
+            return response;
         } catch (error: any) {
             console.error('Error processing transfer:', error.message);
             throw new Error(error.message || 'Failed to process transfer');
@@ -330,117 +353,77 @@ class VantService {
     }
 
     /**
-     * Get transfer history for a user
-     */
-    async getAllTransactions(userId: string, limit: number = 10, page: number = 1): Promise<any> {
-        try {
-            const wallet = await this.getUserReservedWallet(userId);
-
-            if (!wallet || wallet.status !== 'active') {
-                throw new BadRequestError('No active wallet found');
-            }
-
-            const accountNumber = wallet.accountNumbers[0].accountNumber;
-
-            const response: any = await this.axiosInstance.get(
-                `/transaction/all?account_number=${accountNumber}&limit=${limit}&page=${page}`
-            );
-
-            if (!response?.data) {
-                throw new NotFoundError('Failed to fetch transaction history!');
-            }
-
-            return response!.data;
-        } catch (error: any) {
-            console.error('Error fetching transfer history:', error.message);
-            throw new Error('Failed to fetch transfer history');
-        }
-    }
-
-    /**
-     * Get list of supported banks
-     */
-    async getBanks(): Promise<any> {
-        try {
-            const response: any = await this.axiosInstance.get('/transfer/banks');
-
-            if (!response?.data) {
-                throw new NotFoundError('Failed to fetch banks!');
-            }
-
-            return response!.data;
-        } catch (error: any) {
-            console.error('Error fetching banks:', error.message);
-            throw new Error('Failed to fetch banks');
-        }
-    }
-
-    /**
      * Process inward transfer notification from webhook
      */
     async processInwardTransfer(transferData: InwardTransferData): Promise<void> {
+        const {
+            reference,
+            amount,
+            account_number,
+            originator_account_number,
+            originator_account_name,
+            originator_bank,
+            originator_narration,
+            status,
+            meta,
+            timestamp,
+            sessionId
+        } = transferData;
+
+        // Find wallet by account number
+        const wallet = await VantWallet.findOne({
+            'accountNumbers.account_number': account_number,
+            status: 'active'
+        });
+
+        if (!wallet) {
+            console.error(`Wallet not found for account number: ${account_number}`);
+            return;
+        }
+
+
+        // Check if transaction already exists (prevent duplicates)
+        const existingTransaction = await VantTransaction.findOne({ reference });
+        if (existingTransaction) {
+            console.log(`Transaction ${reference} already processed`);
+            return;
+        }
+
         try {
-            // Find wallet by account number
-            const wallet = await VantWallet.findOne({
-                'accountNumbers.accountNumber': transferData.account_number
+            const bank = BANK_LIST.find((b: any) => b.code === originator_bank);
+
+            const transaction = new VantTransaction({
+                walletId: wallet._id,
+                userId: wallet.userId,
+                reference,
+                amount,
+                type: 'inward',
+                status,
+                accountNumber: account_number,
+                originatorAccountNumber: originator_account_number,
+                originatorAccountName: originator_account_name,
+                originatorBank: originator_bank,
+                originatorBankName: bank?.name || 'Unknown Bank',
+                narration: originator_narration,
+                meta,
+                timestamp: new Date(timestamp),
+                sessionId
             });
+            await transaction.save();
 
-            if (!wallet) {
-                console.error(`Wallet not found for account number: ${transferData.account_number}`);
-                return;
-            }
-
-            // Check if transaction already processed to avoid duplicates
-            // const existingTransaction = await this.findTransactionByReference(transferData.reference);
-            // if (existingTransaction) {
-            //     console.log(`Transaction already processed: ${transferData.reference}`);
-            //     return;
-            // }
-
-            // Only process successful transfers
-            if (transferData.status === 'successful') {
-                // Update wallet balance
-                await VantWallet.findOneAndUpdate(
-                    { 'accountNumbers.accountNumber': transferData.account_number },
-                    {
-                        $inc: { walletBalance: transferData.amount }
+            if (status === 'successful') {
+                const updateData = {
+                    $inc: {
+                        walletBalance: amount,
+                        totalInwardTransfers: amount,
+                        transactionCount: 1
+                    },
+                    $set: {
+                        lastTransactionDate: new Date(timestamp)
                     }
-                );
+                };
 
-                // // Log the transaction
-                // await this.logTransaction({
-                //     reference: transferData.reference,
-                //     amount: transferData.amount,
-                //     type: 'inward',
-                //     status: 'successful',
-                //     account_number: transferData.account_number,
-                //     originator_account_number: transferData.originator_account_number,
-                //     originator_account_name: transferData.originator_account_name,
-                //     originator_bank: transferData.originator_bank,
-                //     narration: transferData.originator_narration,
-                //     timestamp: new Date(transferData.timestamp),
-                //     sessionId: transferData.sessionId
-                // });
-
-                console.log(`Wallet balance updated for account ${transferData.account_number}. Amount: ${transferData.amount}`);
-
-                // Optionally send notification to user
-                // await this.notifyUserOfInwardTransfer(wallet, transferData);
-            } else {
-                // Log failed transaction
-                // await this.logTransaction({
-                //     reference: transferData.reference,
-                //     amount: transferData.amount,
-                //     type: 'inward',
-                //     status: 'failed',
-                //     account_number: transferData.account_number,
-                //     originator_account_number: transferData.originator_account_number,
-                //     originator_account_name: transferData.originator_account_name,
-                //     originator_bank: transferData.originator_bank,
-                //     narration: transferData.originator_narration,
-                //     timestamp: new Date(transferData.timestamp),
-                //     sessionId: transferData.sessionId
-                // });
+                await VantWallet.findByIdAndUpdate(wallet._id, updateData);
             }
         } catch (error: any) {
             console.error('Error processing inward transfer:', error.message);
