@@ -84,7 +84,7 @@ class VantController {
 
             const wallet = await VantServices.createReservedWallet(
                 userId,
-                // data!.wallet_balance,
+                user!.email
             );
             console.log("WALLET: ", wallet);
 

@@ -180,7 +180,7 @@ app.use('/api/v1/web3/savingcircle', web3SavingCircle);
 app.use('/api/v1/savingcircle', savingCircleRoutes);
 app.use('/api/v1/blog', blogRoutes);
 
-app.use('/api/v1/banktransfer', vantWalletRoutes);
+app.use('/api/v1/vant', vantWalletRoutes);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
@@ -190,7 +190,6 @@ app.all('/', (req: Request, res: Response) => {
 });
 
 app.all('/webhook', webhookController);
-app.all('/api/v1/vant/vant-webhook', VantWebhookController);
 
 app.all('/add', authorize, async (req: Request, res: Response) => {
   //@ts-ignore

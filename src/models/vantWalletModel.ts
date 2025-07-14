@@ -3,6 +3,7 @@ import mongoose, { model, Schema, Document } from "mongoose";
 
 export interface IVantWallet extends Document {
     userId: mongoose.Types.ObjectId;
+    email: string,
     walletName?: string,
     walletBalance: number,
     accountNumbers: {
@@ -21,6 +22,7 @@ const VantWalletSchema = new Schema<IVantWallet>(
             required: true,
             index: true
         },
+        email: { type: String, required: true, unique: true },
         walletName: { type: String },
         walletBalance: { type: Number, default: 0 },
         accountNumbers: [{

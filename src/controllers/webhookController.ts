@@ -142,6 +142,37 @@ export const CashwyreWebhookController = async (
   }
 };
 
+
+/*
+Vant Webhook called
+Vant Webhook Data: {
+  "event": "account_creation",
+  "error": "Invalid BVN",
+  "data": {
+    "phone": "+2348060765447",
+    "email": "ucheisnaanih21@gmail.com"
+  },
+  "statusCode": 400,
+  "message": "error creating user account"
+}
+Processing account creation webhook: {
+  event: 'account_creation',
+  error: 'Invalid BVN',
+  data: { phone: '+2348060765447', email: 'ucheisnaanih21@gmail.com' },
+  statusCode: 400,
+  message: 'error creating user account'
+}
+[2025-07-14 14:46:34.874 +0000] INFO: Incoming request
+    req: "POST /api/v1/vant/vant-webhook"
+Error processing Vant webhook: NotFoundError: Reserved wallet not found for webhook update
+    at VantService.<anonymous> (/opt/render/project/src/dist/src/services/vantWalletServices.js:141:27)
+    at Generator.next (<anonymous>)
+    at fulfilled (/opt/render/project/src/dist/src/services/vantWalletServices.js:5:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  statusCode: 404
+}
+*/
+
 export const VantWebhookController = async (
   req: Request,
   res: Response
@@ -192,7 +223,6 @@ export const VantWebhookController = async (
       console.log("Inward transfer webhook processed successfully");
     }
 
-    // res.sendStatus(200);
   } catch (error) {
     console.error('Error processing Vant webhook:', error);
     res.sendStatus(500);

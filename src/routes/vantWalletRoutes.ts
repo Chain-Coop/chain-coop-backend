@@ -2,6 +2,7 @@
 import express from "express";
 import VantController from "../controllers/vantWalletController";
 import { authorize } from "../middlewares/authorization";
+import { VantWebhookController } from "../controllers/webhookController";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/create-wallet:
+ * /vant/create-wallet:
  *   post:
  *     summary: Create Wallet
  *     description: Create a new reserved wallet for the authenticated user using Vant API. This is an asynchronous operation that will send a webhook notification when completed.
@@ -123,7 +124,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/get-wallet:
+ * /vant/get-wallet:
  *   get:
  *     summary: Get User's Wallet
  *     description: Retrieve the reserved wallet for the authenticated user
@@ -199,7 +200,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/wallet-balance:
+ * /vant/wallet-balance:
  *   get:
  *     summary: Get Wallet Balance
  *     description: Retrieve the current balance and account details for the user's reserved wallet
@@ -253,7 +254,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/verify-account:
+ * /vant/verify-account:
  *   post:
  *     summary: Verify Beneficiary Account
  *     description: Verify a bank account number and bank code to get account details before making a transfer
@@ -314,7 +315,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/transfer:
+ * /vant/transfer:
  *   post:
  *     summary: Transfer Funds
  *     description: Transfer funds from user's reserved wallet to another bank account
@@ -401,7 +402,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/transfer-history:
+ * /vant/transfer-history:
  *   get:
  *     summary: Get Transfer History
  *     description: Retrieve paginated transfer history for the authenticated user
@@ -497,7 +498,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /banktransfer/vant/banks:
+ * /vant/banks:
  *   get:
  *     summary: Get Supported Banks
  *     description: Retrieve list of all supported banks for transfers
@@ -541,14 +542,128 @@ const router = express.Router();
  *         description: Internal server error
  */
 
+
+
+/**
+ * @swagger
+ * /vant/vant-webhook:
+ *   post:
+ *     summary: Vant Webhook
+ *     description: Create a new reserved wallet for the authenticated user using Vant API. This is an asynchronous operation that will send a webhook notification when completed.
+ *     tags: [Vant Wallet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstname
+ *               - lastname
+ *               - phone
+ *               - email
+ *               - bvn
+ *               - dob
+ *             properties:
+ *               firstname:
+ *                 type: string
+ *                 description: User's first name
+ *                 example: "Joshua"
+ *               lastname:
+ *                 type: string
+ *                 description: User's last name
+ *                 example: "Isaac"
+ *               phone:
+ *                 type: string
+ *                 description: User's phone number in format +234XXXXXXXXXX
+ *                 example: "+2348160765447"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *                 example: "joshua@example.com"
+ *               bvn:
+ *                 type: string
+ *                 description: Bank Verification Number (11 digits)
+ *                 example: "12345678901"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 description: Date of birth in YYYY-MM-DD format
+ *                 example: "1990-01-15"
+ *     responses:
+ *       200:
+ *         description: Reserved wallet creation request submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "BVN lookup and account creation are being processed"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "60d5ecb74b24a5001f5e4e1a"
+ *                     userId:
+ *                       type: string
+ *                       example: "60d5ecb74b24a5001f5e4e1b"
+ *                     name:
+ *                       type: string
+ *                       example: "Joshua-Isaac"
+ *                     firstname:
+ *                       type: string
+ *                       example: "Joshua"
+ *                     lastname:
+ *                       type: string
+ *                       example: "Isaac"
+ *                     phone:
+ *                       type: string
+ *                       example: "+2348160765447"
+ *                     email:
+ *                       type: string
+ *                       example: "joshua@example.com"
+ *                     status:
+ *                       type: string
+ *                       example: "pending"
+ *       400:
+ *         description: Bad request - Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "All fields are required: firstname, lastname, phone, email, bvn, dob"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *       500:
+ *         description: Internal server error
+ */
+
+
 // Routes for reserved wallet operations
-router.post("/vant/create-wallet", authorize, VantController.createReservedWallet);
-router.get("/vant/get-wallet", authorize, VantController.getUserReservedWallet);
-router.get("/vant/wallet-balance", authorize, VantController.getWalletBalance);
-router.post("/vant/verify-account", authorize, VantController.verifyAccount);
-router.post("/vant/transfer", authorize, VantController.transferFunds);
-router.get("/vant/transfer-history", authorize, VantController.getAllTransactions);
-router.get("/vant/banks", authorize, VantController.getBanks);
+router.post("/create-wallet", authorize, VantController.createReservedWallet);
+router.get("/get-wallet", authorize, VantController.getUserReservedWallet);
+router.get("/wallet-balance", authorize, VantController.getWalletBalance);
+router.post("/verify-account", authorize, VantController.verifyAccount);
+router.post("/transfer", authorize, VantController.transferFunds);
+router.get("/transfer-history", authorize, VantController.getAllTransactions);
+router.get("/banks", authorize, VantController.getBanks);
+router.post('/vant-webhook', VantWebhookController);
+
 
 
 export default router;

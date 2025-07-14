@@ -109,7 +109,7 @@ class VantService {
 
             console.log("PAYLOAD IN SERVICE: ", payload);
 
-            const {data}: any = await this.axiosInstance.post(
+            const { data }: any = await this.axiosInstance.post(
                 '/client/create',
                 payload
             );
@@ -124,7 +124,7 @@ class VantService {
             // );
 
             console.log("DATA IN SERVICE: ", data);
-            
+
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
@@ -138,10 +138,11 @@ class VantService {
     }
 
     async createReservedWallet(
-        userId: string,
+        userId: string, email: string
     ): Promise<IVantWallet> {
         const account = new VantWallet({
             userId: new mongoose.Types.ObjectId(userId),
+            email: email,
             walletBalance: 0,
             accountNumbers: [],
             status: 'pending',
@@ -200,6 +201,8 @@ class VantService {
 
         if (statusCode === 200) {
             // Success - update wallet with account details
+            console.log("IN THE 200 STATUS CODE");
+
             const wallet = await VantWallet.findOneAndUpdate(
                 { email: email },
                 {
@@ -212,6 +215,8 @@ class VantService {
                 },
                 { new: true }
             );
+            console.log("IN THE 200 STATUS CODE, WITH MY WALLET", wallet);
+
 
             if (!wallet) {
                 throw new NotFoundError('Reserved wallet not found for webhook update');
@@ -220,6 +225,8 @@ class VantService {
             return wallet;
         } else {
             // Failure - mark as failed
+            console.log("IN THE FAILED STATUS CODE");
+
             const wallet = await VantWallet.findOneAndUpdate(
                 { email: email },
                 {
@@ -229,6 +236,8 @@ class VantService {
                 },
                 { new: true }
             );
+            console.log("IN THE 200 STATUS CODE, WITH MY WALLET", wallet);
+
 
             if (!wallet) {
                 throw new NotFoundError('Reserved wallet not found for webhook update');
