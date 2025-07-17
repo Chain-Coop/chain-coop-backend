@@ -247,11 +247,11 @@ class VantService {
             }
 
             const payload = {
+                account_bank: bankCode,
                 account_number: accountNumber,
-                bank_code: bankCode
             };
             console.log("PAYLOAD TO VERIFY ACCOUNT: ", payload);
-            
+
             const response: any = await this.axiosInstance.post(
                 '/verify-account',
                 payload
@@ -304,14 +304,14 @@ class VantService {
 
             console.log("TRANSFER FUND TX: ", transaction);
             console.log("TRANSFER FUND REQUEST: ", transferRequest);
-            
+
             // Make transfer request
             const response: any = await this.axiosInstance.post(
                 '/transfer/initiate',
                 transferRequest
             );
             console.log("TRANSFER FUND RESPONSE: ", response);
-            
+
             if (!response || response.status !== true) {
                 await VantTransaction.findByIdAndUpdate(
                     transaction._id,
@@ -327,7 +327,7 @@ class VantService {
                 console.log("TRANSFER FAILED: ");
                 throw new NotFoundError('Transfer failed!');
             }
-            
+
             await VantWallet.findOneAndUpdate(
                 { userId: new mongoose.Types.ObjectId(userId) },
                 {
@@ -352,14 +352,14 @@ class VantService {
                     }
                 },
             );
-            
+
             console.log("TRANSFER SUCCESSFUL");
 
 
 
             console.log("WALLET AFTER WEBHOOK STATUS IS SUCCESSFUL: ", this.getUserReservedWallet(userId));
-            
-            
+
+
             const transactions = await VantTransaction.find({});
             console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
             return response;
@@ -409,7 +409,7 @@ class VantService {
         try {
             const matchedBank = BANK_LIST.find((b: any) => b.code === originator_bank);
             const bankName = matchedBank?.name || originator_bank || 'Unknown Bank';
-            
+
             const transaction = new VantTransaction({
                 walletId: wallet._id,
                 userId: wallet.userId,
@@ -428,7 +428,7 @@ class VantService {
                 sessionId
             });
             await transaction.save();
-            
+
             if (status === 'successful') {
                 const updateData = {
                     $inc: {
@@ -440,7 +440,7 @@ class VantService {
                         lastTransactionDate: new Date(timestamp)
                     }
                 };
-                
+
                 await VantWallet.findByIdAndUpdate(wallet._id, updateData);
             }
         } catch (error: any) {
