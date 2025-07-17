@@ -116,6 +116,7 @@ class VantService {
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
+            console.log("DATA IN SERVICES: ", data);
 
             return data;
         } catch (error: any) {
