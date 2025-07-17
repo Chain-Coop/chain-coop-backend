@@ -250,11 +250,13 @@ class VantService {
                 account_number: accountNumber,
                 bank_code: bankCode
             };
-
+            console.log("PAYLOAD TO VERIFY ACCOUNT: ", payload);
+            
             const response: any = await this.axiosInstance.post(
                 '/verify-account',
                 payload
             );
+            console.log("RESPONSE VERIFYING ACCOUNT: ", response);
 
             if (!response?.data || response!.status !== "success") {
                 throw new NotFoundError('Failed to verify account!');
@@ -301,6 +303,7 @@ class VantService {
             await transaction.save();
 
             console.log("TRANSFER FUND TX: ", transaction);
+            console.log("TRANSFER FUND REQUEST: ", transferRequest);
             
             // Make transfer request
             const response: any = await this.axiosInstance.post(

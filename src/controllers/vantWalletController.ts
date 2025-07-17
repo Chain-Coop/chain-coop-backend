@@ -224,6 +224,8 @@ class VantController {
             // First verify the account
             const accountDetails = await VantServices.verifyAccount(account_number, bank_code);
             const reference = uuidv4();
+            console.log("ACCOUNT DETAILS FROM VERIFYING ACCOUNT: ", accountDetails);
+
 
             let payload: TransferRequest = {
                 reference: `PAY_${Date.now()}_${reference.slice(2, 12)}`,
