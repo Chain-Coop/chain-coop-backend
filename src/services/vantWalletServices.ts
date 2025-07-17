@@ -306,13 +306,13 @@ class VantService {
             console.log("TRANSFER FUND REQUEST: ", transferRequest);
 
             // Make transfer request
-            const response: any = await this.axiosInstance.post(
+            const { data }: any = await this.axiosInstance.post(
                 '/transfer/initiate',
                 transferRequest
             );
-            console.log("TRANSFER FUND RESPONSE: ", response);
+            console.log("TRANSFER FUND RESPONSE: ", data);
 
-            if (!response || response.status !== true) {
+            if (!data || data.status !== true) {
                 await VantTransaction.findByIdAndUpdate(
                     transaction._id,
                     {
@@ -320,7 +320,7 @@ class VantService {
                         meta: {
                             ...transaction.meta,
                             error: 'API call failed',
-                            apiResponse: response
+                            apiResponse: data
                         }
                     }
                 );
@@ -345,10 +345,10 @@ class VantService {
             await VantTransaction.findByIdAndUpdate(
                 transaction._id,
                 {
-                    status: response.status ? 'successful' : 'failed',
+                    status: data?.status ? 'successful' : 'failed',
                     meta: {
                         ...transaction.meta,
-                        apiResponse: response
+                        apiResponse: data
                     }
                 },
             );
@@ -362,7 +362,7 @@ class VantService {
 
             const transactions = await VantTransaction.find({});
             console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
-            return response;
+            return data;
         } catch (error: any) {
             console.error('Error processing transfer:', error.message);
             throw new Error(error.message || 'Failed to process transfer');
