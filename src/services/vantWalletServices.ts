@@ -107,16 +107,18 @@ class VantService {
                 bvn,
                 date_of_birth: dateOfBirth
             };
+            console.log("PAYLOAD IN SERVICES: ", payload);
 
             const { data }: any = await this.axiosInstance.post(
                 '/client/create',
                 payload
             );
+            console.log("DATA 1 IN SERVICES: ", data);
 
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
-            console.log("DATA IN SERVICES: ", data);
+            console.log("DATA 2 IN SERVICES: ", data);
 
             return data;
         } catch (error: any) {
