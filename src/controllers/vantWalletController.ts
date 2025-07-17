@@ -33,7 +33,6 @@ class VantController {
             }
             const user = await getUserDetails(userId);
             const existingWallet = await VantServices.getUserReservedWallet(userId);
-            console.log("USER: ", user);
             
             if (existingWallet) {
                 throw new BadRequestError('User already has a reserved wallet');

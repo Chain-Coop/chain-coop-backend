@@ -416,9 +416,13 @@ class VantService {
                 timestamp: new Date(timestamp),
                 sessionId
             });
-            await transaction.save();
 
+            console.log("TRANSACTION PREPARED: ", transaction);
+            await transaction.save();
+            console.log("TRANSACTION SAVED: ", transaction);
+            
             if (status === 'successful') {
+                console.log("WEBHOOK STATUS IS SUCCESSFUL: ", status);
                 const updateData = {
                     $inc: {
                         walletBalance: amount,
@@ -429,8 +433,18 @@ class VantService {
                         lastTransactionDate: new Date(timestamp)
                     }
                 };
-
+                console.log("WEBHOOK STATUS IS SUCCESSFUL: ", status);
+                
+                
                 await VantWallet.findByIdAndUpdate(wallet._id, updateData);
+                console.log("WALLET AFTER WEBHOOK STATUS IS SUCCESSFUL: ", await VantWallet.findOne({
+                    userId: wallet.userId
+                }).select('-accountNumbers._id'));
+                
+                
+                const transactions = await VantTransaction.find({});
+                console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
+                
             }
         } catch (error: any) {
             console.error('Error processing inward transfer:', error.message);
