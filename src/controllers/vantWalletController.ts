@@ -38,7 +38,6 @@ class VantController {
                 throw new BadRequestError('User already has a reserved wallet');
             }
             
-            
             // Generate new virtual account
             const data = await VantServices.generateReservedWallet(
                 user!.email,

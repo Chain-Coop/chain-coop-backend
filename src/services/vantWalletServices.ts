@@ -300,12 +300,15 @@ class VantService {
             });
             await transaction.save();
 
+            console.log("TRANSFER FUND TX: ", transaction);
+            
             // Make transfer request
             const response: any = await this.axiosInstance.post(
                 '/transfer/initiate',
                 transferRequest
             );
-
+            console.log("TRANSFER FUND RESPONSE: ", response);
+            
             if (!response || response.status !== true) {
                 await VantTransaction.findByIdAndUpdate(
                     transaction._id,
@@ -318,9 +321,10 @@ class VantService {
                         }
                     }
                 );
+                console.log("TRANSFER FAILED: ");
                 throw new NotFoundError('Transfer failed!');
             }
-
+            
             await VantWallet.findOneAndUpdate(
                 { userId: new mongoose.Types.ObjectId(userId) },
                 {
@@ -345,7 +349,16 @@ class VantService {
                     }
                 },
             );
+            
+            console.log("TRANSFER SUCCESSFUL");
 
+
+
+            console.log("WALLET AFTER WEBHOOK STATUS IS SUCCESSFUL: ", this.getUserReservedWallet(userId));
+            
+            
+            const transactions = await VantTransaction.find({});
+            console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
             return response;
         } catch (error: any) {
             console.error('Error processing transfer:', error.message);
@@ -393,11 +406,6 @@ class VantService {
         try {
             const matchedBank = BANK_LIST.find((b: any) => b.code === originator_bank);
             const bankName = matchedBank?.name || originator_bank || 'Unknown Bank';
-
-            console.log("BANK NAME: ", bankName);
-            console.log("WALLET: ", wallet);
-            console.log("WALLET ID: ", wallet._id);
-            console.log("USER ID: ", wallet.userId);
             
             const transaction = new VantTransaction({
                 walletId: wallet._id,
@@ -416,13 +424,9 @@ class VantService {
                 timestamp: new Date(timestamp),
                 sessionId
             });
-
-            console.log("TRANSACTION PREPARED: ", transaction);
             await transaction.save();
-            console.log("TRANSACTION SAVED: ", transaction);
             
             if (status === 'successful') {
-                console.log("WEBHOOK STATUS IS SUCCESSFUL: ", status);
                 const updateData = {
                     $inc: {
                         walletBalance: amount,
@@ -433,18 +437,8 @@ class VantService {
                         lastTransactionDate: new Date(timestamp)
                     }
                 };
-                console.log("WEBHOOK STATUS IS SUCCESSFUL: ", status);
-                
                 
                 await VantWallet.findByIdAndUpdate(wallet._id, updateData);
-                console.log("WALLET AFTER WEBHOOK STATUS IS SUCCESSFUL: ", await VantWallet.findOne({
-                    userId: wallet.userId
-                }).select('-accountNumbers._id'));
-                
-                
-                const transactions = await VantTransaction.find({});
-                console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
-                
             }
         } catch (error: any) {
             console.error('Error processing inward transfer:', error.message);
