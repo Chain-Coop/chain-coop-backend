@@ -113,12 +113,10 @@ class VantService {
                 '/client/create',
                 payload
             );
-            console.log("DATA 1 IN SERVICES: ", data);
 
             if (!data) {
                 throw new NotFoundError('Failed to create reserved wallet!');
             }
-            console.log("DATA 2 IN SERVICES: ", data);
 
             return data;
         } catch (error: any) {
@@ -393,8 +391,14 @@ class VantService {
         }
 
         try {
-            const bank = BANK_LIST.find((b: any) => b.code === originator_bank);
+            const matchedBank = BANK_LIST.find((b: any) => b.code === originator_bank);
+            const bankName = matchedBank?.name || originator_bank || 'Unknown Bank';
 
+            console.log("BANK NAME: ", bankName);
+            console.log("WALLET: ", wallet);
+            console.log("WALLET ID: ", wallet._id);
+            console.log("USER ID: ", wallet.userId);
+            
             const transaction = new VantTransaction({
                 walletId: wallet._id,
                 userId: wallet.userId,
@@ -406,9 +410,9 @@ class VantService {
                 originatorAccountNumber: originator_account_number,
                 originatorAccountName: originator_account_name,
                 originatorBank: originator_bank,
-                originatorBankName: bank?.name || 'Unknown Bank',
+                originatorBankName: bankName,
                 narration: originator_narration,
-                meta,
+                meta: meta || {},
                 timestamp: new Date(timestamp),
                 sessionId
             });
