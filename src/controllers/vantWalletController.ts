@@ -198,7 +198,7 @@ class VantController {
      */
     async transferFunds(req: Request, res: Response) {
         try {
-            const { email, amount, account_number, bank_code, narration } = req.body;
+            const { email, amount, account_number, bank_code, narration, to_session } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
 
@@ -246,6 +246,7 @@ class VantController {
                 bank: bank!.name,
                 // bank: accountDetails!.data!.bank,
                 // toSession: accountDetails!.data!.account!.id,
+                toSession: to_session,
                 // toClient: accountDetails!.data!.clientId,
                 // toBvn: accountDetails!.data!.bvn,
                 email,
