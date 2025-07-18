@@ -38,6 +38,7 @@ const LockEntrySchema: Schema = new Schema({
   lockId: {
     type: String,
     unique: true,
+    sparse: true,
   },
 });
 
