@@ -198,7 +198,7 @@ class VantController {
      */
     async transferFunds(req: Request, res: Response) {
         try {
-            const { email, amount, account_number, bank_code, narration, to_session } = req.body;
+            const { email, amount, account_number, bank_code, narration } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
 
@@ -230,7 +230,7 @@ class VantController {
             }
 
             // First verify the account
-            // const accountDetails = await VantServices.verifyAccount(account_number, bank_code);
+            const accountDetails = await VantServices.verifyAccount(account_number, bank_code);
             const reference = uuidv4();
             // console.log("ACCOUNT DETAILS FROM VERIFYING ACCOUNT: ", accountDetails);
 
@@ -243,12 +243,12 @@ class VantController {
                 name: `${user!.firstName} ${user!.lastName}`,
                 // name: accountDetails!.data!.name,
                 bank_code,
-                bank: bank!.name,
-                // bank: accountDetails!.data!.bank,
-                // toSession: accountDetails!.data!.account!.id,
-                toSession: to_session,
-                // toClient: accountDetails!.data!.clientId,
-                // toBvn: accountDetails!.data!.bvn,
+                // bank: bank!.name,
+                bank: accountDetails!.data!.bank,
+                toSession: accountDetails!.data!.account!.id,
+                // toSession: to_session,
+                toClient: accountDetails!.data!.clientId,
+                toBvn: accountDetails!.data!.bvn,
                 email,
                 remark: narration || `Transfer to ${wallet!.walletName}`,
             };
@@ -261,7 +261,7 @@ class VantController {
                 message: 'Transfer completed successfully',
                 data: {
                     ...transferResult,
-                    // recipient_details: accountDetails
+                    recipient_details: accountDetails
                 }
             });
         } catch (error: any) {

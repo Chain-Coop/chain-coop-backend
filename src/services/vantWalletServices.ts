@@ -253,7 +253,7 @@ class VantService {
             console.log("PAYLOAD TO VERIFY ACCOUNT: ", payload);
 
             const response: any = await this.axiosInstance.post(
-                '/verify-account',
+                '/transfer/verify-account',
                 payload
             );
             console.log("RESPONSE VERIFYING ACCOUNT: ", response);
