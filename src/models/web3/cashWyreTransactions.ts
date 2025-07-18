@@ -39,6 +39,7 @@ export interface ICashwyreTransaction extends Document {
 
   offrampAddress?: string;
   tokenAddress?: string;
+  chainCoopFees?: number; // Fees charged by Chain Coop (for ONRAMP)
 
   offrampTokensTransferred?: boolean; // Amount of tokens transferred to the user (for OFFRAMP)
 
@@ -119,6 +120,10 @@ const CashwyreTransactionSchema: Schema = new Schema(
     },
     tokenAddress: {
       type: String,
+    },
+    chainCoopFees: {
+      type: Number,
+      default: 0, // Default to 0 if not specified
     },
     offrampTokensTransferred: {
       type: Boolean,

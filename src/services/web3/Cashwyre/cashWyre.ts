@@ -393,7 +393,8 @@ class CashwyreService {
     bankName: string,
     accountName: string,
     accountNumber: string,
-    bankCode: string
+    bankCode: string,
+    chainCoopFees: string
   ): Promise<ICashwyreTransaction> {
     const transaction = new CashwyreTransaction({
       userId: new mongoose.Types.ObjectId(userId),
@@ -411,6 +412,7 @@ class CashwyreService {
       accountName,
       accountNumber,
       bankCode,
+      chainCoopFees,
     });
 
     return await transaction.save();
