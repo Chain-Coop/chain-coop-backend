@@ -3,4 +3,5 @@ export const CashwyreConfig = {
   secretKey: process.env.CASHWYRE_SECRET_KEY,
   BusinessCode: process.env.CASHWYRE_BUSINESS_CODE,
   AppId: process.env.CASHWYRE_APP_ID,
+  Fees: '50',
 };
