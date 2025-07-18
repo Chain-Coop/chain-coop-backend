@@ -252,17 +252,17 @@ class VantService {
             };
             console.log("PAYLOAD TO VERIFY ACCOUNT: ", payload);
 
-            const response: any = await this.axiosInstance.post(
+            const { data }: any = await this.axiosInstance.post(
                 '/transfer/verify-account',
                 payload
             );
-            console.log("RESPONSE VERIFYING ACCOUNT: ", response);
+            console.log("RESPONSE VERIFYING ACCOUNT: ", data);
 
-            if (!response?.data || response!.status !== "success") {
+            if (!data || data!.status !== "success") {
                 throw new NotFoundError('Failed to verify account!');
             }
 
-            return response;
+            return data;
         } catch (error: any) {
             console.error('Error verifying account:', error.message);
             throw new Error('Failed to verify account details');
