@@ -142,37 +142,6 @@ export const CashwyreWebhookController = async (
   }
 };
 
-
-/*
-Vant Webhook called
-Vant Webhook Data: {
-  "event": "account_creation",
-  "error": "Invalid BVN",
-  "data": {
-    "phone": "+2348060765447",
-    "email": "ucheisnaanih21@gmail.com"
-  },
-  "statusCode": 400,
-  "message": "error creating user account"
-}
-Processing account creation webhook: {
-  event: 'account_creation',
-  error: 'Invalid BVN',
-  data: { phone: '+2348060765447', email: 'ucheisnaanih21@gmail.com' },
-  statusCode: 400,
-  message: 'error creating user account'
-}
-[2025-07-14 14:46:34.874 +0000] INFO: Incoming request
-    req: "POST /api/v1/vant/vant-webhook"
-Error processing Vant webhook: NotFoundError: Reserved wallet not found for webhook update
-    at VantService.<anonymous> (/opt/render/project/src/dist/src/services/vantWalletServices.js:141:27)
-    at Generator.next (<anonymous>)
-    at fulfilled (/opt/render/project/src/dist/src/services/vantWalletServices.js:5:58)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
-  statusCode: 404
-}
-*/
-
 export const VantWebhookController = async (
   req: Request,
   res: Response
@@ -185,10 +154,7 @@ export const VantWebhookController = async (
   res.status(StatusCodes.OK);
 
   try {
-
     if (data.event === "account_creation") {
-      console.log("Processing account creation webhook:", data);
-
       const webhookData = {
         data: data.data,
         statusCode: data.statusCode,
@@ -197,12 +163,9 @@ export const VantWebhookController = async (
 
       // Update the reserved wallet based on webhook data
       await VantServices.updateReservedWalletFromWebhook(webhookData);
-
       console.log("Reserved wallet webhook processed successfully");
 
     } else if (data.event === "transfer") {
-      console.log("Processing inward transfer webhook:", data);
-
       const transferData = {
         reference: data.reference,
         amount: parseFloat(data.amount),
@@ -219,7 +182,6 @@ export const VantWebhookController = async (
 
       // Process the inward transfer
       await VantServices.processInwardTransfer(transferData);
-
       console.log("Inward transfer webhook processed successfully");
     }
 

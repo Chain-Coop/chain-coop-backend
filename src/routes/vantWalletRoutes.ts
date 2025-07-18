@@ -29,30 +29,9 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - firstname
- *               - lastname
- *               - phone
- *               - email
  *               - bvn
  *               - dob
  *             properties:
- *               firstname:
- *                 type: string
- *                 description: User's first name
- *                 example: "Joshua"
- *               lastname:
- *                 type: string
- *                 description: User's last name
- *                 example: "Isaac"
- *               phone:
- *                 type: string
- *                 description: User's phone number in format +234XXXXXXXXXX
- *                 example: "+2348160765447"
- *               email:
- *                 type: string
- *                 format: email
- *                 description: User's email address
- *                 example: "joshua@example.com"
  *               bvn:
  *                 type: string
  *                 description: Bank Verification Number (11 digits)

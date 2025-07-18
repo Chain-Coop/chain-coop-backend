@@ -6,9 +6,8 @@ import { StatusCodes } from 'http-status-codes';
 import { Request, Response } from 'express';
 import { getUserDetails } from '../services/authService';
 import VantServices, { TransferRequest } from '../services/vantWalletServices';
-import { VantTransaction, VantWallet } from '../models/vantWalletModel';
+import { VantTransaction } from '../models/vantWalletModel';
 import mongoose from 'mongoose';
-import { BANK_LIST } from '../utils/bankList';
 
 class VantController {
     /**
@@ -211,19 +210,12 @@ class VantController {
             }
 
             const wallet = await VantServices.getUserReservedWallet(userId);
-
             if (!wallet || wallet.status !== 'active') {
                 throw new NotFoundError('No active wallet found');
             }
 
-
-            const user = await getUserDetails(userId);
-            console.log("USER: ", user);
-
-
             const currentBalance = wallet.walletBalance;
-            console.log("BALANCE: ", currentBalance);
-            console.log("WALLET: ", wallet);
+            const user = await getUserDetails(userId);
 
             if (currentBalance < amount) {
                 throw new BadRequestError('Insufficient wallet balance');
@@ -232,21 +224,15 @@ class VantController {
             // First verify the account
             const accountDetails = await VantServices.verifyAccount(account_number, bank_code);
             const reference = uuidv4();
-            // console.log("ACCOUNT DETAILS FROM VERIFYING ACCOUNT: ", accountDetails);
-
-            const bank = BANK_LIST.find((b: any) => b.code === bank_code);
 
             let payload: TransferRequest = {
                 reference: `PAY_${Date.now()}_${reference.slice(2, 12)}`,
                 amount,
                 account_number,
                 name: `${user!.firstName} ${user!.lastName}`,
-                // name: accountDetails!.data!.name,
                 bank_code,
-                // bank: bank!.name,
                 bank: accountDetails!.data!.bank,
                 toSession: accountDetails!.data!.account!.id,
-                // toSession: to_session,
                 toClient: accountDetails!.data!.clientId,
                 toBvn: accountDetails!.data!.bvn,
                 email,

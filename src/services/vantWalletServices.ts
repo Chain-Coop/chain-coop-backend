@@ -36,7 +36,6 @@ export interface TransferRequest {
     remark?: string;
 }
 
-
 interface TransferResponse {
     message: string;
     status: boolean;
@@ -75,8 +74,6 @@ interface TransactionLog {
     sessionId?: string;
 }
 
-
-
 class VantService {
     private axiosInstance: Axios.AxiosInstance;
 
@@ -107,8 +104,6 @@ class VantService {
                 bvn,
                 date_of_birth: dateOfBirth
             };
-            console.log("PAYLOAD IN SERVICES: ", payload);
-
             const { data }: any = await this.axiosInstance.post(
                 '/client/create',
                 payload
@@ -250,13 +245,11 @@ class VantService {
                 account_bank: bankCode,
                 account_number: accountNumber,
             };
-            console.log("PAYLOAD TO VERIFY ACCOUNT: ", payload);
 
             const { data }: any = await this.axiosInstance.post(
                 '/transfer/verify-account',
                 payload
             );
-            console.log("RESPONSE VERIFYING ACCOUNT: ", data);
 
             if (!data || data!.status !== "success") {
                 throw new NotFoundError('Failed to verify account!');
@@ -302,15 +295,11 @@ class VantService {
             });
             await transaction.save();
 
-            console.log("TRANSFER FUND TX: ", transaction);
-            console.log("TRANSFER FUND REQUEST: ", transferRequest);
-
             // Make transfer request
             const { data }: any = await this.axiosInstance.post(
                 '/transfer/initiate',
                 transferRequest
             );
-            console.log("TRANSFER FUND RESPONSE: ", data);
 
             if (!data || data.status !== true) {
                 await VantTransaction.findByIdAndUpdate(
@@ -324,7 +313,6 @@ class VantService {
                         }
                     }
                 );
-                console.log("TRANSFER FAILED: ");
                 throw new NotFoundError('Transfer failed!');
             }
 
@@ -352,16 +340,6 @@ class VantService {
                     }
                 },
             );
-
-            console.log("TRANSFER SUCCESSFUL");
-
-
-
-            console.log("WALLET AFTER WEBHOOK STATUS IS SUCCESSFUL: ", this.getUserReservedWallet(userId));
-
-
-            const transactions = await VantTransaction.find({});
-            console.log("TRANSACTION AFTER WEBHOOK STATUS IS SUCCESSFUL: ", transactions);
             return data;
         } catch (error: any) {
             console.error('Error processing transfer:', error.message);
@@ -397,7 +375,6 @@ class VantService {
             console.error(`Wallet not found for account number: ${account_number}`);
             return;
         }
-
 
         // Check if transaction already exists (prevent duplicates)
         const existingTransaction = await VantTransaction.findOne({ reference });

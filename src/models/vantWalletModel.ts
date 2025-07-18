@@ -39,7 +39,6 @@ export interface IVantTransaction extends Document {
     meta?: any;
     timestamp: Date;
     sessionId?: string;
-    webhookData?: any; // Store full webhook data for debugging
 }
 
 
@@ -155,9 +154,6 @@ const VantTransactionSchema = new Schema<IVantTransaction>(
         sessionId: {
             type: String
         },
-        webhookData: {
-            type: Schema.Types.Mixed
-        }
     },
     { timestamps: true }
 );
