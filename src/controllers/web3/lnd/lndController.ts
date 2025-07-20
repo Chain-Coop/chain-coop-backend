@@ -8,14 +8,14 @@ export const lockFunds = async (req: Request, res: Response) => {
     // @ts-ignore
     const { userId } = req.user;
     const { amount, unlockAt, purpose = 'staking' } = req.body;
+    const parsedAmount = Number(req.body.amount);
 
     // Input validation
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: 'Valid amount is required',
       });
     }
-
     if (!unlockAt || new Date(unlockAt) <= new Date()) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: 'Valid future unlock date is required',
@@ -24,7 +24,7 @@ export const lockFunds = async (req: Request, res: Response) => {
 
     const result = await lndService.lockBalance(
       userId,
-      amount,
+      parsedAmount,
       new Date(unlockAt),
       purpose
     );
