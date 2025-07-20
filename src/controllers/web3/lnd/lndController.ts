@@ -8,7 +8,7 @@ export const lockFunds = async (req: Request, res: Response) => {
     // @ts-ignore
     const { userId } = req.user;
     const { amount, unlockAt, purpose = 'staking' } = req.body;
-    const parsedAmount = Number(req.body.amount);
+    const parsedAmount = Number(amount);
 
     // Input validation
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
