@@ -108,18 +108,22 @@ async function createUserBitcoinWallet(userId: string) {
     address: bitcoinAccount.address,
     walletType: 'segwit', // Using SegWit by default
   });
-  const lightningWallet: ILndWallet = new LndWallet({
-    userId: userId,
-    balance: 0,
-    lockedBalance: 0,
-  });
-  await lightningWallet.save();
+  if (
+    (await LndWallet.findOne({ userId })) === null ||
+    (await LndWallet.findOne({ userId })) === undefined
+  ) {
+    const lightningWallet: ILndWallet = new LndWallet({
+      userId: userId,
+      balance: 0,
+      lockedBalance: 0,
+    });
+    await lightningWallet.save();
+  }
 
   await wallet.save();
 
   return {
     wallet: wallet,
-    lightningWallet: lightningWallet,
   };
 }
 //check existing user wallet
@@ -131,6 +135,7 @@ const checkExistingBitcoinWallet = async (userId: string): Promise<boolean> => {
   const existingWallet = await BitcoinWallet.findOne({ user: userId });
   return !!existingWallet;
 };
+
 //get use wallet
 const getUserWeb3Wallet = async (userId: string) => {
   const wallet = await Web3Wallet.findOne({ user: userId });
