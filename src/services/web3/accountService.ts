@@ -12,7 +12,7 @@ import {
   uuidV4,
 } from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
-import User from '../../models/user';
+import User from '../../models/authModel';
 import {
   SupportedLISKStables,
   SupportedETHERLINKStables,
@@ -84,11 +84,18 @@ const activateAccount = async (userId: string) => {
   });
 
   await web3Wallet.save();
+  await user.updateOne({
+    isWalletActivated: true,
+  });
   return web3Wallet;
 };
 
 async function createUserBitcoinWallet(userId: string) {
   // Generate a new Bitcoin account
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
   const bitcoinAccount = generateBtcAccount();
 
   if (!bitcoinAccount.privateKey) {
@@ -121,6 +128,10 @@ async function createUserBitcoinWallet(userId: string) {
   }
 
   await wallet.save();
+  // Update the user document
+  await user.updateOne({
+    isBitcoinWalletActivated: true,
+  });
 
   return {
     wallet: wallet,
