@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import { findUser } from "./authService";
 import { chargeCardService, findWalletService } from "./walletService";
 import logger from "../utils/logger";
+import VantServices from "./vantWalletServices";
+import { VantWallet } from "../models/vantWalletModel";
 
 dotenv.config();
 
@@ -69,36 +71,37 @@ export const createContributionService = async (data: {
     const withdrawalDate = new Date(data.endDate);
     withdrawalDate.setDate(withdrawalDate.getDate() + 1);
 
-const contributionPayload: any = {
-  user: data.user,
-  amount: data.amount,
-  savingsType: data.savingsType,
-  currency: data.currency,
-  savingsCategory: data.savingsCategory,
-  startDate: new Date(data.startDate),
-  endDate: new Date(data.endDate),
-  savingsDuration,
-  withdrawalDate,
-  lastContributionDate:
-    data.contributionType === "one-time"
-      ? new Date(data.startDate)
-      : new Date(),
-  contributionType: data.contributionType,
-  balance: 0,
-  status: "Pending",
-};
+    const contributionPayload: any = {
+      user: data.user,
+      amount: data.amount,
+      savingsType: data.savingsType,
+      currency: data.currency,
+      savingsCategory: data.savingsCategory,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      savingsDuration,
+      withdrawalDate,
+      lastContributionDate:
+        data.contributionType === "one-time"
+          ? new Date(data.startDate)
+          : new Date(),
+      contributionType: data.contributionType,
+      balance: 0,
+      status: "Pending",
+    };
 
-// Only set if not one-time
-if (data.contributionType !== "one-time") {
-  contributionPayload.contributionPlan = data.contributionPlan;
-  contributionPayload.nextContributionDate = calculateNextContributionDate(
-    data.startDate,
-    data.contributionPlan
-  );
-}
+    // Only set if not one-time
+    if (data.contributionType !== "one-time") {
+      contributionPayload.contributionPlan = data.contributionPlan;
+      contributionPayload.nextContributionDate = calculateNextContributionDate(
+        data.startDate,
+        data.contributionPlan
+      );
+    }
 
-const contribution = await Contribution.create(contributionPayload);
+    const contribution = await Contribution.create(contributionPayload);
 
+    await VantWallet.findOneAndUpdate({ userId: data.user }, { contributionId: contribution._id });
 
     logger.info(`Created ${data.contributionType} Contribution ID:`, contribution._id);
 
@@ -145,7 +148,7 @@ export const initializeContributionPayment = async (
           metadata: {
             contributionId: contribution._id,
             type: "conpayment",
-          }, 
+          },
         },
         {
           headers: {
@@ -183,11 +186,31 @@ export const initializeContributionPayment = async (
         status: response.data.status,
         type: "card",
       };
+    } else if (paymentType === "banktransfer") {
+      const vantWallet = await VantServices.getUserReservedWallet(userId);
+      if (!vantWallet || vantWallet.status !== 'active') {
+        throw new BadRequestError('No active Vant wallet found');
+      }
+
+      return {
+        type: "bank transfer by vant",
+        walletDetails: {
+          status: vantWallet.status,
+          accountName: vantWallet.accountNumbers[0].account_name,
+          accountNumber: vantWallet.accountNumbers[0].account_number,
+          bank: vantWallet.accountNumbers[0].bank,
+          amount: contribution.amount,
+          reference: `CONT_${contributionId}_${Date.now()}`
+        }
+      };
     } else {
       throw new BadRequestError("Invalid payment type");
     }
 
-    return { info: response.data, type: "paystack" };
+    return {
+      info: response.data,
+      type: "paystack"
+    };
   } catch (error: any) {
     console.error("Error initializing payment:", error);
     throw new BadRequestError(
@@ -406,10 +429,10 @@ export const verifyContributionPayment = async (reference: string) => {
 
       const rawId = paymentData.metadata.contributionId;
 
-  
+
       const cleanedId = typeof rawId === "string" ? rawId.replace(/"/g, '') : rawId;
-      
- 
+
+
       const contribution = await Contribution.findOne({
         _id: new mongoose.Types.ObjectId(cleanedId),
       });
@@ -475,8 +498,8 @@ export const tryRecurringContributions = async () => {
     //startDate: { $lte: new Date() },
     //nextContributionDate: { $lt: new Date() },
     // lastChargeDate: {
-   //  $lt: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
-   // },
+    //  $lt: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+    // },
   }).populate("user");
 
   for (let contribution of contributions) {
@@ -620,7 +643,7 @@ export const paymentforContribution = async (contribution: any) => {
   while (contribution.nextContributionDate < new Date()) {
     try {
       session.startTransaction();
-      
+
       let nextContributionDate = contribution.nextContributionDate;
       contribution.lastContributionDate = contribution.nextContributionDate;
       contribution.nextContributionDate = calculateNextContributionDate(
@@ -628,7 +651,7 @@ export const paymentforContribution = async (contribution: any) => {
         contribution.contributionPlan
       );
 
-      await contribution.save(); 
+      await contribution.save();
 
       // Create contribution history
       await createContributionHistoryService({
@@ -641,7 +664,7 @@ export const paymentforContribution = async (contribution: any) => {
         balance: contribution.balance,
         status: "Unpaid",
         Date: contribution.lastContributionDate,
-        reference: contribution.paymentReference, 
+        reference: contribution.paymentReference,
       });
       console.log(
         "Contribution history created",
@@ -810,10 +833,10 @@ export const calculateNextContributionDate = (
       break;
     case "5Minutes":
       date.setMinutes(date.getMinutes() + 2);
-      break; 
-      case "Hourly":
-    date.setHours(date.getHours() + 1);
-    break;
+      break;
+    case "Hourly":
+      date.setHours(date.getHours() + 1);
+      break;
     case null:
     case undefined:
       return new Date();
@@ -833,7 +856,7 @@ export const getAllUserContributionsService = async (
   skip = 0
 ) => {
   return await Contribution.find({ user: userId, status: { $ne: "Pending" } })
-    .sort({ createdAt: -1 }) 
+    .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip);
 };

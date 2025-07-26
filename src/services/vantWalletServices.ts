@@ -1,9 +1,11 @@
 import axios from 'axios';
-import mongoose from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import { BadRequestError, NotFoundError } from '../errors';
 import { VantConfig } from '../../config/vant';
 import { VantWallet, IVantWallet, VantTransaction } from '../models/vantWalletModel';
 import { BANK_LIST } from '../utils/bankList';
+import Contribution from "../models/contribution";
+import { createContributionHistoryService } from './contributionService';
 
 interface VerifyAccountResponse {
     status: string,
@@ -121,7 +123,7 @@ class VantService {
     }
 
     async createReservedWallet(
-        userId: string, email: string
+        userId: string, email: string,
     ): Promise<IVantWallet> {
         const account = new VantWallet({
             userId: new mongoose.Types.ObjectId(userId),
@@ -419,6 +421,25 @@ class VantService {
                 };
 
                 await VantWallet.findByIdAndUpdate(wallet._id, updateData);
+
+                const contribution = await Contribution.findOne({ user: wallet.userId });
+                if (!contribution) {
+                    throw new BadRequestError("Contribution not found");
+                }
+
+                await createContributionHistoryService({
+                    contribution: contribution._id as ObjectId,
+                    // @ts-ignore
+                    user: contribution.user._id as ObjectId || user._id as any,
+                    amount: contribution.amount,
+                    currency: contribution.currency || "naira",
+                    type: "Credit",
+                    balance: contribution.balance,
+                    status: "Paid",
+                    Date: new Date(),
+                    reference: contribution.paymentReference,
+                    savingsType: contribution.savingsType,
+                });
             }
         } catch (error: any) {
             console.error('Error processing inward transfer:', error.message);

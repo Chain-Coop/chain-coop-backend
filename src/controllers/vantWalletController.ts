@@ -8,6 +8,8 @@ import { getUserDetails } from '../services/authService';
 import VantServices, { TransferRequest } from '../services/vantWalletServices';
 import { VantTransaction } from '../models/vantWalletModel';
 import mongoose from 'mongoose';
+import Contribution from "../models/contribution";
+import { findContributionService } from '../services/contributionService';
 
 class VantController {
     /**
@@ -48,7 +50,7 @@ class VantController {
 
             const wallet = await VantServices.createReservedWallet(
                 userId,
-                user!.email
+                user!.email,
             );
 
             return res.status(StatusCodes.OK).json({
@@ -71,9 +73,10 @@ class VantController {
     async getUserReservedWallet(req: Request, res: Response) {
         try {
             // @ts-ignore
-            const userId = req.user.userId;
+            const { userId, contributionId } = req.user.userId;
 
             const wallet = await VantServices.getUserReservedWallet(userId);
+            const contribution = await Contribution.find({ user: userId });
 
             if (!wallet) {
                 return res.status(StatusCodes.NOT_FOUND).json({
@@ -86,6 +89,8 @@ class VantController {
                 success: true,
                 message: 'Reserved wallet retrieved successfully',
                 data: {
+                    // @ts-ignore
+                    contributionId: contribution._id,
                     walletName: wallet.walletName,
                     status: wallet.status,
                     accountName: wallet.accountNumbers[0].account_name,

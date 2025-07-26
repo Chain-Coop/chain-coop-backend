@@ -52,7 +52,7 @@ export interface iContribution {
   categoryBalances?: Map<string, number>;
   nextContributionDate?: Date;
   lastContributionDate?: Date;
-  contributionType?: string; 
+  contributionType?: string;
   savingsDuration?: number;
 }
 
@@ -287,65 +287,65 @@ export const getContributionHistory = async (req: Request, res: Response) => {
 };
 
 export const newgetContributionHistory = async (
-    req: Request,
-    res: Response
+  req: Request,
+  res: Response
 ) => {
-    const { contributionId } = req.query;
+  const { contributionId } = req.query;
 
-    if (!contributionId) {
-        throw new BadRequestError("Contribution ID is required");
+  if (!contributionId) {
+    throw new BadRequestError("Contribution ID is required");
+  }
+
+  try {
+    // Get contribution details using contributionId
+    const contribution = await findContributionService({
+      _id: contributionId as string,
+    });
+    if (!contribution) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Contribution not found",
+      });
     }
 
-    try {
-        // Get contribution details using contributionId
-        const contribution = await findContributionService({
-            _id: contributionId as string,
-        });
-        if (!contribution) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                message: "Contribution not found",
-            });
-        }
+    // Get the overall balance, next contribution date, and withdrawal date from the contribution
+    const {
+      balance,
+      currency,
+      startDate,
+      endDate,
+      savingsType,
+      nextContributionDate,
+      withdrawalDate,
+      savingsCategory,
+      contributionPlan,
+      contributionType,
+    } = contribution;
 
-        // Get the overall balance, next contribution date, and withdrawal date from the contribution
-        const {
-            balance,
-            currency,
-            startDate,
-            endDate,
-            savingsType,
-            nextContributionDate,
-            withdrawalDate,
-            savingsCategory,
-            contributionPlan,
-            contributionType,
-        } = contribution;
+    // Fetch full history  
+    const history = await getContributionHistoryService(
+      contributionId as string
+    );
 
-        // Fetch full history  
-        const history = await getContributionHistoryService(
-            contributionId as string
-        );
-
-        res.status(StatusCodes.OK).json({
-            balance,
-            contributionPlan,
-            currency,
-            savingsCategory,
-            savingsType,
-            contributionType,
-            startDate,
-            endDate,
-            nextContributionDate,
-            withdrawalDate,
-            history,
-        });
-    } catch (error) {
-        console.error("Error fetching contribution history:", error);
-        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            error:
-                "An unexpected error occurred while fetching contribution history.",
-        });
-    }
+    res.status(StatusCodes.OK).json({
+      balance,
+      contributionPlan,
+      currency,
+      savingsCategory,
+      savingsType,
+      contributionType,
+      startDate,
+      endDate,
+      nextContributionDate,
+      withdrawalDate,
+      history,
+    });
+  } catch (error) {
+    console.error("Error fetching contribution history:", error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error:
+        "An unexpected error occurred while fetching contribution history.",
+    });
+  }
 };
 
 
@@ -353,11 +353,11 @@ export const newgetContributionHistory = async (
 export const withdrawContribution = async (req: Request, res: Response) => {
   //@ts-ignore
   const userId = req.user.userId;
-  const { amount, contributionId} = req.body;
+  const { amount, contributionId, withdrawalMethod } = req.body; // always pass withdrawal method as vant, to checkmate the pin
   const pay = req.body.pay === "active";
   const pin = String(req.body.pin);
 
-  if (!pin) {
+  if (withdrawalMethod !== "vant" && !pin) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       message: "Wallet pin is required for this transaction.",
       statusCode: StatusCodes.BAD_REQUEST,
@@ -379,7 +379,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   }
 
   // Check if user has set a PIN
-  if (!wallet.isPinCreated) {
+  if (withdrawalMethod !== "vant" && !wallet.isPinCreated) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       message: "You have not set a wallet pin.",
       statusCode: StatusCodes.BAD_REQUEST,
@@ -388,7 +388,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   // Validate the pin
   const isPinValid = await validateWalletPin(userId, pin);
-  if (!isPinValid) {
+  if (withdrawalMethod !== "vant" && !isPinValid ) {
     return res.status(StatusCodes.UNAUTHORIZED).json({
       message: "Invalid wallet pin.",
       statusCode: StatusCodes.UNAUTHORIZED,
@@ -421,54 +421,129 @@ export const withdrawContribution = async (req: Request, res: Response) => {
   const endDate = new Date(contribution.withdrawalDate);
   const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-// Handle savingsType: Flexible
-if (contribution.savingsType === "Flexible") {
-  const withdrawalFee = 50;
-  const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
+  // Handle savingsType: Flexible
+  if (contribution.savingsType === "Flexible") {
+    const withdrawalFee = 50;
+    const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
 
-  const totalFees = withdrawalFee + membershipFee;
-  const totalToCredit = Math.max(amount - totalFees, 0);
+    const totalFees = withdrawalFee + membershipFee;
+    const totalToCredit = Math.max(amount - totalFees, 0);
 
-  if (totalToCredit <= 0) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "The total fees exceed the withdrawal amount. Please request a higher amount.",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
+    if (totalToCredit <= 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "The total fees exceed the withdrawal amount. Please request a higher amount.",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    if (contribution.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Insufficient funds in contribution balance",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    contribution.balance -= amount;
+    wallet.balance += totalToCredit;
+
+    // Update membership status if needed
+    if (user.membershipStatus !== "active") {
+      user.membershipStatus = "active";
+      await user.save();
+    }
+
+    const historyPayload: iWalletHistory = {
+      amount: totalToCredit,
+      label: "Withdrawal from Flexible Contribution",
+      type: "credit",
+      ref: "Self",
+      //@ts-ignore
+      user: req.user.userId,
+    };
+
+    await createWalletHistoryService(historyPayload);
+
+    try {
+      await createContributionHistoryService({
+        contribution: contributionId,
+        user: contribution.user,
+        amount: totalToCredit,
+        currency: contribution.currency,
+        Date: currentDate,
+        type: "debit",
+        balance: contribution.balance,
+        status: "success",
+        reference: reference,
+        withdrawalDate: currentDate,
+        savingsType: contribution.savingsType,
+      });
+
+      await contribution.save();
+      await wallet.save();
+
+      return res.status(StatusCodes.OK).json({
+        message: "Withdrawal successful. 3% and membership fees applied.",
+        amount: totalToCredit,
+        withdrawalFee,
+        membershipFee,
+        statusCode: StatusCodes.OK,
+      });
+    } catch (error) {
+      console.error("Error creating contribution history:", error);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        message: "Failed to create contribution history",
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+      });
+    }
   }
 
-  if (contribution.balance < amount) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Insufficient funds in contribution balance",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
 
-  contribution.balance -= amount;
-  wallet.balance += totalToCredit;
+  // Handle savingsType: Lock
+  if (contribution.savingsType === "Lock") {
+    const withdrawalFee = 50;
+    const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% penalty
+    const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
 
-  // Update membership status if needed
-  if (user.membershipStatus !== "active") {
-    user.membershipStatus = "active";
-    await user.save();
-  }
+    const totalDeductions = withdrawalFee + earlyWithdrawalPenalty + membershipFee;
+    const totalToCredit = Math.max(amount - totalDeductions, 0);
 
-  const historyPayload: iWalletHistory = {
-    amount: totalToCredit,
-    label: "Withdrawal from Flexible Contribution",
-    type: "credit",
-    ref: "Self",
-    //@ts-ignore
-    user: req.user.userId,
-  };
+    if (contribution.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Insufficient funds in contribution balance",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
 
-  await createWalletHistoryService(historyPayload);
+    if (totalToCredit <= 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "The deductions exceed or equal the withdrawal amount. Please request a higher amount.",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
 
-  try {
+    contribution.balance -= amount;
+    wallet.balance += totalToCredit;
+
+    if (user.membershipStatus !== "active") {
+      user.membershipStatus = "active";
+      await user.save();
+    }
+
+    const historyPayload: iWalletHistory = {
+      amount: totalToCredit,
+      label: "Withdrawal from Lock Contribution",
+      type: "credit",
+      ref: "Self",
+      //@ts-ignore
+      user: req.user.userId,
+    };
+
+    await createWalletHistoryService(historyPayload);
     await createContributionHistoryService({
       contribution: contributionId,
       user: contribution.user,
-      amount: totalToCredit,
-      currency: contribution.currency,
+      amount: amount,
+      currency: contribution.currency || "",
       Date: currentDate,
       type: "debit",
       balance: contribution.balance,
@@ -482,102 +557,53 @@ if (contribution.savingsType === "Flexible") {
     await wallet.save();
 
     return res.status(StatusCodes.OK).json({
-      message: "Withdrawal successful. 3% and membership fees applied.",
-      amount: totalToCredit,
-      withdrawalFee,
-      membershipFee,
+      message: "Withdrawal successful. Deductions have been applied.",
+      amountWithdrawn: totalToCredit,
+      withdrawalFee: withdrawalFee,
+      membershipFee: membershipFee,
       statusCode: StatusCodes.OK,
     });
-  } catch (error) {
-    console.error("Error creating contribution history:", error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: "Failed to create contribution history",
-      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-    });
-  }
-}
-
-  
-// Handle savingsType: Lock
-if (contribution.savingsType === "Lock") {
-  const withdrawalFee = 50;
-  const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% penalty
-  const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
-
-  const totalDeductions = withdrawalFee + earlyWithdrawalPenalty + membershipFee;
-  const totalToCredit = Math.max(amount - totalDeductions, 0);
-
-  if (contribution.balance < amount) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Insufficient funds in contribution balance",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
   }
 
-  if (totalToCredit <= 0) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "The deductions exceed or equal the withdrawal amount. Please request a higher amount.",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
 
-  contribution.balance -= amount;
-  wallet.balance += totalToCredit;
+  // Handle savingsType: Strict  
+  if (contribution.savingsType === "Strict") {
+    const withdrawalFee = 50; // fixed withdrawal fee
+    const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% early withdrawal
+    const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
+    const debtFee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
 
-  if (user.membershipStatus !== "active") {
-    user.membershipStatus = "active";
-    await user.save();
-  }
+    const totalPenalties = withdrawalFee + earlyWithdrawalPenalty + membershipFee + debtFee;
+    const totalToPay = Math.max(amount - totalPenalties, 0);
 
-  const historyPayload: iWalletHistory = {
-    amount: totalToCredit,
-    label: "Withdrawal from Lock Contribution",
-    type: "credit",
-    ref: "Self",
-    //@ts-ignore
-    user: req.user.userId,
-  };
+    // Preview penalties only
+    if (!pay) {
+      if (totalToPay <= 0) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          message: "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
+          statusCode: StatusCodes.BAD_REQUEST,
+        });
+      }
 
-  await createWalletHistoryService(historyPayload);
-  await createContributionHistoryService({
-    contribution: contributionId,
-    user: contribution.user,
-    amount: amount,
-    currency: contribution.currency || "",
-    Date: currentDate,
-    type: "debit",
-    balance: contribution.balance,
-    status: "success",
-    reference: reference,
-    withdrawalDate: currentDate,
-    savingsType: contribution.savingsType,
-  });
+      return res.status(StatusCodes.OK).json({
+        membershipFee,
+        earlyWithdrawalPenalty,
+        withdrawalFee,
+        debtFee,
+        totalPenalties,
+        totalToPay,
+        statusCode: StatusCodes.OK,
+      });
+    }
 
-  await contribution.save();
-  await wallet.save();
+    // Proceed with actual withdrawal
+    if (contribution.balance < amount) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Insufficient funds in contribution balance",
+        statusCode: StatusCodes.BAD_REQUEST,
+      });
+    }
 
-  return res.status(StatusCodes.OK).json({
-    message: "Withdrawal successful. Deductions have been applied.",
-    amountWithdrawn: totalToCredit,
-    withdrawalFee: withdrawalFee,
-    membershipFee: membershipFee,
-    statusCode: StatusCodes.OK,
-  });
-}
-
-
-// Handle savingsType: Strict  
-if (contribution.savingsType === "Strict") {
-  const withdrawalFee = 50; // fixed withdrawal fee
-  const earlyWithdrawalPenalty = currentDate < endDate ? Math.floor(amount * 0.03) : 0; // 3% early withdrawal
-  const membershipFee = user.membershipStatus === "active" ? 0 : 1000;
-  const debtFee = (await calculateTotalDebt(contributionId)) ? 2000 : 0;
-
-  const totalPenalties = withdrawalFee + earlyWithdrawalPenalty + membershipFee + debtFee;
-  const totalToPay = Math.max(amount - totalPenalties, 0);
-
-  // Preview penalties only
-  if (!pay) {
     if (totalToPay <= 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
@@ -585,80 +611,51 @@ if (contribution.savingsType === "Strict") {
       });
     }
 
+    contribution.balance -= amount;
+    wallet.balance += totalToPay;
+
+    if (user.membershipStatus !== "active") {
+      user.membershipStatus = "active";
+      await user.save();
+    }
+
+    const historyPayload: iWalletHistory = {
+      amount: totalToPay,
+      label: "Withdrawal from Strict Contribution",
+      type: "credit",
+      ref: "Self",
+      //@ts-ignore
+      user: req.user.userId,
+    };
+
+    await createWalletHistoryService(historyPayload);
+    await createContributionHistoryService({
+      contribution: contributionId,
+      user: contribution.user,
+      amount: amount,
+      currency: contribution.currency || "",
+      Date: currentDate,
+      type: "debit",
+      balance: contribution.balance,
+      status: "success",
+      reference: reference,
+      withdrawalDate: currentDate,
+      savingsType: contribution.savingsType,
+    });
+
+    await contribution.save();
+    await wallet.save();
+
     return res.status(StatusCodes.OK).json({
-      membershipFee,
-      earlyWithdrawalPenalty,
-      withdrawalFee,
-      debtFee,
+      message:
+        totalToPay > 0
+          ? "Transfer successful. Penalties have been deducted."
+          : "Penalties have fully consumed the withdrawal amount. No funds were added to your wallet.",
       totalPenalties,
       totalToPay,
       statusCode: StatusCodes.OK,
     });
   }
-
-  // Proceed with actual withdrawal
-  if (contribution.balance < amount) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "Insufficient funds in contribution balance",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
-
-  if (totalToPay <= 0) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "The penalties exceed the requested withdrawal amount. Please request a higher amount.",
-      statusCode: StatusCodes.BAD_REQUEST,
-    });
-  }
-
-  contribution.balance -= amount;
-  wallet.balance += totalToPay;
-
-  if (user.membershipStatus !== "active") {
-    user.membershipStatus = "active";
-    await user.save();
-  }
-
-  const historyPayload: iWalletHistory = {
-    amount: totalToPay,
-    label: "Withdrawal from Strict Contribution",
-    type: "credit",
-    ref: "Self",
-    //@ts-ignore
-    user: req.user.userId,
-  };
-
-  await createWalletHistoryService(historyPayload);
-  await createContributionHistoryService({
-    contribution: contributionId,
-    user: contribution.user,
-    amount: amount,
-    currency: contribution.currency || "",
-    Date: currentDate,
-    type: "debit",
-    balance: contribution.balance,
-    status: "success",
-    reference: reference,
-    withdrawalDate: currentDate,
-    savingsType: contribution.savingsType,
-  });
-
-  await contribution.save();
-  await wallet.save();
-
-  return res.status(StatusCodes.OK).json({
-    message:
-      totalToPay > 0
-        ? "Transfer successful. Penalties have been deducted."
-        : "Penalties have fully consumed the withdrawal amount. No funds were added to your wallet.",
-    totalPenalties,
-    totalToPay,
-    statusCode: StatusCodes.OK,
-  });
-}
-
-
-
 };
 
 export const getContributionsById = async (req: Request, res: Response) => {
@@ -733,14 +730,14 @@ export const chargeCardforContribution = async (
   }
 
   contribution.lastContributionDate = new Date();
-    // Update status to "Completed" as the payment was successful
-    contribution.status = "Completed";
+  // Update status to "Completed" as the payment was successful
+  contribution.status = "Completed";
   contribution.nextContributionDate = calculateNextContributionDate(
     new Date(),
     contribution.contributionPlan!
   );
   contribution.balance += contribution.amount;
-  const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`; 
+  const reference = `REF-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   await createContributionHistoryService({
     contribution: contributionId,
