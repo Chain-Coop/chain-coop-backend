@@ -388,7 +388,7 @@ export const withdrawContribution = async (req: Request, res: Response) => {
 
   // Validate the pin
   const isPinValid = await validateWalletPin(userId, pin);
-  if (withdrawalMethod !== "vant" && !isPinValid ) {
+  if (withdrawalMethod !== "vant" && !isPinValid) {
     return res.status(StatusCodes.UNAUTHORIZED).json({
       message: "Invalid wallet pin.",
       statusCode: StatusCodes.UNAUTHORIZED,
@@ -791,8 +791,20 @@ export const getUserContributions = async (req: Request, res: Response) => {
     const contributions = await Contribution.find(query)
       .sort({ createdAt: sortOrder });
 
+    // Apply 1.5% deduction to amount and balance
+    const contributionsWithDeduction = contributions.map(contribution => {
+      const contributionObj = contribution.toObject();
+      const deductionRate = 0.015; // 1.5%
+
+      // Deduct 1.5% from amount and balance
+      contributionObj.amount = Math.round(contributionObj.amount * (1 - deductionRate));
+      contributionObj.balance = Math.round(contributionObj.balance * (1 - deductionRate));
+
+      return contributionObj;
+    });
+
     res.status(StatusCodes.OK).json({
-      contributions,
+      contributions: contributionsWithDeduction,
       total: contributions.length,
     });
   } catch (error) {
