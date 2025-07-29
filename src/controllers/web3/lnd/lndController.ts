@@ -11,7 +11,7 @@ export const lockFunds = async (req: Request, res: Response) => {
     const parsedAmount = Number(amount);
 
     // Input validation
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (isNaN(parsedAmount) || parsedAmount <= 1e-10) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: 'Valid amount is required',
       });
