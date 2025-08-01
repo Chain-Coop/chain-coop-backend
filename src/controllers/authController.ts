@@ -142,7 +142,7 @@ const verifyOtpWA = async (req: Request, res: Response) => {
   // Update isVerified only if userId and phoneNumber both match
   const updatedUser = await User.findOneAndUpdate(
     { _id: userId, phoneNumber }, // double check: both user ID and phone must match
-    { isVerified: true, Tier: 1 }, // Set Tier to 1 on successful verification
+    { isPhoneVerified: true, Tier: 1 }, // Set Tier to 1 on successful verification
     { new: true }
   );
 
@@ -330,11 +330,11 @@ const resetPassword = async (req: Request, res: Response) => {
   let user: any = null;
 
   try {
-    const { 
+    const {
       // otp, 
-      password, 
-      confirmPassword, 
-      email 
+      password,
+      confirmPassword,
+      email
     } = req.body;
 
     user = await findUser('email', email);
@@ -343,7 +343,7 @@ const resetPassword = async (req: Request, res: Response) => {
     }
 
 
-     // const isVerified = await findOtp(email, otp);
+    // const isVerified = await findOtp(email, otp);
     // if (!isVerified) {
     //   throw new BadRequestError("Invalid otp provided");
     // }
@@ -370,10 +370,10 @@ const changePhoneNumber = async (req: Request, res: Response) => {
   let user: InstanceType<typeof User> | null = null;
 
   try {
-    const { 
-      userId, 
+    const {
+      userId,
       // otp, 
-      newPhoneNumber 
+      newPhoneNumber
     } = req.body;
 
     user = await findUser('id', userId);
