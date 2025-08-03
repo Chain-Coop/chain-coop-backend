@@ -54,10 +54,12 @@ const LndWalletSchema: Schema = new Schema(
     balance: {
       type: Number,
       default: 0,
+      set: (v: number) => parseFloat(v.toFixed(7)),
     },
     lockedBalance: {
       type: Number,
       default: 0,
+      set: (v: number) => parseFloat(v.toFixed(7)),
     },
     lock: [LockEntrySchema],
   },
@@ -67,4 +69,3 @@ const LndWalletSchema: Schema = new Schema(
 );
 
 export default mongoose.model<ILndWallet>('LndWallet', LndWalletSchema);
-
