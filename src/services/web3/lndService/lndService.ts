@@ -194,7 +194,16 @@ export const getBitcoinLockStatus = async (userId: string) => {
 
     return {
       hasActiveLock: wallet.lock && wallet.lock.length > 0,
-      activeLock: wallet.lock || [],
+      activeLock:
+        wallet.lock.map((lock) => {
+          return {
+            lockId: lock.lockId,
+            amount: lock.amount / 100000000, // Convert from satoshis to BTC
+            lockedAt: lock.lockedAt,
+            maturityDate: lock.maturityDate,
+            purpose: lock.purpose || 'staking',
+          };
+        }) || null,
       totalLockedBalance: wallet.lockedBalance / 100000000, // Convert from satoshis to BTC
     };
   } catch (error: any) {
