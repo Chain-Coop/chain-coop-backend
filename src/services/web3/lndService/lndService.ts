@@ -7,7 +7,7 @@ export const getBitcoinBalance = async (userId: Types.ObjectId | string) => {
   if (!wallet) {
     throw new Error('Bitcoin wallet not found for this user');
   }
-  return wallet.balance;
+  return wallet.balance / 100000000; // Convert from satoshis to BTC
 };
 
 export const decrementBalance = async (
@@ -16,7 +16,7 @@ export const decrementBalance = async (
 ) => {
   return await LndWallet.findByIdAndUpdate(
     userId,
-    { $inc: { balance: -amount } },
+    { $inc: { balance: -amount * 100000000 } },
     {
       new: true,
       runValidators: true,
@@ -30,7 +30,7 @@ export const incrementBalance = async (
 ) => {
   const result = await LndWallet.findOneAndUpdate(
     { userId: userId },
-    { $inc: { balance: amount } },
+    { $inc: { balance: amount * 100000000 } },
     {
       new: true,
       runValidators: true,
@@ -52,15 +52,16 @@ export const lockBalance = async (
     if (!wallet) {
       throw new Error('Wallet not found');
     }
+    const parsedAmount = amount * 100000000; // Convert to satoshis
 
     const availableBalance = wallet.balance - wallet.lockedBalance;
-    if (availableBalance < amount) {
+    if (availableBalance < parsedAmount) {
       throw new Error('Insufficient available balance to lock');
     }
 
     const lockId = uuidv4();
     const lockEntry = {
-      amount,
+      parsedAmount,
       lockedAt: new Date(),
       maturityDate,
       purpose,
@@ -69,7 +70,7 @@ export const lockBalance = async (
     const updatedWallet = await LndWallet.findOneAndUpdate(
       { userId },
       {
-        $inc: { lockedBalance: amount, balance: -amount },
+        $inc: { lockedBalance: parsedAmount, balance: -parsedAmount },
         $push: { lock: lockEntry }, // Add new lock entry
       },
       { new: true }
@@ -78,7 +79,7 @@ export const lockBalance = async (
       throw new Error('Failed to update wallet');
     }
     return {
-      lockedAmount: amount,
+      lockedAmount: parsedAmount,
       lockId,
       lockEntry,
     };
@@ -129,7 +130,7 @@ export const unlockExpiredFunds = async (userId: string) => {
       throw new Error('Failed to update wallet');
     }
     return {
-      unlockedAmount: totalUnlockedAmount,
+      unlockedAmount: totalUnlockedAmount / 100000000, // Convert to BTC
       expiredLock: expiredLocks,
       wallet: updatedWallet,
     };
@@ -147,7 +148,7 @@ export const getAvailableBalance = async (userId: string) => {
       return 0;
     }
 
-    return wallet.balance - wallet.lockedBalance;
+    return (wallet.balance - wallet.lockedBalance) / 100000000; // Convert from satoshis to BTC
   } catch (error: any) {
     console.error('Error getting available balance:', error);
     throw new Error(error.message || 'Error fetching available balance');
@@ -163,9 +164,9 @@ export const getWalletDetails = async (userId: string) => {
     }
 
     return {
-      totalBalance: wallet.balance,
-      lockedBalance: wallet.lockedBalance,
-      availableBalance: wallet.balance - wallet.lockedBalance,
+      totalBalance: wallet.balance / 100000000, // Convert from satoshis to BTC
+      lockedBalance: wallet.lockedBalance / 100000000, // Convert from satoshis to BTC
+      availableBalance: (wallet.balance - wallet.lockedBalance) / 100000000, // Convert from satoshis to BTC
       activeLock: wallet.lock || null,
       hasActiveLock: !!wallet.lock,
     };
@@ -185,7 +186,7 @@ export const getBitcoinLockStatus = async (userId: string) => {
     return {
       hasActiveLock: wallet.lock && wallet.lock.length > 0,
       activeLock: wallet.lock || [],
-      totalLockedBalance: wallet.lockedBalance,
+      totalLockedBalance: wallet.lockedBalance / 100000000, // Convert from satoshis to BTC
     };
   } catch (error: any) {
     console.error('Error getting lock status:', error);
@@ -205,7 +206,13 @@ export const getLockDetails = async (userId: string, lockId: string) => {
       throw new Error('Lock entry not found');
     }
 
-    return lockEntry;
+    return {
+      lockId: lockEntry.lockId,
+      amount: lockEntry.amount / 100000000, // Convert from satoshis to BTC
+      lockedAt: lockEntry.lockedAt,
+      maturityDate: lockEntry.maturityDate,
+      purpose: lockEntry.purpose || 'staking',
+    };
   } catch (error: any) {
     console.error('Error getting lock details:', error);
     throw new Error(error.message || 'Error fetching lock details');
