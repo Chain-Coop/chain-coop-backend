@@ -54,7 +54,6 @@ const LndWalletSchema: Schema = new Schema(
     balance: {
       type: Number,
       default: 0,
-      set: (v: string) => Math.round(parseFloat(v) * 100000000),
     },
     lockedBalance: {
       type: Number,
