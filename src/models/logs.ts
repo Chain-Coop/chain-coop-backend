@@ -72,4 +72,45 @@ const BVNLogSchema = new Schema(
 BVNLogSchema.index({ userId: 1, attemptDate: -1 });
 BVNLogSchema.index({ userId: 1, attemptStatus: 1, attemptDate: -1 });
 
-export default model<IBVNLog>('BVNLog', BVNLogSchema);
+export const BVNLog = model<IBVNLog>('BVNLog', BVNLogSchema);
+
+
+export interface IFailedTransaction extends Document {
+    type: 'withdrawal' | 'deposit';
+    reference: string;
+    userId?: Types.ObjectId;
+    walletId?: Types.ObjectId;
+    reason: string;
+    data: any;
+    createdAt: Date;
+}
+
+const FailedTransactionSchema = new Schema<IFailedTransaction>({
+    type: { 
+        type: String,
+        enum: ['withdrawal', 'deposit'], 
+        required: true 
+    },
+    reference: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
+    userId: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'User' 
+    },
+    walletId: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'VantWallet' 
+    },
+    reason: { 
+        type: String, 
+        required: true 
+    },
+    data: { type: Schema.Types.Mixed, required: true },
+    createdAt: { type: Date, default: Date.now },
+});
+
+export const FailedTransaction = model<IFailedTransaction>('FailedTransaction', FailedTransactionSchema);
+

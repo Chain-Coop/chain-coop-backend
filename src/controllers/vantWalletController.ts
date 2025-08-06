@@ -6,10 +6,11 @@ import { StatusCodes } from 'http-status-codes';
 import { Request, Response } from 'express';
 import { getUserDetails } from '../services/authService';
 import VantServices, { TransferRequest } from '../services/vantWalletServices';
-import { VantTransaction } from '../models/vantWalletModel';
+import { IVantWallet, VantTransaction } from '../models/vantWalletModel';
 import mongoose from 'mongoose';
 import Contribution from "../models/contribution";
 import { findContributionService } from '../services/contributionService';
+import { logFailedTransaction } from '../services/logs';
 
 class VantController {
     /**
@@ -201,10 +202,13 @@ class VantController {
      * @route POST /api/vant/transfer
      */
     async transferFunds(req: Request, res: Response) {
+        // @ts-ignore
+        const userId = req.user.userId;
+        let wallet: IVantWallet | null = null;
+        let payload: TransferRequest | null = null;
+
         try {
             const { email, amount, account_number, bank_code, narration } = req.body;
-            // @ts-ignore
-            const userId = req.user.userId;
 
             if (!amount || !account_number || !bank_code) {
                 throw new BadRequestError('Amount, account number, and bank code are required');
@@ -214,7 +218,7 @@ class VantController {
                 throw new BadRequestError('Amount must be greater than zero');
             }
 
-            const wallet = await VantServices.getUserReservedWallet(userId);
+            wallet = await VantServices.getUserReservedWallet(userId);
             if (!wallet || wallet.status !== 'active') {
                 throw new NotFoundError('No active wallet found');
             }
@@ -230,7 +234,7 @@ class VantController {
             const accountDetails = await VantServices.verifyAccount(account_number, bank_code);
             const reference = uuidv4();
 
-            let payload: TransferRequest = {
+            payload = {
                 reference: `PAY_${Date.now()}_${reference.slice(2, 12)}`,
                 amount,
                 account_number,
@@ -256,6 +260,17 @@ class VantController {
                 }
             });
         } catch (error: any) {
+            if (payload) {
+                await logFailedTransaction({
+                    type: 'withdrawal',
+                    reference: payload.reference,
+                    reason: error.message,
+                    data: payload,
+                    userId,
+                    walletId: wallet?._id
+                });
+            }
+
             return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: error.message || 'Failed to process transfer'

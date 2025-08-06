@@ -1,6 +1,6 @@
 // services/qoreidService.ts
 import axios from 'axios';
-import BVNLog from '../models/bvnModel';
+import { BVNLog } from '../models/logs';
 import { Types } from 'mongoose';
 
 interface QoreIDBooleanMatchParams {

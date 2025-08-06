@@ -6,6 +6,8 @@ import { VantWallet, IVantWallet, VantTransaction } from '../models/vantWalletMo
 import { BANK_LIST } from '../utils/bankList';
 import Contribution from "../models/contribution";
 import { createContributionHistoryService } from './contributionService';
+import Wallet from "../models/wallet"
+import { logFailedTransaction } from './logs';
 
 interface VerifyAccountResponse {
     status: string,
@@ -188,7 +190,7 @@ class VantService {
             updateData = {
                 status: 'failed',
                 errorMessage: error
-            }
+            };
         }
 
         const wallet = await VantWallet.findOneAndUpdate(
@@ -200,6 +202,34 @@ class VantService {
         if (!wallet) {
             throw new NotFoundError('Reserved wallet not found for webhook update');
         }
+
+        const BANK_MAP = BANK_LIST.reduce((acc, bank) => {
+            acc[bank.name.toLowerCase()] = { bankCode: bank.code, bankId: bank.id };
+            return acc;
+        }, {} as Record<string, { bankCode: string; bankId: number }>);
+
+
+        const bankAccounts = (data.account_numbers || []).map((acc: any) => {
+            const bankInfo = BANK_MAP[acc.bank.toLowerCase()] || {
+                bankCode: '',
+                bankId: 0,
+            };
+
+            return {
+
+                accountNumber: acc.account_number,
+                bankCode: bankInfo.bankCode,
+                accountName: acc.account_name,
+                bankId: bankInfo.bankId,
+                bankName: acc.bank,
+            }
+        });
+
+        await Wallet.findOneAndUpdate(
+            { user: wallet.userId },
+            { $set: { bankAccounts } },
+            { new: true }
+        );
 
         return wallet;
     }
@@ -270,18 +300,18 @@ class VantService {
     async transferFunds(
         userId: string,
         transferRequest: TransferRequest,
-        wallet: any
+        walletDetails: any
     ): Promise<TransferResponse> {
         try {
             // Create transaction record first with pending status
             const transaction = new VantTransaction({
-                walletId: wallet._id,
-                userId: wallet.userId,
+                walletId: walletDetails._id,
+                userId: walletDetails.userId,
                 reference: transferRequest.reference,
                 amount: transferRequest.amount,
                 type: 'outward',
                 status: 'pending',
-                accountNumber: wallet.accountNumbers[0]?.account_number || '',
+                accountNumber: walletDetails.accountNumbers[0]?.account_number || '',
                 destinationAccountNumber: transferRequest.account_number,
                 destinationAccountName: transferRequest.name,
                 destinationBank: transferRequest.bank_code,
@@ -342,6 +372,24 @@ class VantService {
                     }
                 },
             );
+
+            const updatedWallet = await Wallet.findOneAndUpdate(
+                {
+                    user: userId,
+                    balance: { $gte: transferRequest.amount },
+                },
+                {
+                    $inc: { balance: -transferRequest.amount },
+                },
+                {
+                    new: true,
+                }
+            );
+
+            if (!updatedWallet) {
+                throw new Error("Insufficient funds");
+            }
+
             return data;
         } catch (error: any) {
             console.error('Error processing transfer:', error.message);
@@ -440,8 +488,33 @@ class VantService {
                     reference: contribution.paymentReference,
                     savingsType: contribution.savingsType,
                 });
+
+
+                await Wallet.findOneAndUpdate(
+                    { user: wallet.userId },
+                    { $inc: { balance: amount } },
+                    { new: true }
+                );
+            } else {
+                await logFailedTransaction({
+                    type: 'deposit',
+                    reference,
+                    reason: `Deposit failed with status: ${status}`,
+                    data: transferData,
+                    userId: wallet?.userId,
+                    walletId: wallet?._id,
+                });
             }
         } catch (error: any) {
+            await logFailedTransaction({
+                type: 'deposit',
+                reference,
+                reason: error.message,
+                data: transferData,
+                userId: wallet?.userId,
+                walletId: wallet?._id,
+            });
+
             console.error('Error processing inward transfer:', error.message);
             throw error;
         }
