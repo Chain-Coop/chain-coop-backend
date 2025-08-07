@@ -111,7 +111,7 @@ const verifyOtp = async (req: Request, res: Response) => {
   }
 
   // Activate user and not verify it
-  const newUser = await updateUserByEmail(email, { status: 'active' });
+  const newUser = await updateUserByEmail(email, { status: 'active', isVerified: true, Tier: 1 });
   if (!newUser) {
     throw new NotFoundError('User not found');
   }
@@ -139,13 +139,13 @@ const verifyOtpWA = async (req: Request, res: Response) => {
   // Delete OTP to prevent reuse
   await deleteOtpPhone(phoneNumber);
 
-  // Update isVerified only if userId and phoneNumber both match
+  // Update isPhoneVerified only if userId and phoneNumber both match
   const updatedUser = await User.findOneAndUpdate(
     { _id: userId, phoneNumber }, // double check: both user ID and phone must match
-    { isPhoneVerified: true, Tier: 1 }, // Set Tier to 1 on successful verification
+    { isPhoneVerified: true },
     { new: true }
   );
-
+  
   if (!updatedUser) {
     throw new NotFoundError(
       'User not found or phone number does not match user'
@@ -253,15 +253,17 @@ const login = async (req: Request, res: Response) => {
     //  }
 
     // TEMPORARY BYPASS WHATSAPP OTP VERIFICATION
-    if (user.Tier === 0 && user.isVerified === false) {
-      user.Tier = 1;
-      user.isVerified = true;
-      await user.save();
-    }
+    // if (user.Tier === 0 && user.isVerified === false) {
+      // user.Tier = 1;
+      // user.isVerified = true;
+      // await user.save();
+    // }
 
     const token = await user.createJWT();
 
     await logUserOperation(user?.id, req, 'LOGIN', 'Success');
+
+    console.log("USER: ", User)
 
     console.log(user);
     res.status(StatusCodes.OK).json({
@@ -269,6 +271,7 @@ const login = async (req: Request, res: Response) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       isVerified: user.isVerified,
+      isPhoneVerified: user.isPhoneVerified,
       token,
       role: user.role,
       //@ts-ignore
