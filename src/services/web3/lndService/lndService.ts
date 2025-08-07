@@ -61,7 +61,7 @@ export const lockBalance = async (
 
     const lockId = uuidv4();
     const lockEntry = {
-      parsedAmount,
+      amount: parsedAmount,
       lockedAt: new Date(),
       maturityDate,
       purpose,
@@ -70,7 +70,7 @@ export const lockBalance = async (
     const updatedWallet = await LndWallet.findOneAndUpdate(
       { userId },
       {
-        $inc: { lockedBalance: parsedAmount, balance: -parsedAmount },
+        $inc: { lockedBalance: parsedAmount },
         $push: { lock: lockEntry }, // Add new lock entry
       },
       { new: true }
