@@ -157,7 +157,7 @@ class CashwyreController {
         amount,
         lightningAddress
       );
-      if (!lightningPayment) {
+      if (lightningPayment.success === false) {
         throw new NotFoundError('Failed to send lightning payment');
       }
       return res.status(StatusCodes.OK).json({
