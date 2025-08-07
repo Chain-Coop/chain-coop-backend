@@ -597,7 +597,7 @@ const lockBitcoinAmount = async (
   }
 
   // Get current balance
-  const currentBalance = await getBitcoinBalance(userId);
+  const currentBalance = await getAvailableBitcoinBalance(userId);
   if (currentBalance < amount) {
     throw new Error(
       `Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`
