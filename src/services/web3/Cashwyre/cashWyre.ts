@@ -14,7 +14,10 @@ import {
 } from '../../../models/web3/cashwyre';
 import { getUserDetails } from '../../authService';
 import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
-import { getAvailableBalance } from '../lndService/lndService';
+import {
+  decrementBalance,
+  getAvailableBalance,
+} from '../lndService/lndService';
 // import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
 
 export enum NetworkType {
@@ -607,8 +610,11 @@ class CashwyreService {
         payload
       );
 
-      if (data.success === false) {
+      if (data.data.success === false) {
         throw new NotFoundError('Crypto asset was not sent');
+      }
+      if (data.data.success === true) {
+        await decrementBalance(userId, amount);
       }
 
       return data.data;
