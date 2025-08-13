@@ -99,7 +99,7 @@ export const createContributionService = async (data: {
       );
     }
 
-    const contribution = await Contribution.create(contributionPayload);
+const contribution:any = await Contribution.create(contributionPayload);
 
     await VantWallet.findOneAndUpdate({ userId: data.user }, { contributionId: contribution._id });
 
