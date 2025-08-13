@@ -2,17 +2,36 @@ import { ethers, Contract } from 'ethers';
 import { LISKRPC_TESTNET } from '../../constant/rpcs';
 import savingcirclesabi from '../../constant/abi/SavingCircles.json';
 import { Signer } from '../../utils/web3/createSingner';
-import { SAVINGCIRCLESCONTRACT_LISK_TESTNET } from '../../constant/contract/SavingCircles';
-
-export const Provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
+import {
+  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
+  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+} from '../../constant/contract/SavingCircles';
+import { BSC_TESTNET, POLYGON_TESTNET } from '../../constant/rpcs';
 
 const savingcirclescontract = async (
+  network: string,
   privateKey?: string
 ): Promise<ethers.Contract> => {
-  const signerOrProvider = privateKey ? await Signer(privateKey,Provider) : Provider;
+  if (!network) {
+    throw new Error('Network is required to create a contract instance');
+  }
+  let Provider;
+  let contractAddress;
+  if (network === 'TBSC') {
+    Provider = new ethers.JsonRpcProvider(BSC_TESTNET);
+    contractAddress = SAVINGCIRCLESCONTRACT_BSC_TESTNET;
+  } else if (network === 'TPOLYGON') {
+    Provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
+    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON_TESTNET;
+  } else {
+    throw new Error('Unsupported network');
+  }
+  const signerOrProvider = privateKey
+    ? await Signer(privateKey, Provider)
+    : Provider;
 
   const contract = new Contract(
-    SAVINGCIRCLESCONTRACT_LISK_TESTNET,
+    contractAddress,
     savingcirclesabi.abi,
     signerOrProvider
   );
@@ -25,4 +44,4 @@ const userAddress = async (private_key: string): Promise<string> => {
   return userAddress;
 };
 
-export { savingcirclescontract ,userAddress};
+export { savingcirclescontract, userAddress };

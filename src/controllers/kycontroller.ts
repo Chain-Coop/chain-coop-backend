@@ -140,11 +140,11 @@ export const initiateTier2Kyc = async (req: Request, res: Response) => {
         message: "User not found" 
       });
     }
-    // Ensure the user is Tier 1 before Tier 2 KYC can be initiated.
-    if (user.Tier !== 1) {
+    // Ensure the user is Tier 2 before Tier 3 KYC can be initiated.
+    if (user.Tier !== 2) {
       return res.status(400).json({ 
         status: 400,
-        message: "User must be a Tier 1 user to initiate Tier 2 KYC" 
+        message: "User must be a Tier 2 user to initiate Tier 3 KYC" 
       });
     }
 

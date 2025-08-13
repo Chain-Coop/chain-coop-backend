@@ -10,6 +10,7 @@ import {
   getBitcoinBalanceWithLocks,
   getLockStatus,
   transferGasfees,
+  getLockSummary,
 } from '../../controllers/web3/accountController';
 import { authorize, verifyPin } from '../../middlewares/authorization';
 const router = Router();
@@ -156,9 +157,21 @@ const router = Router();
  *            schema:
  *              type: object
  *              properties:
+ *                status:
+ *                  type: string
+ *                  example: success
  *                message:
  *                  type: string
  *                  example: Gas fees transferred successfully
+ *                data:
+ *                  type: object
+ *                  properties:
+ *                    bscTransactionHash:
+ *                      type: string
+ *                      example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                    polygonTransactionHash:
+ *                      type: string
+ *                      example: "0x1234567890abcdef1234567890abcdef12345678"
  *      400:
  *        description: No Wallet found
  *        content:
@@ -169,6 +182,26 @@ const router = Router();
  *                message:
  *                  type: string
  *                  example: No Wallet found
+ *      401:
+ *        description: Unauthorized
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                message:
+ *                  type: string
+ *                  example: Unauthorized
+ *      500:
+ *        description: Internal Server Error
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                message:
+ *                  type: string
+ *                  example: Internal Server Error
  */
 
 /**
@@ -194,7 +227,7 @@ const router = Router();
  *                     userId:
  *                       type: string
  *                       example: "1234567890"
- *                     walletAddress:
+ *                     address:
  *                       type: string
  *                       example: "0x1234567890abcdef1234567890abcdef12345678"
  *                     balance:
@@ -203,6 +236,18 @@ const router = Router();
  *                     btcAddress:
  *                       type: string
  *                       example: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+ *                     bitcoinBalance:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           example: 0.01
+ *                         available:
+ *                           type: number
+ *                           example: 0.005
+ *                         locked:
+ *                           type: number
+ *                           example: 0.005
  *       400:
  *         description: No Wallet found
  *         content:
@@ -378,7 +423,7 @@ const router = Router();
  *                   type: object
  *                   description: Transaction details
  *       400:
- *         description: Bad Request - Missing required fields
+ *         description: Bad Request - Missing required fields or invalid Bitcoin address
  *         content:
  *           application/json:
  *             schema:
@@ -473,9 +518,6 @@ const router = Router();
  *                     lockReason:
  *                       type: string
  *                       example: "Savings goal for next month"
- *                     isLocked:
- *                       type: boolean
- *                       example: true
  *       400:
  *         description: Bad Request - Missing required fields or invalid data
  *         content:
@@ -505,7 +547,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Wallet already has an active lock. Please wait for it to expire or unlock it first.
+ *                   example: Failed to lock Bitcoin
  */
 
 /**
@@ -538,15 +580,6 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: Bitcoin successfully unlocked
- *                 data:
- *                   type: object
- *                   properties:
- *                     unlockedAt:
- *                       type: string
- *                       example: "2024-12-01T11:00:00.000Z"
- *                     isLocked:
- *                       type: boolean
- *                       example: false
  *       401:
  *         description: Unauthorized
  *         content:
@@ -566,7 +599,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Lock period has not expired yet. Time remaining: 2 hours"
+ *                   example: Failed to unlock Bitcoin
  */
 
 /**
@@ -638,7 +671,7 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Bitcoin wallet not found for this user
+ *                   example: Failed to check lock status
  */
 
 /**
@@ -716,19 +749,122 @@ const router = Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Bitcoin wallet not found for this user
+ *                   example: Failed to fetch balance
  */
 
+/**
+ * @swagger
+ * /web3/account/lock-summary/{lockId}:
+ *   get:
+ *     summary: Get detailed lock summary for a specific lock
+ *     tags:
+ *       - [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: lockId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the lock
+ *         example: "64f1b2c3d4e5f6a7b8c9d0e1"
+ *     responses:
+ *       200:
+ *         description: Lock summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     lockId:
+ *                       type: string
+ *                       example: "64f1b2c3d4e5f6a7b8c9d0e1"
+ *                     amount:
+ *                       type: number
+ *                       example: 0.005
+ *                     lockedAt:
+ *                       type: string
+ *                       example: "2024-12-01T10:00:00.000Z"
+ *                     unlocksAt:
+ *                       type: string
+ *                       example: "2024-12-01T11:00:00.000Z"
+ *                     lockDuration:
+ *                       type: integer
+ *                       example: 3600
+ *                     lockReason:
+ *                       type: string
+ *                       example: "Savings goal for next month"
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
+ *                     timeRemainingMs:
+ *                       type: integer
+ *                       example: 1800000
+ *                     canUnlock:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Bad Request - Lock ID is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lock ID is required
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized
+ *       404:
+ *         description: Lock not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lock not found
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Failed to fetch lock details
+ */
+
+// Existing routes
 router.post('/activate', authorize, activateWeb3Wallet);
 router.post('/activateBitcoin', authorize, activateBitcoinWallet);
 router.get('/details', authorize, userDetails);
 router.post('/withdraw', authorize, verifyPin, withdraw);
 router.post('/withdrawBitcoin', authorize, verifyPin, withdrawBitcoin);
-// Lock-related routes
 router.post('/lock', authorize, lockBitcoin);
 router.post('/unlock', authorize, unlockBitcoin);
 router.get('/lock-status', authorize, getLockStatus);
 router.get('/balance', authorize, getBitcoinBalanceWithLocks);
 router.get('/transferGasfees', authorize, transferGasfees);
+
+// Missing route - Add this line
+router.get('/lock-summary/:lockId', authorize, getLockSummary);
 
 export default router;

@@ -36,6 +36,7 @@ import {
   savingCircleRoutes,
   blogRoutes,
   restoreWallets,
+  vantWalletRoutes,
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -51,7 +52,7 @@ import cashwyre from './routes/web3/cashWyre/cashWyre';
 import lndRoutes from './routes/web3/lnd/lndRoutes';
 //import
 import logger from './utils/logger';
-import { webhookController } from './controllers/webhookController';
+import { VantWebhookController, webhookController } from './controllers/webhookController';
 import { authorize } from './middlewares/authorization';
 import { addtoLimit, getDailyTotal } from './services/dailyServices';
 import { tryRecurringCircleService } from './services/savingCircle.services';
@@ -178,6 +179,8 @@ app.use('/api/v1/web3/savingcircle', web3SavingCircle);
 
 app.use('/api/v1/savingcircle', savingCircleRoutes);
 app.use('/api/v1/blog', blogRoutes);
+
+app.use('/api/v1/vant', vantWalletRoutes);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

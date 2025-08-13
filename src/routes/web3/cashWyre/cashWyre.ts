@@ -865,6 +865,80 @@ const router = Router();
  *                   example: "Failed to get transactions"
  */
 
+/**
+ * @swagger
+ * /web3/cashwyre/crypto-rates:
+ *   get:
+ *     summary: Get cryptocurrency rates
+ *     description: Retrieves current exchange rates for a specific cryptocurrency
+ *     tags: [Cashwyre]
+ *     parameters:
+ *       - in: query
+ *         name: cryptoAsset
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "usdt"
+ *         description: The cryptocurrency symbol to get rates for
+ *     responses:
+ *       200:
+ *         description: Crypto rates fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Crypto rates fetched successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reference:
+ *                       type: string
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     cryptoAsset:
+ *                       type: string
+ *                       example: "USDT"
+ *                     rate:
+ *                       type: number
+ *                       example: 1.02
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-05-09T12:00:00Z"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Crypto asset is required"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to get crypto rates"
+ */
+
+
 router.post('/onramp/quote', authorize, CashwyreController.getOnrampQuote);
 router.post(
   '/onramp/confirm',
@@ -893,5 +967,6 @@ router.get('/banks', CashwyreController.getSupportedBanks);
 router.post('/verify-account', CashwyreController.verifyBankAccount);
 
 router.get('/transactions', authorize, CashwyreController.getUserTransactions);
+router.get('/crypto-rates', CashwyreController.getCryptoRates);
 router.post('/cashwyre-webhook', CashwyreWebhookController);
 export default router;

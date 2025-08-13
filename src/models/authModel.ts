@@ -19,6 +19,7 @@ export interface UserDocument extends Document {
   lastName: string;
   phoneNumber: string;
   isVerified: boolean;
+  isPhoneVerified: boolean;
   Tier: number;
   membershipType: string;
   membershipStatus: 'active' | 'pending' | 'inactive';
@@ -90,6 +91,10 @@ const UserSchema = new Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    isPhoneVerified: { 
+      type: Boolean, 
+      default: false
     },
     firstName: {
       type: String,

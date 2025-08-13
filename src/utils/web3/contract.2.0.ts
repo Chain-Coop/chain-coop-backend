@@ -4,6 +4,8 @@ import {
   ETHERLINK_TESTNET,
   BSC_MAINNET,
   POLYGON_MAINNET,
+  BSC_TESTNET,
+  POLYGON_TESTNET,
 } from '../../constant/rpcs';
 import erc20abi from '../../constant/abi/abi.json';
 import savingabi from '../../constant/abi/ChainCoopSaving.2.0.json';
@@ -30,6 +32,10 @@ const contract = async (
     provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
   } else if (network === 'POLYGON') {
     provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
+  } else if (network === 'TBSC') {
+    provider = new ethers.JsonRpcProvider(BSC_TESTNET);
+  } else if (network === 'TPOLYGON') {
+    provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
   } else {
     throw new Error(`Invalid contract network: ${network}`);
   }
@@ -126,7 +132,7 @@ const signPermit = async (
   try {
     let provider;
     let spender;
-    
+
     // Get network configuration
     if (network === 'LISK') {
       provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
@@ -147,15 +153,19 @@ const signPermit = async (
     // FIXED: Create wallets with providers
     const userWallet = new ethers.Wallet(userPrivateKey, provider);
     const relayerWallet = new ethers.Wallet(relayerPrivateKey, provider);
-    
+
     // FIXED: Get contract with relayer wallet for execution
-    const contract = await contractWithPermit(tokenAddress, network, relayerPrivateKey);
+    const contract = await contractWithPermit(
+      tokenAddress,
+      network,
+      relayerPrivateKey
+    );
 
     // Get token details
     const name = await contract.name();
     const version = '1'; // Most ERC20 tokens use version 1
     const chainId = (await provider.getNetwork()).chainId;
-    
+
     // EIP-712 domain
     const domain = {
       name,
@@ -203,19 +213,18 @@ const signPermit = async (
       r,
       s
     );
-    
+
     await permitTx.wait();
     console.log('Permit transaction successful:', permitTx.hash);
     return permitTx;
   } catch (error) {
     console.error('Error in signPermit:', error);
-    throw new Error(`Failed to sign permit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to sign permit: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
   }
 };
 
-export {
-  contract,
-  chainCoopSavingcontract,
-  signPermit,
-  getNonce,
-};
+export { contract, chainCoopSavingcontract, signPermit, getNonce };

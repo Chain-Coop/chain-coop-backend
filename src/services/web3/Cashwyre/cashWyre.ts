@@ -14,6 +14,10 @@ import {
 } from '../../../models/web3/cashwyre';
 import { getUserDetails } from '../../authService';
 import LndWallet, { ILndWallet } from '../../../models/web3/lnd/wallet';
+import {
+  decrementBalance,
+  getAvailableBalance,
+} from '../lndService/lndService';
 // import GenerateCryproAddress, { IGenerateCryproAddress, NetworkType } from '../../../models/web3/cashwyre';
 
 export enum NetworkType {
@@ -132,13 +136,6 @@ class CashwyreService {
         userId: new mongoose.Types.ObjectId(userId),
         balance: 0,
         lockedBalance: 0,
-        lock: {
-          amount: 0,
-          maturityDate: new Date(),
-          purpose: '',
-          lockedAt: new Date(),
-          lockId: '',
-        },
       });
       await newWallet.save();
     }
@@ -269,6 +266,7 @@ class CashwyreService {
           Reference: reference,
           BusinessCode: CashwyreConfig.BusinessCode,
           AppId: CashwyreConfig.AppId,
+          FeeType: 'business',
           RequestId: reference,
         }
       );
@@ -310,7 +308,21 @@ class CashwyreService {
       throw new Error(error.message);
     }
   }
-
+  async getCryptoRate(requestId: string, cryptoAsset: string) {
+    try {
+      const data = await this.axiosInstance.post('/businessRate/rateInfo', {
+        appId: CashwyreConfig.AppId,
+        requestId,
+        cryptoAsset,
+        businessCode: CashwyreConfig.BusinessCode,
+        currency: 'NGN',
+      });
+      if (!data) {
+        throw new NotFoundError('Crypto rate was not fetched');
+      }
+      return data.data;
+    } catch (error) {}
+  }
   async getSupportedBanks(requestId: string) {
     try {
       const data = await this.axiosInstance.post(
@@ -384,7 +396,8 @@ class CashwyreService {
     bankName: string,
     accountName: string,
     accountNumber: string,
-    bankCode: string
+    bankCode: string,
+    chainCoopFees: string
   ): Promise<ICashwyreTransaction> {
     const transaction = new CashwyreTransaction({
       userId: new mongoose.Types.ObjectId(userId),
@@ -402,6 +415,7 @@ class CashwyreService {
       accountName,
       accountNumber,
       bankCode,
+      chainCoopFees,
     });
 
     return await transaction.save();
@@ -573,6 +587,11 @@ class CashwyreService {
         throw new NotFoundError('User not found');
       }
 
+      const getAvailableBalanceResult = await getAvailableBalance(userId);
+
+      if (getAvailableBalanceResult < amount) {
+        throw new NotFoundError('Insufficient balance to send crypto asset');
+      }
       const requestId = uuidv4();
       const payload = {
         amountInCryptoAsset: amount,
@@ -591,8 +610,11 @@ class CashwyreService {
         payload
       );
 
-      if (data.success === false) {
+      if (data.data.success === false) {
         throw new NotFoundError('Crypto asset was not sent');
+      }
+      if (data.data.success === true) {
+        await decrementBalance(userId, amount);
       }
 
       return data.data;

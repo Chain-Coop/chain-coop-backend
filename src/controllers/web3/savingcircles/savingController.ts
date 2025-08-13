@@ -17,61 +17,216 @@ import {
   decommissionCircle,
   setTokenAllowed,
   getMemberBalances,
+  extractCircleIdFromReceipt,
 } from '../../../services/web3/Savingcircles/savingCirlesServices';
+import { Circle } from '../../../models/web3/groupSaving';
 import { ethers } from 'ethers';
+import User from '../../../models/user';
 
 const createCircles = asyncHandler(async (req: Request, res: Response) => {
-  const { members, depositAmount, token, depositInterval, maxDeposits,network } =
-    req.body;
+  const {
+    title,
+    description,
+    depositAmount,
+    token,
+    depositInterval,
+    maxDeposits,
+    network,
+  } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
-  if (
-    !members ||
-    !depositAmount ||
-    !token ||
-    !depositInterval ||
-    !maxDeposits
-  ) {
+  if (!depositAmount || !token || !depositInterval || !maxDeposits) {
     res.status(400).json({
       message:
         'Provide all required values: members, depositAmount, token, depositInterval, maxDeposits',
     });
     return;
   }
-  const wallet = await getUserWeb3Wallet(userId);
-  if (!wallet) {
-    res.status(400).json({ message: 'Please activate wallet' });
-    return;
-  }
-  const userPrivateKey = decrypt(wallet.encryptedKey);
   const tokenIdNum = parseInt(token, 10);
   if (isNaN(tokenIdNum)) {
     res.status(400).json({ message: 'Invalid tokenId' });
     return;
   }
-  const tokenAddressToSaveWith = tokenAddress(tokenIdNum,network);
-  const tx = await createSavingCircles(
-    members,
+  const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
+  const circle = new Circle({
+    owner: userId,
+    members: [userId],
+    title,
+    description,
     depositAmount,
-    tokenAddressToSaveWith,
-    userPrivateKey,
+    token: tokenAddressToSaveWith,
     depositInterval,
-    maxDeposits
-  );
-  if (!tx) {
-    res.status(400).json({ message: 'Failed to create a circle' });
+    maxDeposits,
+    status: 'pending',
+  });
+  await circle.save();
+  res.status(200).json({ message: 'Success', data: circle });
+  return;
+});
+
+const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
+  const { circleId, memberEmail } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  if (!circleId || !memberEmail) {
+    res.status(400).json({
+      message: 'Provide all required values: circleId, memberId',
+    });
     return;
   }
-  const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith,network);
-  await createTransactionHistory(
-    userId,
-    parseFloat(depositAmount),
-    'SAVE',
-    tx.hash,
-    tokenSymbol
-  );
-  res.status(200).json({ message: 'Success', data: tx.hash });
-  return;
+  try {
+    const memberId=await User.findOne({email: memberEmail}).then(user => {
+      if (!user) {
+        res.status(404).json({ message: 'Member not found' });
+        return; 
+      }
+      return user._id;
+    });
+    const circle = await Circle.findById(circleId);
+    if (!circle) {
+      res.status(404).json({ message: 'Circle not found' });
+      return;
+    }
+    if (circle.members.includes(memberId)) {
+      res.status(400).json({ message: 'Member already in circle' });
+      return;
+    }
+    if (circle.isOnChain) {
+      res
+        .status(400)
+        .json({ message: 'Cannot add members to on-chain circle' });
+      return;
+    }
+    if (circle.owner.toString() !== userId) {
+      res.status(403).json({ message: 'Only owner can add members' });
+      return;
+    }
+    circle.members.push(memberId);
+    await circle.save();
+    res
+      .status(200)
+      .json({ message: 'Member added successfully', data: circle });
+    return;
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+    return;
+  }
+});
+const deleteMemberFromCircle = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { circleId, memberEmail} = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    if (!circleId || !memberEmail) {
+      res.status(400).json({
+        message: 'Provide all required values: circleId, memberId',
+      });
+      return;
+    }
+    try {
+      const memberId = await User.findOne({ email: memberEmail }).then(user => {
+        if (!user) {
+          res.status(404).json({ message: 'Member not found' });
+          return;
+        }
+        return user._id;
+      });
+      const circle = await Circle.findById(circleId);
+      if (!circle) {
+        res.status(404).json({ message: 'Circle not found' });
+        return;
+      }
+      if (!circle.members.includes(memberId)) {
+        res.status(400).json({ message: 'Member not in circle' });
+        return;
+      }
+      if (circle.isOnChain) {
+        res
+          .status(400)
+          .json({ message: 'Cannot remove members from on-chain circle' });
+        return;
+      }
+      if (circle.owner.toString() !== userId) {
+        res.status(403).json({ message: 'Only owner can remove members' });
+        return;
+      }
+      circle.members = circle.members.filter(
+        (member) => member.toString() !== memberId.toString()
+      );
+      await circle.save();
+      res
+        .status(200)
+        .json({ message: 'Member removed successfully', data: circle });
+      return;
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+      return;
+    }
+  }
+);
+
+const activateCircle = asyncHandler(async (req: Request, res: Response) => {
+  const { circleId, network } = req.body;
+  //@ts-ignore
+  const userId = req.user.userId;
+  if (!circleId) {
+    res.status(400).json({ message: 'Provide all required values: circleId' });
+    return;
+  }
+  try {
+    const circle = await Circle.findById(circleId);
+    if (!circle) {
+      res.status(404).json({ message: 'Circle not found' });
+      return;
+    }
+    if (circle.isOnChain) {
+      res.status(400).json({ message: 'Circle is already on-chain' });
+      return;
+    }
+    if (circle.owner.toString() !== userId) {
+      res.status(403).json({ message: 'Only owner can activate circle' });
+      return;
+    }
+    const wallet = await getUserWeb3Wallet(userId);
+    if (!wallet) {
+      res.status(400).json({ message: 'Please activate wallet' });
+      return;
+    }
+    const memberWalletAddresses = await Promise.all(
+      circle.members.map(async (member) => {
+        const userWallet = await getUserWeb3Wallet(member.toString());
+        return userWallet.address;
+      })
+    );
+    const userPrivateKey = decrypt(wallet.encryptedKey);
+    const tx = await createSavingCircles(
+      memberWalletAddresses,
+      Number(circle.depositAmount),
+      circle.token,
+      userPrivateKey,
+      circle.depositInterval,
+      circle.maxDeposits,
+      network
+    );
+    if (!tx) {
+      res.status(400).json({ message: 'Failed to activate circle' });
+      return;
+    }
+    circle.isOnChain = true;
+    circle.transactionHash = tx.hash;
+    circle.contractCircleId = await extractCircleIdFromReceipt(tx);
+    circle.status = 'active';
+    circle.circleStart = new Date();
+    await circle.save();
+    res.status(200).json({ message: 'Success', data: circle });
+  } catch (error: any) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: `Internal server error: ${error.message}` });
+  }
 });
 
 const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
@@ -80,18 +235,18 @@ const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.userId;
   try {
     if (!circleId) {
-      res
-        .status(400)
-        .json({ message: 'Provide all required values: circleId' });
+      res.status(400).json({ message: 'Provide circleId' });
       return;
     }
-    const wallet = await getUserWeb3Wallet(userId);
-    if (!wallet) {
-      res.status(400).json({ message: 'Please activate wallet' });
+    const circle = await Circle.findById(circleId);
+    if (!circle) {
+      res.status(404).json({ message: 'Circle not found' });
       return;
     }
-    const userPrivateKey = decrypt(wallet.encryptedKey);
-    const circle = await getCircle(circleId, userPrivateKey);
+    if (!circle.members.toString().includes(userId)) {
+      res.status(403).json({ message: 'You are not a member of this circle' });
+      return;
+    }
     res.status(200).json({ message: 'Success', data: circle });
   } catch (error: any) {
     console.error(error);
@@ -102,7 +257,7 @@ const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
-  const { circleId, amount,network } = req.body;
+  const { circleId, amount, network } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -112,22 +267,38 @@ const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
         .json({ message: 'Provide all required values: circleId, amount' });
       return;
     }
-
+    const circle = await Circle.findById(circleId);
+    if (!circle) {
+      res.status(404).json({ message: 'Circle not found' });
+      return;
+    }
+    if (!circle.members.toString().includes(userId)) {
+      res.status(403).json({ message: 'You are not a member of this circle' });
+      return;
+    }
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
       res.status(400).json({ message: 'Please activate wallet' });
       return;
     }
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    const circle = await getCircle(circleId, userPrivateKey);
-    const token = circle[4];
+    if (!circle.contractCircleId) {
+      res.status(400).json({ message: 'Circle has been sent onchain' });
+      return;
+    }
 
-    const tx = await deposit(token, circleId, amount, userPrivateKey);
+    const tx = await deposit(
+      circle.token,
+      circle.contractCircleId,
+      amount,
+      userPrivateKey,
+      network
+    );
     if (!tx) {
       res.status(400).json({ message: 'Failed to deposit in circle' });
       return;
     }
-    const tokenSymbol = await getTokenAddressSymbol(token,network);
+    const tokenSymbol = await getTokenAddressSymbol(circle.token, network);
     await createTransactionHistory(
       userId,
       parseFloat(amount),
@@ -145,7 +316,7 @@ const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
-  const { circleId ,network} = req.body;
+  const { circleId, network } = req.body;
   //@ts-ignore
   const userId = req.user.userId;
   try {
@@ -155,6 +326,19 @@ const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
         .json({ message: 'Provide all required values: circleId' });
       return;
     }
+    const circle = await Circle.findById(circleId);
+    if (!circle) {
+      res.status(404).json({ message: 'Circle not found' });
+      return;
+    }
+    if (!circle.members.toString().includes(userId)) {
+      res.status(403).json({ message: 'You are not a member of this circle' });
+      return;
+    }
+    if (!circle.contractCircleId) {
+      res.status(400).json({ message: 'Circle has been sent onchain' });
+      return;
+    }
 
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
@@ -162,17 +346,25 @@ const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    const circle = await getCircle(circleId, userPrivateKey);
-    const tokenAddressToSaveWith = circle[4];
-    const amount = circle[3] * circle[1].length;
-    const withdrawAmount = (amount * 10 ** -18).toString();
+    const tokenAddressToSaveWith = circle.token;
 
-    const tx = await withdraw(circleId, userPrivateKey);
+    const tx = await withdraw(circle.contractCircleId, userPrivateKey, network);
     if (!tx) {
       res.status(400).json({ message: 'Failed to withdraw from circle ' });
       return;
     }
-    const tokenSymbol = await getTokenAddressSymbol(tokenAddressToSaveWith,network);
+    const tokenSymbol = await getTokenAddressSymbol(
+      tokenAddressToSaveWith,
+      network
+    );
+    const result = await getCircle(
+      circle.contractCircleId,
+      userPrivateKey,
+      network
+    );
+    const amount = result[3] * result[1].length;
+    const withdrawAmount = ethers.formatEther(amount);
+
     await createTransactionHistory(
       userId,
       parseFloat(withdrawAmount),
@@ -192,7 +384,7 @@ const withdrawFromCircle = asyncHandler(async (req: Request, res: Response) => {
 
 const setSavingTokenAllowed = asyncHandler(
   async (req: Request, res: Response) => {
-    const { token, allowed ,network} = req.body;
+    const { token, allowed, network } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
@@ -207,11 +399,12 @@ const setSavingTokenAllowed = asyncHandler(
         res.status(400).json({ message: 'Invalid tokenId' });
         return;
       }
-      const tokenAddressToSaveWith = tokenAddress(tokenIdNum,network);
+      const tokenAddressToSaveWith = tokenAddress(tokenIdNum, network);
       const tx = await setTokenAllowed(
         tokenAddressToSaveWith,
         allowed,
-        userPrivateKey
+        userPrivateKey,
+        network
       );
       if (!tx) {
         res.status(400).json({ message: 'Failed to set allowed tokens ' });
@@ -229,22 +422,46 @@ const setSavingTokenAllowed = asyncHandler(
 
 const decommissionSavingCircle = asyncHandler(
   async (req: Request, res: Response) => {
-    const { circleId } = req.body;
+    const { circleId, network } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     try {
+      if (!circleId) {
+        res.status(400).json({ message: 'Input a Circle ID' });
+        return;
+      }
+      const circle = await Circle.findById(circleId);
+      if (!circle) {
+        res.status(404).json({ message: 'Circle not found' });
+        return;
+      }
+      if (circle.owner.toString() !== userId) {
+        res.status(403).json({
+          message: 'Unauthorized you are not the owner of this circle',
+        });
+      }
       const wallet = await getUserWeb3Wallet(userId);
       if (!wallet) {
         res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
+      if (!circle.contractCircleId) {
+        res.status(400).json({ message: 'Circle has been sent onchain' });
+        return;
+      }
 
-      const tx = await decommissionCircle(circleId, userPrivateKey);
+      const tx = await decommissionCircle(
+        circle.contractCircleId,
+        userPrivateKey,
+        network
+      );
       if (!tx) {
         res.status(400).json({ message: 'Failed to decommission circle ' });
         return;
       }
+      circle.status = 'decommissioned';
+      await circle.save();
 
       res.status(200).json({ message: 'Success', data: tx.hash });
     } catch (error: any) {
@@ -258,6 +475,7 @@ const decommissionSavingCircle = asyncHandler(
 
 const getSavingMemberCircles = asyncHandler(
   async (req: Request, res: Response) => {
+    const { network } = req.query as { network: string };
     //@ts-ignore
     const userId = req.user.userId;
     try {
@@ -267,7 +485,7 @@ const getSavingMemberCircles = asyncHandler(
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
-      const circles = await getMemberCircles(userPrivateKey);
+      const circles = await getMemberCircles(userPrivateKey, network);
       res.status(200).json({ message: 'Success', data: circles });
     } catch (error: any) {
       console.error(error);
@@ -280,6 +498,7 @@ const getSavingMemberCircles = asyncHandler(
 
 const getSavingMemberBalances = asyncHandler(
   async (req: Request, res: Response) => {
+    const { network } = req.query as { network: string };
     const circleId = req.params.id;
     //@ts-ignore
     const userId = req.user.userId;
@@ -292,7 +511,8 @@ const getSavingMemberBalances = asyncHandler(
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const [members, balances] = await getMemberBalances(
         circleId,
-        userPrivateKey
+        userPrivateKey,
+        network
       );
       res.status(200).json({
         message: 'Success',
@@ -312,6 +532,9 @@ const getSavingMemberBalances = asyncHandler(
 
 export {
   createCircles,
+  addMemberToCircle,
+  deleteMemberFromCircle,
+  activateCircle,
   depositToCircle,
   withdrawFromCircle,
   setSavingTokenAllowed,

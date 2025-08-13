@@ -2,15 +2,17 @@ import axios from 'axios';
 import { generateAccount } from '../../utils/web3/generateAccount';
 import { generateBtcAccount } from '../../utils/web3/generateAccountBTC';
 import { contract } from '../../utils/web3/contract.2.0';
+import { v4 as uuidv4 } from 'uuid';
 import {
   formatUnits,
   JsonRpcProvider,
   parseEther,
   parseUnits,
   Provider,
+  uuidV4,
 } from 'ethers';
 import Web3Wallet from '../../models/web3Wallet';
-import User from '../../models/user';
+import User from '../../models/authModel';
 import {
   SupportedLISKStables,
   SupportedETHERLINKStables,
@@ -24,7 +26,10 @@ import {
   CHAINCOOPSAVING_POLYGON_MAINNET,
 } from '../../constant/contract/ChainCoopSaving';
 import { BSC_MAINNET, POLYGON_MAINNET } from '../../constant/rpcs';
-import BitcoinWallet, { IBitcoinWallet } from '../../models/bitcoinWallet';
+import BitcoinWallet, {
+  BitcoinLockEntry,
+  IBitcoinWallet,
+} from '../../models/bitcoinWallet';
 import LndWallet, { ILndWallet } from '../../models/web3/lnd/wallet';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tinysecp from 'tiny-secp256k1';
@@ -33,6 +38,10 @@ import { networks } from 'bitcoinjs-lib';
 import { encrypt, decrypt } from '../encryption';
 import ECPairFactory from 'ecpair';
 import { Signer } from '../../utils/web3/createSingner';
+import {
+  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
+  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+} from '../../constant/contract/SavingCircles';
 require('dotenv').config();
 
 // Initialize ECPair with the required elliptic curve implementation
@@ -75,11 +84,18 @@ const activateAccount = async (userId: string) => {
   });
 
   await web3Wallet.save();
+  await user.updateOne({
+    isWalletActivated: true,
+  });
   return web3Wallet;
 };
 
 async function createUserBitcoinWallet(userId: string) {
   // Generate a new Bitcoin account
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
   const bitcoinAccount = generateBtcAccount();
 
   if (!bitcoinAccount.privateKey) {
@@ -99,25 +115,26 @@ async function createUserBitcoinWallet(userId: string) {
     address: bitcoinAccount.address,
     walletType: 'segwit', // Using SegWit by default
   });
-  const lightningWallet: ILndWallet = new LndWallet({
-    userId: userId,
-    balance: 0,
-    lockedBalance: 0,
-    lock: {
-      amount: 0,
-      maturityDate: new Date(),
-      purpose: '',
-      lockedAt: new Date(),
-      lockId: '',
-    },
-  });
-  await lightningWallet.save();
+  if (
+    (await LndWallet.findOne({ userId })) === null ||
+    (await LndWallet.findOne({ userId })) === undefined
+  ) {
+    const lightningWallet: ILndWallet = new LndWallet({
+      userId: userId,
+      balance: 0,
+      lockedBalance: 0,
+    });
+    await lightningWallet.save();
+  }
 
   await wallet.save();
+  // Update the user document
+  await user.updateOne({
+    isBitcoinWalletActivated: true,
+  });
 
   return {
     wallet: wallet,
-    lightningWallet: lightningWallet,
   };
 }
 //check existing user wallet
@@ -129,6 +146,7 @@ const checkExistingBitcoinWallet = async (userId: string): Promise<boolean> => {
   const existingWallet = await BitcoinWallet.findOne({ user: userId });
   return !!existingWallet;
 };
+
 //get use wallet
 const getUserWeb3Wallet = async (userId: string) => {
   const wallet = await Web3Wallet.findOne({ user: userId });
@@ -332,23 +350,11 @@ const transferBitcoin = async (
       throw new Error('Bitcoin wallet not found for this user');
     }
 
-    // Check and update lock status
-    const lockCleared = wallet.checkAndUpdateLockStatus();
-    if (lockCleared) {
-      await wallet.save();
-    }
-
-    // Get available balance (excluding locked amount)
-    const availableBalance = await wallet.getAvailableBalance();
+    const availableBalance = await getAvailableBitcoinBalance(userId);
 
     if (availableBalance < amount) {
-      const lockInfo = wallet.isLocked
-        ? ` (${
-            wallet.lockedAmount
-          } BTC is locked until ${wallet.unlocksAt?.toISOString()})`
-        : '';
       throw new Error(
-        `Insufficient available balance. Available: ${availableBalance} BTC, Requested: ${amount} BTC${lockInfo}`
+        `Insufficient available balance. Available: ${availableBalance}`
       );
     }
 
@@ -480,6 +486,10 @@ const approveTokenTransfer = async (
     contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
   } else if (network === 'POLYGON') {
     contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
+  } else if (network === 'TBSC') {
+    contractAddress = SAVINGCIRCLESCONTRACT_BSC_TESTNET;
+  } else if (network === 'TPOLYGON') {
+    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON_TESTNET;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }
@@ -580,24 +590,14 @@ const lockBitcoinAmount = async (
   amount: number,
   durationInSeconds: number,
   reason?: string
-): Promise<IBitcoinWallet> => {
+): Promise<BitcoinLockEntry> => {
   const wallet = await BitcoinWallet.findOne({ user: userId });
   if (!wallet) {
     throw new Error('Bitcoin wallet not found for this user');
   }
 
-  // Check and update existing lock status
-  wallet.checkAndUpdateLockStatus();
-
-  // Check if wallet already has an active lock
-  if (wallet.isLocked) {
-    throw new Error(
-      'Wallet already has an active lock. Please wait for it to expire or unlock it first.'
-    );
-  }
-
   // Get current balance
-  const currentBalance = await getBitcoinBalance(userId);
+  const currentBalance = await getAvailableBitcoinBalance(userId);
   if (currentBalance < amount) {
     throw new Error(
       `Insufficient balance. Available: ${currentBalance} BTC, Requested: ${amount} BTC`
@@ -609,16 +609,19 @@ const lockBitcoinAmount = async (
   const unlocksAt = new Date(lockedAt.getTime() + durationInSeconds * 1000);
   const amountSatoshis = Math.floor(amount * SATOSHI_TO_BTC);
 
-  wallet.lockedAmount = amount;
-  wallet.lockedAmountSatoshis = amountSatoshis;
-  wallet.lockDuration = durationInSeconds;
-  wallet.lockedAt = lockedAt;
-  wallet.unlocksAt = unlocksAt;
-  wallet.isLocked = true;
-  wallet.lockReason = reason;
+  const lockEntry: BitcoinLockEntry = {
+    lockedAmount: amount,
+    lockedAmountSatoshis: amountSatoshis,
+    lockDuration: durationInSeconds,
+    lockedAt: lockedAt,
+    maturityDate: unlocksAt,
+    purpose: reason || 'General Lock',
+    lockId: uuidv4(),
+  };
+  wallet.lock.push(lockEntry);
 
   await wallet.save();
-  return wallet;
+  return lockEntry;
 };
 
 /**
@@ -632,29 +635,25 @@ const unlockBitcoinAmount = async (userId: string): Promise<IBitcoinWallet> => {
     throw new Error('Bitcoin wallet not found for this user');
   }
 
-  if (!wallet.isLocked) {
-    throw new Error('No active lock found');
+  if (wallet.lock.length === 0) {
+    throw new Error('No active lock found for this wallet');
   }
 
-  if (!wallet.unlocksAt || new Date() < wallet.unlocksAt) {
-    const timeRemaining = wallet.unlocksAt
-      ? Math.ceil(
-          (wallet.unlocksAt.getTime() - new Date().getTime()) / (1000 * 60 * 60)
-        )
-      : 0;
-    throw new Error(
-      `Lock period has not expired yet. Time remaining: ${timeRemaining} hours`
-    );
+  const now = new Date();
+
+  const expiredLocks = wallet.lock.filter(
+    (lock: BitcoinLockEntry) => lock.maturityDate && lock.maturityDate <= now
+  );
+
+  if (expiredLocks.length === 0) {
+    throw new Error('No locks have expired yet');
   }
 
-  // Clear the lock
-  wallet.isLocked = false;
-  wallet.lockedAmount = 0;
-  wallet.lockedAmountSatoshis = 0;
-  wallet.lockDuration = 0;
-  wallet.lockedAt = undefined;
-  wallet.unlocksAt = undefined;
-  wallet.lockReason = undefined;
+  // Remove expired locks by comparing lockId
+  const expiredLockIds = new Set(expiredLocks.map((lock) => lock.lockId));
+  wallet.lock = wallet.lock.filter(
+    (lock: BitcoinLockEntry) => !expiredLockIds.has(lock.lockId)
+  );
 
   await wallet.save();
   return wallet;
@@ -665,14 +664,22 @@ const unlockBitcoinAmount = async (userId: string): Promise<IBitcoinWallet> => {
  * @param userId User ID
  * @returns Available balance in BTC
  */
+
 const getAvailableBitcoinBalance = async (userId: string): Promise<number> => {
   const wallet = await BitcoinWallet.findOne({ user: userId });
   if (!wallet) {
     throw new Error('Bitcoin wallet not found for this user');
   }
 
-  // Use the wallet method to get available balance
-  return await wallet.getAvailableBalance();
+  const totalBalance = await getBitcoinBalance(userId); // should return BTC
+  const lockedAmount =
+    (wallet.lock ?? []).reduce(
+      (acc, lock) => acc + (lock.lockedAmountSatoshis || 0),
+      0
+    ) / SATOSHI_TO_BTC;
+
+  const availableBalance = Math.max(0, totalBalance - lockedAmount);
+  return availableBalance;
 };
 
 /**
@@ -686,36 +693,23 @@ const getBitcoinBalanceDetails = async (userId: string) => {
     throw new Error('Bitcoin wallet not found for this user');
   }
 
-  // Check and update lock status
-  const lockCleared = wallet.checkAndUpdateLockStatus();
-  if (lockCleared) {
-    await wallet.save();
-  }
-
-  const totalBalance = await getBitcoinBalance(userId);
-  const lockedAmount = wallet.isLocked ? wallet.lockedAmount : 0;
-  const availableBalance = Math.max(0, totalBalance - lockedAmount);
+  const totalBalance = await getBitcoinBalance(userId); // should return in BTC
+  const lockedAmountSatoshis = (wallet.lock ?? []).reduce(
+    (acc, lock) => acc + (lock.lockedAmountSatoshis || 0),
+    0
+  );
+  const lockedBalance = lockedAmountSatoshis / SATOSHI_TO_BTC;
+  const availableBalance = Math.max(0, totalBalance - lockedBalance);
 
   return {
+    address: wallet.address,
+    walletType: wallet.walletType,
     totalBalance,
-    lockedAmount,
+    lockedBalance,
     availableBalance,
-    isLocked: wallet.isLocked,
-    lockDetails: wallet.isLocked
-      ? {
-          lockedAt: wallet.lockedAt,
-          unlocksAt: wallet.unlocksAt,
-          lockDuration: wallet.lockDuration,
-          lockReason: wallet.lockReason,
-          timeRemainingMs: wallet.unlocksAt
-            ? Math.max(0, wallet.unlocksAt.getTime() - new Date().getTime())
-            : 0,
-          canUnlock: wallet.unlocksAt ? new Date() >= wallet.unlocksAt : false,
-        }
-      : null,
+    locks: wallet.lock,
   };
 };
-
 /**
  * Gets lock status for a user's wallet
  * @param userId User ID
@@ -727,38 +721,35 @@ const getBitcoinLockStatus = async (userId: string) => {
     throw new Error('Bitcoin wallet not found for this user');
   }
 
-  // Check and update lock status
-  const lockCleared = wallet.checkAndUpdateLockStatus();
-  if (lockCleared) {
-    await wallet.save();
+  if (wallet.lock.length === 0) {
+    return { isLocked: false, locks: [] };
   }
-
-  if (!wallet.isLocked) {
-    return {
-      isLocked: false,
-      message: 'No active lock',
-    };
-  }
-
-  const now = new Date();
-  const timeRemainingMs = wallet.unlocksAt
-    ? Math.max(0, wallet.unlocksAt.getTime() - now.getTime())
-    : 0;
-  const timeRemainingHours = Math.ceil(timeRemainingMs / (1000 * 60 * 60));
-  const canUnlock = timeRemainingMs === 0;
-
-  return {
-    isLocked: true,
-    lockedAmount: wallet.lockedAmount,
-    lockedAt: wallet.lockedAt,
-    unlocksAt: wallet.unlocksAt,
-    lockDuration: wallet.lockDuration,
-    lockReason: wallet.lockReason,
-    timeRemainingMs,
-    timeRemainingHours,
-    canUnlock,
-  };
+  const locks = wallet.lock.map((lock) => ({
+    lockedAmount: lock.lockedAmount,
+    lockedAmountSatoshis: lock.lockedAmountSatoshis,
+    lockDuration: lock.lockDuration,
+    lockedAt: lock.lockedAt,
+    maturityDate: lock.maturityDate,
+    purpose: lock.purpose,
+    lockId: lock.lockId,
+  }));
+  return { isLocked: true, locks };
 };
+const getLockDetails = async (
+  userId: string,
+  lockId: string
+): Promise<BitcoinLockEntry | null> => {
+  const wallet = await BitcoinWallet.findOne({ user: userId });
+  if (!wallet) {
+    throw new Error('Bitcoin wallet not found for this user');
+  }
+  const lockEntry = wallet.lock.find((lock) => lock.lockId === lockId);
+  if (!lockEntry) {
+    throw new Error('Lock entry not found');
+  }
+  return lockEntry;
+};
+// Export all functions for use in other modules
 
 export {
   transferStable,
@@ -784,4 +775,5 @@ export {
   getAvailableBitcoinBalance,
   getBitcoinBalanceDetails,
   getBitcoinLockStatus,
+  getLockDetails,
 };
