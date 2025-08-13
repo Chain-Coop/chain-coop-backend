@@ -19,11 +19,12 @@ const options = {
       },
     ],
   },
-  apis: ["./src/routes/**/*.ts", "./src/controllers/**/*.ts"], // Paths to files containing OpenAPI definitions
+  apis: ["./src/routes/**/*.ts", "./src/controllers/**/*.ts"],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
 
 export const setupSwagger = (app: Express) => {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  const handlers = [...(swaggerUi.serve as any[]), swaggerUi.setup(swaggerSpec)];
+  app.use("/api-docs", ...handlers);
 };

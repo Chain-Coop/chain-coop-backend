@@ -78,7 +78,7 @@ export const getCustomer = async (email: string) => {
 };
 
 export const deleteCard = async (authorizationCode: string) => {
-  const response = await axios.post(
+  const response:any = await axios.post(
     "https://api.paystack.co/customer/deactivate_authorization",
     {
       authorization_code: authorizationCode,

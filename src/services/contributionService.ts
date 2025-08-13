@@ -97,7 +97,7 @@ if (data.contributionType !== "one-time") {
   );
 }
 
-const contribution = await Contribution.create(contributionPayload);
+const contribution:any = await Contribution.create(contributionPayload);
 
 
     logger.info(`Created ${data.contributionType} Contribution ID:`, contribution._id);
