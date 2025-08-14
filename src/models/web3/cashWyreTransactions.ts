@@ -137,8 +137,6 @@ const CashwyreTransactionSchema: Schema = new Schema(
 
 // Create indexes
 CashwyreTransactionSchema.index({ userId: 1, createdAt: -1 });
-CashwyreTransactionSchema.index({ reference: 1 }, { unique: true });
-CashwyreTransactionSchema.index({ transactionReference: 1 }, { unique: true });
 CashwyreTransactionSchema.index({ status: 1 });
 
 // Define static methods

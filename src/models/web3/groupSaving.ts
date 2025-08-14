@@ -97,7 +97,6 @@ const CircleSchema = new Schema<ICircle>(
 
 CircleSchema.index({ owner: 1, status: 1 });
 CircleSchema.index({ members: 1, status: 1 });
-CircleSchema.index({ contractCircleId: 1 }, { unique: true, sparse: true });
 
 CircleSchema.pre('save', function (next) {
   // Ensure owner is included in members
