@@ -175,6 +175,7 @@ export const getWalletDetails = async (userId: string) => {
             lockedAt: lock.lockedAt,
             maturityDate: lock.maturityDate,
             purpose: lock.purpose || 'staking',
+            type: 'lightning',
           };
         }) || null,
       hasActiveLock: !!wallet.lock,

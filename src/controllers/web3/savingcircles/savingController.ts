@@ -75,10 +75,10 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
   try {
-    const memberId=await User.findOne({email: memberEmail}).then(user => {
+    const memberId = await User.findOne({ email: memberEmail }).then((user) => {
       if (!user) {
         res.status(404).json({ message: 'Member not found' });
-        return; 
+        return;
       }
       return user._id;
     });
@@ -115,7 +115,7 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 const deleteMemberFromCircle = asyncHandler(
   async (req: Request, res: Response) => {
-    const { circleId, memberEmail} = req.body;
+    const { circleId, memberEmail } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
     if (!circleId || !memberEmail) {
@@ -125,13 +125,15 @@ const deleteMemberFromCircle = asyncHandler(
       return;
     }
     try {
-      const memberId = await User.findOne({ email: memberEmail }).then(user => {
-        if (!user) {
-          res.status(404).json({ message: 'Member not found' });
-          return;
+      const memberId = await User.findOne({ email: memberEmail }).then(
+        (user) => {
+          if (!user) {
+            res.status(404).json({ message: 'Member not found' });
+            return;
+          }
+          return user._id;
         }
-        return user._id;
-      });
+      );
       const circle = await Circle.findById(circleId);
       if (!circle) {
         res.status(404).json({ message: 'Circle not found' });
@@ -248,6 +250,24 @@ const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
     res.status(200).json({ message: 'Success', data: circle });
+  } catch (error: any) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: `Internal server error: ${error.message}` });
+  }
+});
+
+const getCirclesbyMember = asyncHandler(async (req: Request, res: Response) => {
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    const circles = await Circle.find({ members: userId });
+    if (!circles || circles.length === 0) {
+      res.status(404).json({ message: 'No circles found for this member' });
+      return;
+    }
+    res.status(200).json({ message: 'Success', data: circles });
   } catch (error: any) {
     console.error(error);
     res
@@ -541,5 +561,6 @@ export {
   getSavingMemberBalances,
   getSavingMemberCircles,
   getSavingCircle,
+  getCirclesbyMember,
   decommissionSavingCircle,
 };

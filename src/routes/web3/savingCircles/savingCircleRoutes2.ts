@@ -10,6 +10,7 @@ import {
   getSavingMemberBalances,
   getSavingMemberCircles,
   getSavingCircle,
+  getCirclesbyMember,
   decommissionSavingCircle,
 } from '../../../controllers/web3/savingcircles/savingController';
 import { authorize } from '../../../middlewares/authorization';
@@ -593,6 +594,37 @@ router.get('/memberBalance/:id', authorize, getSavingMemberBalances);
  *         description: Internal server error
  */
 router.get('/memberCircles', authorize, getSavingMemberCircles);
+
+/**
+ * @swagger
+ * /web3/savingcircle/circlesbyMember:
+ *   get:
+ *     summary: Get saving circles by member
+ *     description: Retrieves all saving circles that a user is a member of, including on-chain and off-chain circles.
+ *     tags:
+ *       - Web3 Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved circles by member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Circle details
+ *       '500':
+ *         description: Internal server error
+ */
+router.get('/circlesbyMember', authorize, getCirclesbyMember);
 
 /**
  * @swagger
