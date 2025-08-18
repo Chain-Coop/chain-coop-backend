@@ -3,8 +3,6 @@ import {
   SupportedLISKStables,
   SupportedBSCStables,
   SupportedPOLYGONStables,
-  SupportedTBSCStables,
-  SupportedTPOLYGONStables,
 } from './supportedStables';
 
 type Token = { USDT: string } | { USDC: string };
@@ -23,10 +21,6 @@ const tokenAddress = (tokenId: number, network: string): string => {
     token = SupportedETHERLINKStables[tokenId - 1];
   } else if (network === 'POLYGON') {
     token = SupportedPOLYGONStables[tokenId - 1];
-  } else if (network === 'TBSC') {
-    token = SupportedTBSCStables[tokenId - 1];
-  } else if (network === 'TPOLYGON') {
-    token = SupportedTPOLYGONStables[tokenId - 1];
   } else {
     throw new Error(`Invalid token network: ${network}`);
   }

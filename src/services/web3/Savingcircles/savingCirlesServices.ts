@@ -8,10 +8,10 @@ import {
 } from 'ethers';
 import { approveTokenTransfer } from '../accountService';
 import {
-  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
-  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+  SAVINGCIRCLESCONTRACT_BSC,
+  SAVINGCIRCLESCONTRACT_POLYGON,
 } from '../../../constant/contract/SavingCircles';
-import { BSC_TESTNET, POLYGON_TESTNET } from '../../../constant/rpcs';
+import { BSC_RPC, POLYGON_RPC } from '../../../constant/rpcs';
 import { getTokenAddressSymbol } from '../accountService';
 import {
   savingcirclescontract,

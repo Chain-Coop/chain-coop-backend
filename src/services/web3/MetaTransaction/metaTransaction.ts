@@ -9,20 +9,20 @@ import {
   TypedDataDomain,
 } from 'ethers';
 import {
-  LISKRPC_TESTNET,
-  ETHERLINK_TESTNET,
-  BSC_MAINNET,
-  POLYGON_MAINNET,
+  LISK_RPC,
+  ETHERLINK_RPC,
+  BSC_RPC,
+  POLYGON_RPC,
 } from '../../../constant/rpcs';
 import {
-  FORWARDER_CONTRACT_BSC_MAINNET,
-  FORWARDER_CONTRACT_ETHERLINK_TESTNET,
-  FORWARDER_CONTRACT_POLYGON_MAINNET,
-  FORWARDER_CONTRACT_LISK_TESTNET,
-  CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
-  CHAINCOOPSAVING_BSC_MAINNET,
-  CHAINCOOPSAVING_POLYGON_MAINNET,
-  CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
+  FORWARDER_CONTRACT_BSC,
+  FORWARDER_CONTRACT_ETHERLINK,
+  FORWARDER_CONTRACT_POLYGON,
+  FORWARDER_CONTRACT_LISK,
+  CHAINCOOPSAVINGCONTRACT_ETHERLINK,
+  CHAINCOOPSAVING_BSC,
+  CHAINCOOPSAVING_POLYGON,
+  CHAINCOOPSAVINGCONTRACT_LISK,
 } from '../../../constant/contract/ChainCoopSaving';
 
 import forwarderABI from '../../../constant/abi/Forwarder.json';
@@ -68,25 +68,25 @@ export async function signMetaTransaction(
 
   // Get network configuration
   if (network === 'LISK') {
-    provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
+    provider = new ethers.JsonRpcProvider(LISK_RPC);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_LISK_TESTNET;
-    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
+    forwarderContractAddress = FORWARDER_CONTRACT_LISK;
+    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK;
   } else if (network === 'ETHERLINK') {
-    provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
+    provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK_TESTNET;
-    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
+    forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK;
+    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK;
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
+    provider = new ethers.JsonRpcProvider(BSC_RPC);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_BSC_MAINNET;
-    contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
+    forwarderContractAddress = FORWARDER_CONTRACT_BSC;
+    contractAddress = CHAINCOOPSAVING_BSC;
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
+    provider = new ethers.JsonRpcProvider(POLYGON_RPC);
     wallet = new Wallet(userPrivateKey, provider);
-    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_MAINNET;
-    contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
+    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON;
+    contractAddress = CHAINCOOPSAVING_POLYGON;
   } else {
     throw new Error('Unsupported network');
   }
@@ -184,17 +184,17 @@ export async function executeMetaTransaction(
 
   // Get network configuration
   if (network === 'LISK') {
-    provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_LISK_TESTNET;
+    provider = new ethers.JsonRpcProvider(LISK_RPC);
+    forwarderContractAddress = FORWARDER_CONTRACT_LISK;
   } else if (network === 'ETHERLINK') {
-    provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK_TESTNET;
+    provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
+    forwarderContractAddress = FORWARDER_CONTRACT_ETHERLINK;
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_BSC_MAINNET;
+    provider = new ethers.JsonRpcProvider(BSC_RPC);
+    forwarderContractAddress = FORWARDER_CONTRACT_BSC;
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
-    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON_MAINNET;
+    provider = new ethers.JsonRpcProvider(POLYGON_RPC);
+    forwarderContractAddress = FORWARDER_CONTRACT_POLYGON;
   } else {
     throw new Error('Unsupported network');
   }
