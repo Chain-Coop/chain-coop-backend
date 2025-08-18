@@ -20,12 +20,12 @@ import {
   SupportedPOLYGONStables,
 } from '../../utils/web3/supportedStables';
 import {
-  CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
-  CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
-  CHAINCOOPSAVING_BSC_MAINNET,
-  CHAINCOOPSAVING_POLYGON_MAINNET,
+  CHAINCOOPSAVINGCONTRACT_LISK,
+  CHAINCOOPSAVINGCONTRACT_ETHERLINK,
+  CHAINCOOPSAVING_BSC,
+  CHAINCOOPSAVING_POLYGON
 } from '../../constant/contract/ChainCoopSaving';
-import { BSC_MAINNET, POLYGON_MAINNET } from '../../constant/rpcs';
+import { BSC_RPC, POLYGON_RPC } from '../../constant/rpcs';
 import BitcoinWallet, {
   BitcoinLockEntry,
   IBitcoinWallet,
@@ -39,8 +39,8 @@ import { encrypt, decrypt } from '../encryption';
 import ECPairFactory from 'ecpair';
 import { Signer } from '../../utils/web3/createSingner';
 import {
-  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
-  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+  SAVINGCIRCLESCONTRACT_BSC,
+  SAVINGCIRCLESCONTRACT_POLYGON,
 } from '../../constant/contract/SavingCircles';
 require('dotenv').config();
 
@@ -301,9 +301,9 @@ const transferCrypto = async (
   try {
     let provider;
     if (network === 'BSC') {
-      provider = new JsonRpcProvider(BSC_MAINNET);
+      provider = new JsonRpcProvider(BSC_RPC);
     } else if (network === 'POLYGON') {
-      provider = new JsonRpcProvider(POLYGON_MAINNET);
+      provider = new JsonRpcProvider(POLYGON_RPC);
     } else {
       throw new Error(`Unsupported network: ${network}`);
     }
@@ -479,17 +479,17 @@ const approveTokenTransfer = async (
   const con_tract = await contract(tokenAddress, network, userPrivateKey);
   let contractAddress;
   if (network === 'LISK') {
-    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
+    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK;
   } else if (network === 'BSC') {
-    contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
+    contractAddress = CHAINCOOPSAVING_BSC;
   } else if (network === 'ETHERLINK') {
-    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
+    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK;
   } else if (network === 'POLYGON') {
-    contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
+    contractAddress = CHAINCOOPSAVING_POLYGON;
   } else if (network === 'TBSC') {
-    contractAddress = SAVINGCIRCLESCONTRACT_BSC_TESTNET;
+    contractAddress = SAVINGCIRCLESCONTRACT_BSC;
   } else if (network === 'TPOLYGON') {
-    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON_TESTNET;
+    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON;
   } else {
     throw new Error(`Invalid approval network: ${network}`);
   }

@@ -1,20 +1,18 @@
 import { ethers, Contract } from 'ethers';
 import {
-  LISKRPC_TESTNET,
-  ETHERLINK_TESTNET,
-  BSC_MAINNET,
-  POLYGON_MAINNET,
-  BSC_TESTNET,
-  POLYGON_TESTNET,
+  LISK_RPC,
+  ETHERLINK_RPC,
+  BSC_RPC,
+  POLYGON_RPC,
 } from '../../constant/rpcs';
 import erc20abi from '../../constant/abi/abi.json';
 import savingabi from '../../constant/abi/ChainCoopSaving.2.0.json';
 import { Signer } from '../../utils/web3/createSingner';
 import {
-  CHAINCOOPSAVING_BSC_MAINNET,
-  CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2,
-  CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET,
-  CHAINCOOPSAVING_POLYGON_MAINNET,
+  CHAINCOOPSAVING_BSC,
+  CHAINCOOPSAVINGCONTRACT_LISK,
+  CHAINCOOPSAVINGCONTRACT_ETHERLINK,
+  CHAINCOOPSAVING_POLYGON,
 } from '../../constant/contract/ChainCoopSaving';
 import erc20WithPermit from '../../constant/abi/abiPermit.json';
 
@@ -25,17 +23,13 @@ const contract = async (
 ): Promise<ethers.Contract> => {
   let provider;
   if (network === 'LISK') {
-    provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
+    provider = new ethers.JsonRpcProvider(LISK_RPC);
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
+    provider = new ethers.JsonRpcProvider(BSC_RPC);
   } else if (network === 'ETHERLINK') {
-    provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
+    provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
-  } else if (network === 'TBSC') {
-    provider = new ethers.JsonRpcProvider(BSC_TESTNET);
-  } else if (network === 'TPOLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
+    provider = new ethers.JsonRpcProvider(POLYGON_RPC);
   } else {
     throw new Error(`Invalid contract network: ${network}`);
   }
@@ -56,17 +50,17 @@ const chainCoopSavingcontract = async (
   let contractAddress;
 
   if (network === 'LISK') {
-    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
-    provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
+    contractAddress = CHAINCOOPSAVINGCONTRACT_LISK;
+    provider = new ethers.JsonRpcProvider(LISK_RPC);
   } else if (network === 'BSC') {
-    contractAddress = CHAINCOOPSAVING_BSC_MAINNET;
-    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
+    contractAddress = CHAINCOOPSAVING_BSC;
+    provider = new ethers.JsonRpcProvider(BSC_RPC);
   } else if (network === 'ETHERLINK') {
-    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
-    provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
+    contractAddress = CHAINCOOPSAVINGCONTRACT_ETHERLINK;
+    provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
   } else if (network === 'POLYGON') {
-    contractAddress = CHAINCOOPSAVING_POLYGON_MAINNET;
-    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
+    contractAddress = CHAINCOOPSAVING_POLYGON;
+    provider = new ethers.JsonRpcProvider(POLYGON_RPC);
   } else {
     throw new Error(`Invalid execution network: ${network}`);
   }
@@ -89,13 +83,13 @@ const contractWithPermit = async (
 ): Promise<ethers.Contract> => {
   let provider;
   if (network === 'LISK') {
-    provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
+    provider = new ethers.JsonRpcProvider(LISK_RPC);
   } else if (network === 'BSC') {
-    provider = new ethers.JsonRpcProvider(BSC_MAINNET);
+    provider = new ethers.JsonRpcProvider(BSC_RPC);
   } else if (network === 'ETHERLINK') {
-    provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
+    provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
   } else if (network === 'POLYGON') {
-    provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
+    provider = new ethers.JsonRpcProvider(POLYGON_RPC);
   } else {
     throw new Error(`Invalid contract network: ${network}`);
   }
@@ -135,17 +129,17 @@ const signPermit = async (
 
     // Get network configuration
     if (network === 'LISK') {
-      provider = new ethers.JsonRpcProvider(LISKRPC_TESTNET);
-      spender = CHAINCOOPSAVINGCONTRACT_LISK_TESTNET_VERSION_2;
+      provider = new ethers.JsonRpcProvider(LISK_RPC);
+      spender = CHAINCOOPSAVINGCONTRACT_LISK;
     } else if (network === 'BSC') {
-      provider = new ethers.JsonRpcProvider(BSC_MAINNET);
-      spender = CHAINCOOPSAVING_BSC_MAINNET;
+      provider = new ethers.JsonRpcProvider(BSC_RPC);
+      spender = CHAINCOOPSAVING_BSC;
     } else if (network === 'ETHERLINK') {
-      provider = new ethers.JsonRpcProvider(ETHERLINK_TESTNET);
-      spender = CHAINCOOPSAVINGCONTRACT_ETHERLINK_TESTNET;
+      provider = new ethers.JsonRpcProvider(ETHERLINK_RPC);
+      spender = CHAINCOOPSAVINGCONTRACT_ETHERLINK;
     } else if (network === 'POLYGON') {
-      provider = new ethers.JsonRpcProvider(POLYGON_MAINNET);
-      spender = CHAINCOOPSAVING_POLYGON_MAINNET;
+      provider = new ethers.JsonRpcProvider(POLYGON_RPC);
+      spender = CHAINCOOPSAVING_POLYGON;
     } else {
       throw new Error(`Invalid contract network: ${network}`);
     }

@@ -1,12 +1,11 @@
 import { ethers, Contract } from 'ethers';
-import { LISKRPC_TESTNET } from '../../constant/rpcs';
 import savingcirclesabi from '../../constant/abi/SavingCircles.json';
 import { Signer } from '../../utils/web3/createSingner';
 import {
-  SAVINGCIRCLESCONTRACT_BSC_TESTNET,
-  SAVINGCIRCLESCONTRACT_POLYGON_TESTNET,
+  SAVINGCIRCLESCONTRACT_BSC,
+  SAVINGCIRCLESCONTRACT_POLYGON,
 } from '../../constant/contract/SavingCircles';
-import { BSC_TESTNET, POLYGON_TESTNET } from '../../constant/rpcs';
+import { BSC_RPC, POLYGON_RPC, LISK_RPC } from '../../constant/rpcs';
 
 const savingcirclescontract = async (
   network: string,
@@ -18,11 +17,11 @@ const savingcirclescontract = async (
   let Provider;
   let contractAddress;
   if (network === 'TBSC') {
-    Provider = new ethers.JsonRpcProvider(BSC_TESTNET);
-    contractAddress = SAVINGCIRCLESCONTRACT_BSC_TESTNET;
+    Provider = new ethers.JsonRpcProvider(BSC_RPC);
+    contractAddress = SAVINGCIRCLESCONTRACT_BSC;
   } else if (network === 'TPOLYGON') {
-    Provider = new ethers.JsonRpcProvider(POLYGON_TESTNET);
-    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON_TESTNET;
+    Provider = new ethers.JsonRpcProvider(POLYGON_RPC);
+    contractAddress = SAVINGCIRCLESCONTRACT_POLYGON;
   } else {
     throw new Error('Unsupported network');
   }
