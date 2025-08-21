@@ -1,6 +1,7 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { Express } from "express";
+import { url } from "inspector";
 
 const options = {
   definition: {
@@ -17,6 +18,9 @@ const options = {
       {
         url: "https://chain-coop-backend.onrender.com/api/v1",
       },
+      {
+        url: "https://api.chaincoop.org/api/v1",
+      }
     ],
   },
   apis: ["./src/routes/**/*.ts", "./src/controllers/**/*.ts"],
