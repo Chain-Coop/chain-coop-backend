@@ -226,7 +226,12 @@ class VantController {
             const currentBalance = wallet.walletBalance;
             const user = await getUserDetails(userId);
 
-            if (currentBalance < amount) {
+            // Calculate 1.5% charge
+            const chargePercentage = 0.015; // 1.5%
+            const transactionCharge = amount * chargePercentage;
+            const totalDeduction = amount + transactionCharge;
+
+            if (currentBalance < totalDeduction) {
                 throw new BadRequestError('Insufficient wallet balance');
             }
 
@@ -249,7 +254,7 @@ class VantController {
             };
 
             // Process transfer
-            const transferResult = await VantServices.transferFunds(userId, payload, wallet);
+            const transferResult = await VantServices.transferFunds(userId, payload, wallet, totalDeduction);
 
             return res.status(StatusCodes.OK).json({
                 success: true,
