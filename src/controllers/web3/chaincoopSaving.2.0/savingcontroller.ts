@@ -12,7 +12,6 @@ import {
   DepositType,
   Transaction,
 } from '../../../models/web3/manualSaving';
-import { PeriodicSaving } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 
 import { decrypt } from '../../../services/encryption';
@@ -28,6 +27,10 @@ import {
   stopSaving,
   restartSaving,
   getUserContributions,
+  enableAaveForPool,
+  getPoolAaveBalance,
+  getPoolYield,
+  isAaveConfigured,
 } from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 const openSavingPool = asyncHandler(async (req: Request, res: Response) => {
@@ -277,6 +280,15 @@ const withdrawFromPoolByID = asyncHandler(
           .json({ message: `Failed to get a pool ${poolId_bytes}` });
         return;
       }
+      let yieldEarned = '0';
+      if (pool.aaveEnabled) {
+        try {
+          yieldEarned = await getPoolYield(poolId_bytes, manualSaving.network);
+        } catch (error) {
+          console.log('Error fetching yield:', error);
+        }
+        return;
+      }
 
       const tx = await withdrawFromPool(
         poolId_bytes,
@@ -292,6 +304,7 @@ const withdrawFromPoolByID = asyncHandler(
       const withdrawTransaction: Transaction = {
         txHash: tx.hash,
         amount: pool.amountSaved,
+        yieldEarned,
         timestamp: new Date(),
         status: TransactionStatus.CONFIRMED,
         depositType: DepositType.WITHDRAW,
@@ -403,7 +416,11 @@ const restartPoolForSaving = asyncHandler(
         return;
       }
       const userPrivateKey = decrypt(wallet.encryptedKey);
-      const tx = await restartSaving(poolId_bytes, userPrivateKey, manualSaving.network);
+      const tx = await restartSaving(
+        poolId_bytes,
+        userPrivateKey,
+        manualSaving.network
+      );
       if (!tx) {
         res.status(400).json({
           message: `Failed to restart pool for saving ${poolId_bytes}`,
@@ -584,6 +601,177 @@ const getUserpoolbyReason = asyncHandler(
   }
 );
 
+const enableAaveForPoolController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { poolId_bytes } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      if (!poolId_bytes) {
+        res.status(400).json({
+          message: 'Provide all required values: poolId_bytes',
+        });
+        return;
+      }
+
+      const wallet = await getUserWeb3Wallet(userId);
+      if (!wallet) {
+        res.status(400).json({ message: 'Please activate wallet' });
+        return;
+      }
+
+      const manualSaving = await ManualSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!manualSaving) {
+        res.status(400).json({
+          message: `Failed to find a pool ${poolId_bytes}`,
+        });
+        return;
+      }
+
+      // Check if Aave is configured for this token
+      const isConfigured = await isAaveConfigured(
+        manualSaving.tokenAddress,
+        manualSaving.network
+      );
+      if (!isConfigured) {
+        res.status(400).json({
+          message: 'Aave is not configured for this token',
+        });
+        return;
+      }
+
+      const userPrivateKey = decrypt(wallet.encryptedKey);
+      const tx = await enableAaveForPool(
+        poolId_bytes,
+        userPrivateKey,
+        manualSaving.network
+      );
+
+      if (!tx) {
+        res.status(400).json({
+          message: `Failed to enable Aave for pool ${poolId_bytes}`,
+        });
+        return;
+      }
+
+      await tx.wait();
+
+      res.status(200).json({
+        message: 'Aave enabled successfully',
+        data: tx.hash,
+      });
+      return;
+    } catch (error: any) {
+      console.log('Error enabling Aave:', error);
+      res.status(500).json({
+        message: `Internal server error: ${error.message}`,
+      });
+    }
+  }
+);
+const getPoolAaveBalanceController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { poolId, network } = req.params;
+    try {
+      if (!poolId || !network) {
+        res.status(400).json({
+          message: 'Provide all required parameters: poolId, network',
+        });
+        return;
+      }
+
+      const aaveBalance = await getPoolAaveBalance(poolId, network);
+
+      res.status(200).json({
+        message: 'Success',
+        data: {
+          poolId,
+          aaveBalance,
+          network,
+        },
+      });
+      return;
+    } catch (error: any) {
+      console.log('Error fetching Aave balance:', error);
+      res.status(500).json({
+        message: `Internal server error: ${error.message}`,
+      });
+    }
+  }
+);
+
+/**
+ * Get pool's yield earned from Aave
+ */
+const getPoolYieldController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { poolId, network } = req.params;
+    try {
+      if (!poolId || !network) {
+        res.status(400).json({
+          message: 'Provide all required parameters: poolId, network',
+        });
+        return;
+      }
+
+      const yieldEarned = await getPoolYield(poolId, network);
+
+      res.status(200).json({
+        message: 'Success',
+        data: {
+          poolId,
+          yieldEarned,
+          network,
+        },
+      });
+      return;
+    } catch (error: any) {
+      console.log('Error fetching pool yield:', error);
+      res.status(500).json({
+        message: `Internal server error: ${error.message}`,
+      });
+    }
+  }
+);
+
+const checkAaveConfiguration = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { tokenId, network } = req.params;
+    try {
+      if (!tokenId || !network) {
+        res.status(400).json({
+          message: 'Provide all required parameters: tokenId, network',
+        });
+        return;
+      }
+      const tokenIdNum = parseInt(tokenId, 10);
+      if (isNaN(tokenIdNum)) {
+        res.status(400).json({ message: 'Invalid tokenId' });
+        return;
+      }
+      const tokenAddr = tokenAddress(tokenIdNum, network);
+      const isConfigured = await isAaveConfigured(tokenAddr, network);
+      res.status(200).json({
+        message: 'Success',
+        data: {
+          tokenId,
+          tokenAddress: tokenAddr,
+          isAaveConfigured: isConfigured,
+          network,
+        },
+      });
+      return;
+    } catch (error: any) {
+      console.log('Error checking Aave configuration:', error);
+      res.status(500).json({
+        message: `Internal server error: ${error.message}`,
+      });
+    }
+  }
+);
+
 export {
   totalNumberPoolCreated,
   withdrawFromPoolByID,
@@ -597,4 +785,8 @@ export {
   getManualSavingByUser,
   getTotalAmountSavedByUser,
   getUserpoolbyReason,
+  enableAaveForPoolController,
+  getPoolAaveBalanceController,
+  getPoolYieldController,
+  checkAaveConfiguration,
 };

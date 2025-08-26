@@ -901,4 +901,79 @@ router.post(
   PeriodicSavingController.getUserPoolbyReason
 );
 
+/**
+ * @swagger
+ * /web3/v2/periodicSaving/enableAave:
+ *   post:
+ *     summary: Enable Aave yield farming for a periodic pool
+ *     description: Enables Aave integration for a specific pool to earn yield on deposited funds
+ *     tags: [Web3 Periodic Saving]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - poolId_bytes
+ *             properties:
+ *               poolId_bytes:
+ *                 type: string
+ *                 description: The unique identifier of the pool in bytes
+ *                 example: "0x1234567890abcdef"
+ *     responses:
+ *       200:
+ *         description: Aave enabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Aave enabled successfully"
+ *                 data:
+ *                   type: string
+ *                   description: Transaction hash of the operation
+ *                   example: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     missing_params:
+ *                       value: "Provide all required values: poolId_bytes"
+ *                     wallet_not_found:
+ *                       value: "Please activate wallet"
+ *                     pool_not_found:
+ *                       value: "Failed to find a pool 0x1234567890abcdef"
+ *                     aave_not_configured:
+ *                       value: "Aave is not configured for this token"
+ *                     enable_failed:
+ *                       value: "Failed to enable Aave for pool 0x1234567890abcdef"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error: {error message}"
+ */
+
+router.post(
+  '/enableAave',
+  authorize,
+  kycVerified,
+  PeriodicSavingController.enableAaveForPoolController
+);
 export default router;

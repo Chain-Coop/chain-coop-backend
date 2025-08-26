@@ -15,6 +15,7 @@ export enum DepositType {
 export interface Transaction {
   txHash: string;
   amount: string;
+  yieldEarned?: string;
   timestamp: Date;
   status: TransactionStatus;
   depositType: DepositType;
@@ -65,6 +66,7 @@ const transactionSchema = new Schema<Transaction>(
   {
     txHash: { type: String, required: true },
     amount: { type: String, required: true },
+    yieldEarned: { type: String },
     timestamp: { type: Date, required: true },
     status: {
       type: String,

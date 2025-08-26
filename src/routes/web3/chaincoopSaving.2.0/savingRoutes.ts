@@ -12,6 +12,10 @@ import {
   getManualSavingByUser,
   getTotalAmountSavedByUser,
   getUserpoolbyReason,
+  enableAaveForPoolController,
+  getPoolAaveBalanceController,
+  getPoolYieldController,
+  checkAaveConfiguration,
 } from '../../../controllers/web3/chaincoopSaving.2.0/savingcontroller';
 import {
   authorize,
@@ -846,6 +850,283 @@ const router = Router();
  *                   example: internal server error
  */
 
+/**
+ * @swagger
+ * /web3/v2/saving/enableAave:
+ *   post:
+ *     summary: Enable Aave yield farming for a saving pool
+ *     description: Enables Aave integration for a specific pool to earn yield on deposited funds
+ *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - poolId_bytes
+ *             properties:
+ *               poolId_bytes:
+ *                 type: string
+ *                 description: The unique identifier of the pool in bytes
+ *                 example: "0x1234567890abcdef"
+ *     responses:
+ *       200:
+ *         description: Aave enabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Aave enabled successfully"
+ *                 data:
+ *                   type: string
+ *                   description: Transaction hash of the operation
+ *                   example: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     missing_params:
+ *                       value: "Provide all required values: poolId_bytes"
+ *                     wallet_not_found:
+ *                       value: "Please activate wallet"
+ *                     pool_not_found:
+ *                       value: "Failed to find a pool 0x1234567890abcdef"
+ *                     aave_not_configured:
+ *                       value: "Aave is not configured for this token"
+ *                     enable_failed:
+ *                       value: "Failed to enable Aave for pool 0x1234567890abcdef"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error: {error message}"
+ */
+
+/**
+ * @swagger
+ * /web3/v2/saving/aaveBalance/{poolId}/{network}:
+ *   get:
+ *     summary: Get Aave balance for a specific pool
+ *     description: Retrieves the current Aave balance for a pool that has Aave enabled
+ *     tags: [Web3]
+ *     parameters:
+ *       - in: path
+ *         name: poolId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the pool
+ *         example: "0x1234567890abcdef"
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network for the pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
+ *         example: "LISK"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved Aave balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     poolId:
+ *                       type: string
+ *                       example: "0x1234567890abcdef"
+ *                     aaveBalance:
+ *                       type: string
+ *                       example: "150.25"
+ *                     network:
+ *                       type: string
+ *                       example: "LISK"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Provide all required parameters: poolId, network"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error: {error message}"
+ */
+
+/**
+ * @swagger
+ * /web3/v2/saving/poolYield/{poolId}/{network}:
+ *   get:
+ *     summary: Get yield earned from Aave for a specific pool
+ *     description: Retrieves the total yield earned from Aave for a pool that has yield farming enabled
+ *     tags: [Web3]
+ *     parameters:
+ *       - in: path
+ *         name: poolId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the pool
+ *         example: "0x1234567890abcdef"
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network for the pool (e.g. LISK, BSC, ETHERLINK, GNOSIS)
+ *         example: "LISK"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved pool yield
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     poolId:
+ *                       type: string
+ *                       example: "0x1234567890abcdef"
+ *                     yieldEarned:
+ *                       type: string
+ *                       example: "12.45"
+ *                     network:
+ *                       type: string
+ *                       example: "LISK"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Provide all required parameters: poolId, network"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error: {error message}"
+ */
+
+/**
+ * @swagger
+ * /web3/v2/saving/checkAave/{tokenId}/{network}:
+ *   get:
+ *     summary: Check if Aave is configured for a specific token
+ *     description: Verifies whether Aave integration is available for a given token on a specific network
+ *     tags: [Web3]
+ *     parameters:
+ *       - in: path
+ *         name: tokenId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The token ID (1 for USDC, 2 for Lisk Token, 3 for WUSDC)
+ *         example: "1"
+ *       - in: path
+ *         name: network
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Network to check (e.g. LISK, BSC, ETHERLINK, GNOSIS)
+ *         example: "LISK"
+ *     responses:
+ *       200:
+ *         description: Successfully checked Aave configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Success"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tokenId:
+ *                       type: string
+ *                       example: "1"
+ *                     tokenAddress:
+ *                       type: string
+ *                       example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                     isAaveConfigured:
+ *                       type: boolean
+ *                       example: true
+ *                     network:
+ *                       type: string
+ *                       example: "LISK"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     missing_params:
+ *                       value: "Provide all required parameters: tokenId, network"
+ *                     invalid_token:
+ *                       value: "Invalid tokenId"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error: {error message}"
+*/
+
 router.post('/openPool', authorize, verifyPin, kycVerified, openSavingPool);
 router.post('/updatePool', authorize, kycVerified, updatePoolWithAmount);
 router.post(
@@ -855,8 +1136,27 @@ router.post(
   kycVerified,
   withdrawFromPoolByID
 );
-router.post('/stopPool', authorize,kycVerified, stopSavingForPool);
-router.post('/restartPool', authorize,kycVerified, restartPoolForSaving);
+router.post('/enableAave', authorize, kycVerified, enableAaveForPoolController);
+router.get(
+  '/aaveBalance/:poolId/:network',
+  authorize,
+  kycVerified,
+  getPoolAaveBalanceController
+);
+router.get(
+  '/poolYield/:poolId/:network',
+  authorize,
+  kycVerified,
+  getPoolYieldController
+);
+router.get(
+  '/checkAave/:tokenId/:network',
+  authorize,
+  kycVerified,
+  checkAaveConfiguration
+);
+router.post('/stopPool', authorize, kycVerified, stopSavingForPool);
+router.post('/restartPool', authorize, kycVerified, restartPoolForSaving);
 router.post('/getManualSaving', authorize, getManualSaving);
 router.get('/getManualSavingByUser', authorize, getManualSavingByUser);
 router.get('/getTotalAmountSaved', authorize, getTotalAmountSavedByUser);
