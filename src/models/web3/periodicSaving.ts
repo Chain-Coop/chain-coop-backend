@@ -25,6 +25,7 @@ export enum network {
 }
 export interface Transaction {
   txHash: string;
+  yieldEarned?: string;
   amount: string;
   timestamp: Date;
   status: TransactionStatus;
@@ -75,6 +76,7 @@ interface IPeriodicSavingModel extends Model<IPeriodicSaving> {
 const transactionSchema = new Schema<Transaction>(
   {
     txHash: { type: String, required: true },
+    yieldEarned: { type: String },
     amount: { type: String, required: true },
     timestamp: { type: Date, required: true },
     status: {

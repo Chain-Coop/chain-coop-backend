@@ -19,6 +19,9 @@ import { createTransactionHistory } from '../../../services/web3/historyService'
 import {
   userPoolsByPoolId,
   withdrawFromPool,
+  getPoolYield,
+  enableAaveForPool,
+  isAaveConfigured,
 } from '../../../services/web3/chaincoopSaving.2.0/savingServices';
 
 export class PeriodicSavingController {
@@ -179,6 +182,18 @@ export class PeriodicSavingController {
           .json({ message: `Failed to get a pool ${poolId_bytes}` });
         return;
       }
+      let yieldEarned = '0';
+      if (pool.aaveEnabled) {
+        try {
+          yieldEarned = await getPoolYield(
+            poolId_bytes,
+            periodicSaving.network
+          );
+        } catch (error) {
+          console.log('Error fetching yield:', error);
+        }
+        return;
+      }
 
       const tx = await withdrawFromPool(
         poolId_bytes,
@@ -193,6 +208,7 @@ export class PeriodicSavingController {
       }
       const withdrawTransaction: Transaction = {
         txHash: tx.hash,
+        yieldEarned,
         amount: pool.amountSaved,
         timestamp: new Date(),
         status: TransactionStatus.CONFIRMED,
@@ -291,6 +307,78 @@ export class PeriodicSavingController {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to fetch periodic saving',
+      });
+    }
+  }
+
+  public static async enableAaveForPoolController(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const { poolId_bytes } = req.body;
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      if (!poolId_bytes) {
+        res.status(400).json({
+          message: 'Provide all required values: poolId_bytes',
+        });
+        return;
+      }
+
+      const wallet = await getUserWeb3Wallet(userId);
+      if (!wallet) {
+        res.status(400).json({ message: 'Please activate wallet' });
+        return;
+      }
+
+      const periodicSaving = await PeriodicSaving.findOne({
+        poolId: poolId_bytes,
+      });
+      if (!periodicSaving) {
+        res.status(400).json({
+          message: `Failed to find a pool ${poolId_bytes}`,
+        });
+        return;
+      }
+
+      // Check if Aave is configured for this token
+      const isConfigured = await isAaveConfigured(
+        periodicSaving.tokenAddress,
+        periodicSaving.network
+      );
+      if (!isConfigured) {
+        res.status(400).json({
+          message: 'Aave is not configured for this token',
+        });
+        return;
+      }
+
+      const userPrivateKey = decrypt(wallet.encryptedKey);
+      const tx = await enableAaveForPool(
+        poolId_bytes,
+        userPrivateKey,
+        periodicSaving.network
+      );
+
+      if (!tx) {
+        res.status(400).json({
+          message: `Failed to enable Aave for pool ${poolId_bytes}`,
+        });
+        return;
+      }
+
+      await tx.wait();
+
+      res.status(200).json({
+        message: 'Aave enabled successfully',
+        data: tx.hash,
+      });
+      return;
+    } catch (error: any) {
+      console.log('Error enabling Aave:', error);
+      res.status(500).json({
+        message: `Internal server error: ${error.message}`,
       });
     }
   }
@@ -449,7 +537,7 @@ export class PeriodicSavingController {
     res: Response
   ): Promise<void> {
     try {
-      const { id } = req.params as { id: string};
+      const { id } = req.params as { id: string };
 
       //@ts-ignore
 
