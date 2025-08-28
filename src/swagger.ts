@@ -13,16 +13,16 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api/v1',
-      },
-      {
-        url: 'https://chain-coop-backend.onrender.com/api/v1',
-      },
-      {
         url: 'https://api.chaincoop.org/api/v1',
       },
       {
         url: 'https://little-frost.pipeops.app/api/v1',
+      },
+      {
+        url: 'https://chaincoop-backend.pipeops.app/api/v1',
+      },
+      {
+        url: 'http://localhost:3000/api/v1',
       },
     ],
   },
