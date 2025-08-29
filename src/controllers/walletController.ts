@@ -373,11 +373,6 @@ export const ChangePin = async (req: Request, res: Response) => {
 	const id = req.user.userId;
 	const user = await getUserDetails(id);
 
-	const validOtp = await findOtp(user!.email, otp);
-	if (!validOtp) {
-		throw new BadRequestError("Invalid otp provided");
-	}
-
 	const wallet = await findWalletService({ user: id });
 	if (!wallet) {
 		throw new BadRequestError("Wallet not found");
