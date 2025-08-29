@@ -186,7 +186,7 @@ const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
 
 app.all('/', (req: Request, res: Response) => {
-  res.send('Chain Coop Backend');
+  res.send('This is the dev backend for Chain Coop');
 });
 
 app.all('/webhook', webhookController);
