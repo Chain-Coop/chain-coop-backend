@@ -370,6 +370,8 @@ export class PeriodicSavingController {
 
       await tx.wait();
 
+      periodicSaving.isAaveActive = true;
+      await periodicSaving.save();
       res.status(200).json({
         message: 'Aave enabled successfully',
         data: tx.hash,

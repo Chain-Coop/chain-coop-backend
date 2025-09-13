@@ -658,6 +658,9 @@ const enableAaveForPoolController = asyncHandler(
 
       await tx.wait();
 
+      manualSaving.isAaveActive = true;
+      await manualSaving.save();
+
       res.status(200).json({
         message: 'Aave enabled successfully',
         data: tx.hash,

@@ -46,6 +46,7 @@ export interface IPeriodicSaving extends Document {
   duration: number;
   interval: SavingInterval;
   isActive: boolean;
+  isAaveActive?: boolean;
   lastExecutionTime: Date;
   nextExecutionTime?: Date;
   encryptedPrivateKey: string;
@@ -120,6 +121,7 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
       required: true,
     },
     isActive: { type: Boolean, default: true },
+    isAaveActive: { type: Boolean, default: false },
     lastExecutionTime: { type: Date, default: Date.now },
     nextExecutionTime: { type: Date },
     encryptedPrivateKey: { type: String, required: true },
