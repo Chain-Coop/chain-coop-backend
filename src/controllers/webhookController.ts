@@ -3,7 +3,7 @@ import {
   verifyContributionPayment,
   verifyUnpaidContributionPayment,
 } from '../services/contributionService';
-
+import { verifyCryptoPaymentService } from '../services/web3/payStack/paystackServices';
 import { verifyPayment } from '../services/paystackService';
 import { BVNWebhook } from '../services/kycservice';
 import { sendEmail } from '../utils/sendEmail';
@@ -39,6 +39,11 @@ export const webhookController = async (req: Request, res: Response) => {
       data.data.metadata.type === 'wallet_funding'
     ) {
       verifyPaymentService(data.data.reference);
+    } else if (
+      data.data.status === 'success' &&
+      data.data.metadata.type === 'crypto_wallet_funding'
+    ) {
+      await verifyCryptoPaymentService(data.data.reference);
     }
   }
 
@@ -52,6 +57,21 @@ export const webhookController = async (req: Request, res: Response) => {
       subject: 'BVN Verification Failed',
       text: `Your BVN verification failed. Please try again`,
     });
+  }
+  if (data.event === 'transfer.success') {
+    console.log('Transfer success webhook received');
+    const status = data.status;
+    const reference = data.reference;
+  }
+  if (data.event === 'transfer.failed') {
+    console.log('Transfer failed webhook received');
+    const status = data.status;
+    const reference = data.reference;
+  }
+  if (data.event === 'transfer.reversed') {
+    console.log('Transfer reversed webhook received');
+    const status = data.status;
+    const reference = data.reference;
   }
 };
 
@@ -142,10 +162,7 @@ export const CashwyreWebhookController = async (
   }
 };
 
-export const VantWebhookController = async (
-  req: Request,
-  res: Response
-) => {
+export const VantWebhookController = async (req: Request, res: Response) => {
   console.log('Vant Webhook called');
 
   const data = req.body;
@@ -154,18 +171,17 @@ export const VantWebhookController = async (
   res.status(StatusCodes.OK);
 
   try {
-    if (data.event === "account_creation") {
+    if (data.event === 'account_creation') {
       const webhookData = {
         data: data.data,
         statusCode: data.statusCode,
-        error: data.error
+        error: data.error,
       };
 
       // Update the reserved wallet based on webhook data
       await VantServices.updateReservedWalletFromWebhook(webhookData);
-      console.log("Reserved wallet webhook processed successfully");
-
-    } else if (data.event === "transfer") {
+      console.log('Reserved wallet webhook processed successfully');
+    } else if (data.event === 'transfer') {
       const transferData = {
         reference: data.reference,
         amount: parseFloat(data.amount),
@@ -177,14 +193,13 @@ export const VantWebhookController = async (
         status: data.status,
         meta: data.meta,
         timestamp: data.timestamp,
-        sessionId: data.sessionId
+        sessionId: data.sessionId,
       };
 
       // Process the inward transfer
       await VantServices.processInwardTransfer(transferData);
-      console.log("Inward transfer webhook processed successfully");
+      console.log('Inward transfer webhook processed successfully');
     }
-
   } catch (error) {
     console.error('Error processing Vant webhook:', error);
     res.sendStatus(500);
