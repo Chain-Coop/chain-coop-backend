@@ -287,7 +287,6 @@ const withdrawFromPoolByID = asyncHandler(
         } catch (error) {
           console.log('Error fetching yield:', error);
         }
-        return;
       }
 
       const tx = await withdrawFromPool(
