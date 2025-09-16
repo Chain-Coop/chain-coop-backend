@@ -229,7 +229,7 @@ class CashwyreService {
     cryptoAddress: string
   ) {
     try {
-      const data = await this.axiosInstance.post(
+      const data: any = await this.axiosInstance.post(
         '/OnrampOfframp/confirmOnrampQuote',
         {
           appId: CashwyreConfig.AppId,
@@ -241,7 +241,7 @@ class CashwyreService {
       if (!data) {
         throw new NotFoundError('Quote not Confirmed');
       }
-      return data.data;
+      return data?.data;
     } catch (error: any) {
       console.error(error.message);
       throw new Error(error.message);

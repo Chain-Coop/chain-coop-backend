@@ -3,8 +3,10 @@ import {
   verifyContributionPayment,
   verifyUnpaidContributionPayment,
 } from '../services/contributionService';
-import { verifyCryptoPaymentService } from '../services/web3/payStack/paystackServices';
-import { verifyPayment } from '../services/paystackService';
+import {
+  verifyCryptoPaymentService,
+  verifyTransferService,
+} from '../services/web3/payStack/paystackServices';
 import { BVNWebhook } from '../services/kycservice';
 import { sendEmail } from '../utils/sendEmail';
 import { verifyPaymentService } from '../services/walletService';
@@ -60,18 +62,21 @@ export const webhookController = async (req: Request, res: Response) => {
   }
   if (data.event === 'transfer.success') {
     console.log('Transfer success webhook received');
-    const status = data.status;
-    const reference = data.reference;
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
   }
   if (data.event === 'transfer.failed') {
     console.log('Transfer failed webhook received');
-    const status = data.status;
-    const reference = data.reference;
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
   }
   if (data.event === 'transfer.reversed') {
     console.log('Transfer reversed webhook received');
-    const status = data.status;
-    const reference = data.reference;
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
   }
 };
 

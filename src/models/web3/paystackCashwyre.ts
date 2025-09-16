@@ -22,14 +22,17 @@ export interface IPaystackCashwyre extends Document {
   amountInCrypto: number;
   transferStatus: TransferStatus;
   transactionStatus: TransactionStatus;
-  reference: string;
-  cashwyreReference: string;
+  paystackReference: string;
+  cashwyreReference?: string;
+  chainCoopReference: string;
   userEmail: string;
   userID: string;
-  recipientCode: string;
-  bankAccNum: string;
+  recipientCode?: string;
+  cashwyreAcc?: string;
   cashwyreStatus: string;
   userWallet: string;
+  crypto?: string;
+  network?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,7 +54,7 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       enum: Object.values(TransferStatus),
       default: TransferStatus.PENDING,
     },
-    reference: {
+    paystackReference: {
       type: String,
       unique: true,
       sparse: true,
@@ -62,6 +65,17 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       unique: true,
       sparse: true,
       trim: true,
+    },
+    chainCoopReference: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    transactionStatus: {
+      type: String,
+      enum: Object.values(TransactionStatus),
+      default: TransactionStatus.NEW,
     },
     userEmail: {
       type: String,
@@ -84,7 +98,7 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       type: String,
       trim: true,
     },
-    bankAccNum: {
+    cashwyreAcc: {
       type: String,
       trim: true,
     },
@@ -94,6 +108,14 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       default: CashwyreTransactionStatus.NEW,
     },
     userWallet: {
+      type: String,
+      trim: true,
+    },
+    crypto: {
+      type: String,
+      trim: true,
+    },
+    network: {
       type: String,
       trim: true,
     },
