@@ -15,6 +15,7 @@ export interface ICircle extends Document {
   status: 'pending' | 'active' | 'completed' | 'decommissioned';
   isOnChain: boolean;
   transactionHash?: string;
+  network?: string; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +90,10 @@ const CircleSchema = new Schema<ICircle>(
       default: false,
     },
     transactionHash: String,
+    network: {
+      type: String,
+      enum: ['BSC', 'POLYGON']
+    },
   },
   {
     timestamps: true,

@@ -22,6 +22,7 @@ import {
 import { Circle } from '../../../models/web3/groupSaving';
 import { ethers } from 'ethers';
 import User from '../../../models/user';
+import { get } from 'axios';
 
 const createCircles = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -220,6 +221,7 @@ const activateCircle = asyncHandler(async (req: Request, res: Response) => {
     circle.transactionHash = tx.hash;
     circle.contractCircleId = await extractCircleIdFromReceipt(tx);
     circle.status = 'active';
+    circle.network = network;
     circle.circleStart = new Date();
     await circle.save();
     res.status(200).json({ message: 'Success', data: circle });
@@ -249,6 +251,47 @@ const getSavingCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(403).json({ message: 'You are not a member of this circle' });
       return;
     }
+    res.status(200).json({ message: 'Success', data: circle });
+  } catch (error: any) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: `Internal server error: ${error.message}` });
+  }
+});
+
+const getCircleDetails = asyncHandler(async (req: Request, res: Response) => {
+  const circleId = req.params.id;
+  //@ts-ignore
+  const userId = req.user.userId;
+  try {
+    if (!circleId) {
+      res.status(400).json({ message: 'Provide circleId' });
+      return;
+    }
+
+    const wallet = await getUserWeb3Wallet(userId);
+    if (!wallet) {
+      res.status(400).json({ message: 'Please activate wallet' });
+      return;
+    }
+
+    const userPrivateKey = decrypt(wallet.encryptedKey);
+    const circleDetails = await Circle.findById(circleId);
+    if (!circleDetails) {
+      res.status(404).json({ message: 'Circle not found in database' });
+      return;
+    }
+    if (!circleDetails.members.toString().includes(userId)) {
+      res.status(403).json({ message: 'You are not a member of this circle' });
+      return;
+    }
+
+    const circle = await getCircle(
+      circleId,
+      userPrivateKey,
+      circleDetails.network || ''
+    );
     res.status(200).json({ message: 'Success', data: circle });
   } catch (error: any) {
     console.error(error);
@@ -561,6 +604,7 @@ export {
   getSavingMemberBalances,
   getSavingMemberCircles,
   getSavingCircle,
+  getCircleDetails,
   getCirclesbyMember,
   decommissionSavingCircle,
 };
