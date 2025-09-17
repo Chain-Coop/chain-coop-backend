@@ -67,7 +67,7 @@ const router = Router();
  *               network:
  *                 type: string
  *                 description: Network to deploy the circle on
- *                 example: "TBSC or TPOLYGON"
+ *                 example: "BSC or POLYGON"
  *     responses:
  *       '200':
  *         description: Successfully created saving circle
@@ -237,16 +237,11 @@ router.post('/removeMember', authorize, deleteMemberFromCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle to activate
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network to deploy the circle on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully activated circle
@@ -299,7 +294,6 @@ router.post('/activate', authorize, activateCircle);
  *             required:
  *               - circleId
  *               - amount
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
@@ -309,10 +303,6 @@ router.post('/activate', authorize, activateCircle);
  *                 type: string
  *                 description: Amount to deposit
  *                 example: "1000"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully deposited to circle
@@ -356,16 +346,11 @@ router.post('/depositCircle', authorize, depositToCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully withdrew from circle
@@ -463,16 +448,11 @@ router.post('/setAllowedToken', authorize, setSavingTokenAllowed);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle to decommission
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully decommissioned circle
@@ -522,7 +502,7 @@ router.post('/deleteCircle', authorize, decommissionSavingCircle);
  *         schema:
  *           type: string
  *         description: Network the circle is deployed on
- *         example: "TBSC or TPOLYGON"
+ *         example: "BSC or POLYGON"
  *     responses:
  *       '200':
  *         description: Successfully retrieved member balances
@@ -571,7 +551,7 @@ router.get('/memberBalance/:id', authorize, getSavingMemberBalances);
  *         schema:
  *           type: string
  *         description: Network to query circles from
- *         example: "TBSC or TPOLYGON"
+ *         example: "BSC or POLYGON"
  *     responses:
  *       '200':
  *         description: Successfully retrieved user's circle IDs
