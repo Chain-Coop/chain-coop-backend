@@ -21,8 +21,9 @@ import {
 } from '../../../services/web3/Savingcircles/savingCirlesServices';
 import { Circle } from '../../../models/web3/groupSaving';
 import { ethers } from 'ethers';
-import User from '../../../models/user';
+import User, { UserDocument } from '../../../models/authModel';
 import { get } from 'axios';
+import mongoose from 'mongoose';
 
 const createCircles = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -88,14 +89,14 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
         res.status(404).json({ message: 'Member not found' });
         return;
       }
-      return user._id;
+      return user._id as string;
     });
     const circle = await Circle.findById(circleId);
     if (!circle) {
       res.status(404).json({ message: 'Circle not found' });
       return;
     }
-    if (circle.members.includes(memberId)) {
+    if (circle.members.includes(new mongoose.Types.ObjectId(memberId))) {
       res.status(400).json({ message: 'Member already in circle' });
       return;
     }
@@ -109,7 +110,7 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(403).json({ message: 'Only owner can add members' });
       return;
     }
-    circle.members.push(memberId);
+    circle.members.push(new mongoose.Types.ObjectId(memberId));
     await circle.save();
     res
       .status(200)
@@ -139,7 +140,7 @@ const deleteMemberFromCircle = asyncHandler(
             res.status(404).json({ message: 'Member not found' });
             return;
           }
-          return user._id;
+          return user._id as string;
         }
       );
       const circle = await Circle.findById(circleId);
@@ -147,7 +148,7 @@ const deleteMemberFromCircle = asyncHandler(
         res.status(404).json({ message: 'Circle not found' });
         return;
       }
-      if (!circle.members.includes(memberId)) {
+      if (!circle.members.includes(new mongoose.Types.ObjectId(memberId))) {
         res.status(400).json({ message: 'Member not in circle' });
         return;
       }
@@ -162,7 +163,7 @@ const deleteMemberFromCircle = asyncHandler(
         return;
       }
       circle.members = circle.members.filter(
-        (member) => member.toString() !== memberId.toString()
+        (member) => member.toString() !== memberId?.toString()
       );
       await circle.save();
       res
