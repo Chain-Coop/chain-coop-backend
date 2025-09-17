@@ -200,7 +200,6 @@ const activateCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(403).json({ message: 'Only owner can activate circle' });
       return;
     }
-    console.log('Circle to be activated:', circle);
     const wallet = await getUserWeb3Wallet(userId);
     if (!wallet) {
       res.status(400).json({ message: 'Please activate wallet' });
@@ -226,6 +225,7 @@ const activateCircle = asyncHandler(async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Failed to activate circle' });
       return;
     }
+
     circle.isOnChain = true;
     circle.transactionHash = tx.hash;
     circle.contractCircleId = await extractCircleIdFromReceipt(tx);
