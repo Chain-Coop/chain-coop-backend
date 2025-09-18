@@ -18,6 +18,7 @@ import {
   userAddress,
 } from '../../../utils/web3/savingContract';
 import CircleAbi from '../../../constant/abi/SavingCircles.json';
+import { parse } from 'path';
 const iface = new ethers.Interface(CircleAbi.abi);
 
 interface Circle {
@@ -81,6 +82,7 @@ const deposit = async (
     }
     console.log('Allowance done');
     const contract = await savingcirclescontract(network, userPrivateKey);
+    console.log(parseUnits(_id, 0), parseEther(_value));
 
     const tx = await contract.deposit(parseUnits(_id, 0), parseEther(_value));
     await tx.wait(1);

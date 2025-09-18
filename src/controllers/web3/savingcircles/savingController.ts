@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import {
   getUserWeb3Wallet,
   getTokenAddressSymbol,
+  checkStableUserBalance,
 } from '../../../services/web3/accountService';
 import { createTransactionHistory } from '../../../services/web3/historyService';
 import { decrypt } from '../../../services/encryption';
@@ -397,6 +398,30 @@ const depositToCircle = asyncHandler(async (req: Request, res: Response) => {
     const userPrivateKey = decrypt(wallet.encryptedKey);
     if (!circle.contractCircleId) {
       res.status(400).json({ message: 'Circle has been sent onchain' });
+      return;
+    }
+
+    const tokenAddressToSaveWith = tokenAddress(
+      Number(circle.tokenId),
+      circle.network
+    );
+    const { bal: balance }: { bal: number; symbol: string } =
+      await checkStableUserBalance(
+        wallet.address,
+        tokenAddressToSaveWith,
+        circle.network
+      );
+    if (balance < parseFloat(amount)) {
+      res.status(400).json({
+        message: `Insufficient balance. Your balance is ${balance} and you need ${amount}`,
+      });
+      return;
+    }
+
+    if (amount > circle.depositAmount) {
+      res.status(400).json({
+        message: `Deposit amount exceeds the required deposit amount of ${circle.depositAmount}`,
+      });
       return;
     }
 

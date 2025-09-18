@@ -115,13 +115,13 @@ router.post('/createCircle', authorize, createCircles);
  *             type: object
  *             required:
  *               - circleId
- *               - memberEmail
+ *               - memberEmails
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               memberEmail:
+ *               memberEmails:
  *                 type: array
  *                 description: Email of the member to add
  *                 example: ["abc@gmail.com","bsd@gmail.com"]
@@ -176,16 +176,16 @@ router.post('/addMember', authorize, addMemberToCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - memberEmail
+ *               - Id
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               memberEmail:
+ *               Id:
  *                 type: string
- *                 description: Email of the member to remove
- *                 example: "abc@gmail.com"
+ *                 description: Id of the member to remove
+ *                 example: "64f1a2b3c4d5e6f7g8h9i0j3"
  *     responses:
  *       '200':
  *         description: Successfully removed member from circle
