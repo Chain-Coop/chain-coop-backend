@@ -170,31 +170,27 @@ const addMemberToCircle = asyncHandler(async (req: Request, res: Response) => {
 });
 const deleteMemberFromCircle = asyncHandler(
   async (req: Request, res: Response) => {
-    const { circleId, memberEmail } = req.body;
+    const { circleId, Id } = req.body;
     //@ts-ignore
     const userId = req.user.userId;
-    if (!circleId || !memberEmail) {
+    if (!circleId || !Id) {
       res.status(400).json({
         message: 'Provide all required values: circleId, memberId',
       });
       return;
     }
     try {
-      const memberId = await User.findOne({ email: memberEmail }).then(
-        (user) => {
-          if (!user) {
-            res.status(404).json({ message: 'Member not found' });
-            return;
-          }
-          return user._id as string;
-        }
-      );
+      const memberId = await User.findById(Id);
+      if (!memberId) {
+        res.status(404).json({ message: 'Member not found' });
+        return;
+      }
       const circle = await Circle.findById(circleId);
       if (!circle) {
         res.status(404).json({ message: 'Circle not found' });
         return;
       }
-      if (!circle.members.includes(new mongoose.Types.ObjectId(memberId))) {
+      if (!circle.members.includes(Id)) {
         res.status(400).json({ message: 'Member not in circle' });
         return;
       }
@@ -209,7 +205,7 @@ const deleteMemberFromCircle = asyncHandler(
         return;
       }
       circle.members = circle.members.filter(
-        (member) => member.toString() !== memberId?.toString()
+        (member) => member.toString() !== Id
       );
       await circle.save();
       res
