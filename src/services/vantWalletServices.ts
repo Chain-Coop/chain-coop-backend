@@ -97,16 +97,16 @@ class VantService {
      */
     async generateReservedWallet(
         email: string,
-        phone: string,
+        phoneNumber: string,
         bvn: string,
-        dateOfBirth: string
+        dob: string
     ) {
         try {
             const payload = {
                 email,
-                phone,
+                phone: phoneNumber,
                 bvn,
-                date_of_birth: dateOfBirth
+                date_of_birth: dob
             };
             const { data }: any = await this.axiosInstance.post(
                 '/client/create',
@@ -122,7 +122,7 @@ class VantService {
             console.error(error.message);
             throw new Error(error.message);
         }
-    }
+    };
 
     async createReservedWallet(
         userId: string, email: string,
