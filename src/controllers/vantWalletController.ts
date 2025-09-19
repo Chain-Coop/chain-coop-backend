@@ -15,8 +15,9 @@ import { logFailedTransaction } from '../services/logs';
 class VantController {
     /**
      * Create a reserved wallet
-     * @route POST /api/vant/reserved-wallet
+     * @route POST /api/vant/create-wallet
      */
+
     async createReservedWallet(req: Request, res: Response) {
         try {
             const { bvn, dob } = req.body;
@@ -24,7 +25,7 @@ class VantController {
             const userId = req.user.userId;
 
             if (!bvn || !dob) {
-                throw new BadRequestError('All fields are required: bvn, dob');
+                throw new BadRequestError('All fields are required: bvn and dob');
             }
 
             if (!/^\d{11}$/.test(bvn)) {
@@ -35,6 +36,17 @@ class VantController {
                 throw new BadRequestError('Date of birth must be in YYYY-MM-DD format');
             }
             const user = await getUserDetails(userId);
+
+            if (!user) {
+            throw new NotFoundError('User not found');
+            }
+            if (!user.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+            throw new BadRequestError('Invalid email format');
+            }
+            if (!user.phoneNumber || !/^\+?\d{10,14}$/.test(user.phoneNumber)) {
+            throw new BadRequestError('Invalid phone number format: Phone number must be in +234xxxxxxxxx format');
+            };
+
             const existingWallet = await VantServices.getUserReservedWallet(userId);
 
             if (existingWallet) {
@@ -66,7 +78,6 @@ class VantController {
             });
         }
     }
-
     /**
      * Get user's reserved wallet
      * @route GET /api/vant/reserved-wallet
