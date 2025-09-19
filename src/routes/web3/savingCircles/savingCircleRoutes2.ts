@@ -494,15 +494,8 @@ router.post('/deleteCircle', authorize, decommissionSavingCircle);
  *         required: true
  *         schema:
  *           type: string
- *         description: Contract circle ID on the blockchain
- *         example: "1"
- *       - in: query
- *         name: network
- *         required: true
- *         schema:
- *           type: string
- *         description: Network the circle is deployed on
- *         example: "BSC or POLYGON"
+ *         description: Contract circle id
+ *         example: "64f1a2b3c4d5e6f7g8h9i0j1"
  *     responses:
  *       '200':
  *         description: Successfully retrieved member balances

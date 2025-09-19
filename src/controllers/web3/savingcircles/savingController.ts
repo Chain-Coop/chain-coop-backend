@@ -643,7 +643,6 @@ const getSavingMemberCircles = asyncHandler(
 
 const getSavingMemberBalances = asyncHandler(
   async (req: Request, res: Response) => {
-    const { network } = req.query as { network: string };
     const circleId = req.params.id;
     //@ts-ignore
     const userId = req.user.userId;
@@ -653,11 +652,16 @@ const getSavingMemberBalances = asyncHandler(
         res.status(400).json({ message: 'Please activate wallet' });
         return;
       }
+      const Id = await Circle.findById(circleId);
+      if (!Id) {
+        res.status(404).json({ message: 'Circle not found' });
+        return;
+      }
       const userPrivateKey = decrypt(wallet.encryptedKey);
       const [members, balances] = await getMemberBalances(
-        circleId,
+        Id.contractCircleId || '',
         userPrivateKey,
-        network
+        Id.network
       );
       res.status(200).json({
         message: 'Success',
