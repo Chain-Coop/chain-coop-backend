@@ -328,7 +328,9 @@ const getCircleDetails = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const userPrivateKey = decrypt(wallet.encryptedKey);
-    const circleDetails = await Circle.findById(circleId);
+    const circleDetails = await Circle.findById(
+      new mongoose.Types.ObjectId(circleId)
+    );
     if (!circleDetails) {
       res.status(404).json({ message: 'Circle not found in database' });
       return;
@@ -339,7 +341,7 @@ const getCircleDetails = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const circle = await getCircle(
-      circleId,
+      circleDetails.contractCircleId || '',
       userPrivateKey,
       circleDetails.network
     );
