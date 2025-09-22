@@ -926,6 +926,8 @@ const router = Router();
  *     summary: Get Aave balance for a specific pool
  *     description: Retrieves the current Aave balance for a pool that has Aave enabled
  *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: poolId
@@ -993,6 +995,8 @@ const router = Router();
  *     summary: Get yield earned from Aave for a specific pool
  *     description: Retrieves the total yield earned from Aave for a pool that has yield farming enabled
  *     tags: [Web3]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: poolId
