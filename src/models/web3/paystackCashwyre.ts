@@ -128,8 +128,6 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
 
 // Add indexes for better query performance
 paystackCashwyreSchema.index({ reference: 1 });
-paystackCashwyreSchema.index({ userEmail: 1 });
-paystackCashwyreSchema.index({ userID: 1 });
 paystackCashwyreSchema.index({ transferStatus: 1 });
 
 // Create and export the model

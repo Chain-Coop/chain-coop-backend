@@ -184,22 +184,6 @@ const verifyBVN = async ({
   }
 };
 
-
-const BVNWebhook = async (data: any) => {
-  const user = await findUser("email", data.email);
-
-  if (!user) {
-    return "User not found";
-  }
-
-  user.Tier = 1;
-
-  await user.save();
-
-  return "success";
-};
-
-
 // TIER 2 KYC Verification
 const DIDIT_AUTH_URL = "https://apx.didit.me/auth/v2/token/";
 const DIDIT_VERIFICATION_BASE_URL = "https://verification.didit.me";
@@ -306,7 +290,6 @@ export {
   createPaystackCustomer,
   setBVN,
   verifyBVN,
-  BVNWebhook,
 };
 
 

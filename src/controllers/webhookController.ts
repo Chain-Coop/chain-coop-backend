@@ -7,7 +7,6 @@ import {
   verifyCryptoPaymentService,
   verifyTransferService,
 } from '../services/web3/payStack/paystackServices';
-import { BVNWebhook } from '../services/kycservice';
 import { sendEmail } from '../utils/sendEmail';
 import { verifyPaymentService } from '../services/walletService';
 import CashwyreServices from '../services/web3/Cashwyre/cashWyre';
@@ -49,17 +48,6 @@ export const webhookController = async (req: Request, res: Response) => {
     }
   }
 
-  if (data.event === 'customeridentification.success') {
-    BVNWebhook(data.data);
-  }
-
-  if (data.event === 'customeridentification.failed') {
-    sendEmail({
-      to: data.data.email,
-      subject: 'BVN Verification Failed',
-      text: `Your BVN verification failed. Please try again`,
-    });
-  }
   if (data.event === 'transfer.success') {
     console.log('Transfer success webhook received');
     const status = data.data.status;
