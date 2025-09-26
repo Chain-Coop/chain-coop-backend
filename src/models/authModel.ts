@@ -14,10 +14,13 @@ export interface UserDocument extends Document {
     url: string;
     imageId: string;
   };
-  username: String;
+  username: string; 
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  gender: string;
+  dateOfBirth: Date;
+  referredByUsername?: string; // Track referrer by username
   isVerified: boolean;
   isPhoneVerified: boolean;
   Tier: number;
@@ -55,13 +58,31 @@ const UserSchema = new Schema(
 
     membershipType: {
       type: String,
-      enum: ['Explorer', 'Voyager', 'Pioneer'],
+      enum: ['individual', 'cooperate'],
       required: [true, 'Membership type is required'],
     },
 
+    // Enhanced username field for referral system
     username: {
       type: String,
-      required: [true, 'Username is required'],
+      required: [true, 'Username is required'], 
+      unique: true, 
+      lowercase: true, // Store in lowercase for consistency
+      trim: true,
+      minlength: [3, 'Username must be at least 3 characters'],
+      maxlength: [20, 'Username cannot exceed 20 characters'],
+      match: [
+        /^[a-zA-Z0-9_]+$/,   
+        'Username can only contain letters, numbers, and underscores'
+      ],
+      validate: {
+        validator: function(username: string) {
+          // Prevent reserved usernames
+          const reserved = ['admin', 'root', 'api', 'www', 'support', 'help', 'null', 'undefined'];
+          return !reserved.includes(username.toLowerCase());
+        },
+        message: 'This username is reserved and cannot be used'
+      }
     },
 
     phoneNumber: {
@@ -69,46 +90,85 @@ const UserSchema = new Schema(
       required: [true, 'Phone number is required'],
     },
 
+    gender: {
+      type: String,
+      enum: ['male', 'female'],
+      required: [true, 'Gender is required'],
+    },
+
+    dateOfBirth: {
+      type: Date,
+      required: [true, 'Date of birth is required'],
+      validate: {
+        validator: function(value: Date) {
+          return !value || value <= new Date();
+        },
+        message: 'Date of birth cannot be in the future'
+      }
+    },
+
+    referredByUsername: {
+      type: String,
+      required: false,
+      lowercase: true,
+      trim: true,
+    },
+
     profilePhoto: {
       url: String,
       imageId: String,
     },
+
     membershipStatus: {
       type: String,
       enum: ['active', 'pending', 'inactive'],
       default: 'inactive',
     },
+
     membershipPaymentStatus: {
       type: String,
       enum: ['paid', 'in-progress', 'not_started'],
       default: 'not_started',
     },
+
     Tier: {
       type: Number,
       enum: [0, 1, 2],
       default: 0,
     },
+
     isVerified: {
       type: Boolean,
       default: false,
     },
-    isPhoneVerified: { 
-      type: Boolean, 
-      default: false
+
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
     },
+
     firstName: {
       type: String,
       required: [true, 'First name is required'],
     },
+
     lastName: {
       type: String,
       required: [true, 'Last name is required'],
     },
-    isWalletActivated: { type: Boolean, default: false },
-    isBitcoinWalletActivated: { type: Boolean, default: false },
+
+    isWalletActivated: { 
+      type: Boolean, 
+      default: false 
+    },
+
+    isBitcoinWalletActivated: { 
+      type: Boolean, 
+      default: false 
+    },
   },
   { timestamps: true }
-); // added timestamps
+); // added timestamps 
 
 UserSchema.virtual('wallet', {
   ref: 'Wallet', // The model to use
@@ -130,13 +190,27 @@ UserSchema.pre('save', async function (next) {
     }
   }
 
+  // Convert username to lowercase for consistency
+  if (this.isModified('username')) {
+    this.username = this.username.toLowerCase().trim();
+  }
+
+  // Convert referredByUsername to lowercase for consistency
+  if (this.isModified('referredByUsername') && this.referredByUsername) {
+    this.referredByUsername = this.referredByUsername.toLowerCase().trim();
+  }
+
   next();
 });
 
 UserSchema.methods.createJWT = function () {
   return jwt.sign(
     {
-      user: { email: this.email, userId: this._id, role: this.role },
+      user: { 
+        email: this.email, 
+        userId: this._id, 
+        role: this.role
+      },
     },
     process.env.JWT_SECRET as string,
     {
