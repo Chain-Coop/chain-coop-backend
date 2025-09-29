@@ -10,7 +10,7 @@ export enum TransferStatus {
 }
 export enum TransactionStatus {
   NEW = 'new',
-  DEBITED = 'debited',
+  SUFFICIENT = 'sufficient',
   TRANSFERRED = 'transferred',
   CREDITED = 'credited',
   FAILED = 'failed',
@@ -19,6 +19,7 @@ export enum TransactionStatus {
 // Define the interface for the document
 export interface IPaystackCashwyre extends Document {
   amountInNaira: number;
+  amountDebited: number;
   amountInCrypto: number;
   transferStatus: TransferStatus;
   transactionStatus: TransactionStatus;
@@ -31,8 +32,8 @@ export interface IPaystackCashwyre extends Document {
   cashwyreAcc?: string;
   cashwyreStatus: string;
   userWallet: string;
-  crypto?: string;
-  network?: string;
+  crypto: string;
+  network: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -43,6 +44,10 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
     amountInNaira: {
       type: Number,
       required: true,
+      min: 0,
+    },
+    amountDebited: {
+      type: Number,
       min: 0,
     },
     amountInCrypto: {

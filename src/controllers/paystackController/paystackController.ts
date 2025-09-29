@@ -1,39 +1,76 @@
 import { Request, Response } from 'express';
 import { BadRequestError } from '../../errors/bad-request';
 import { StatusCodes } from 'http-status-codes';
-import { initializeCryptoPaymentService } from '../../services/web3/payStack/paystackServices';
+import asyncHandler from 'express-async-handler';
+import {
+  initializeCryptoPaymentService,
+  transferToBankService,
+} from '../../services/web3/payStack/paystackServices';
 
-const secret = process.env.PAYSTACK_SECRET_KEY!;
-interface UserData {
-  email: string;
-  _id: string;
-}
+export const initiateCryptoPayment = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { amount, paymentMethod, crypto, network } = req.body;
+    //@ts-ignore
+    const email = req.user.email;
 
-export const initiateCryptoPayment = async (req: Request, res: Response) => {
-  const { amount, paymentMethod, crypto, network } = req.body;
-  //@ts-ignore
-  const email = req.user.email;
+    if (!amount || !paymentMethod || !crypto || !network) {
+      throw new BadRequestError(
+        'Amount, payment method, crypto, and network are required'
+      );
+    }
 
-  if (!amount || !email) {
-    throw new BadRequestError('Amount and email are required');
+    try {
+      const payment = await initializeCryptoPaymentService(
+        amount,
+        email,
+        paymentMethod,
+        crypto,
+        network
+      );
+
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Payment initiated successfully',
+        data: payment,
+      });
+    } catch (error) {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error,
+      });
+    }
   }
-  try {
-    const payment = await initializeCryptoPaymentService(
-      amount,
-      email,
-      paymentMethod,
-      crypto,
-      network
-    );
-    return res
-      .status(StatusCodes.OK)
-      .json({ message: 'Payment initiated', payment });
-  } catch (error) {
-    console.error('Error initiating crypto payment:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: `Failed to initiate payment: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    });
+);
+
+export const initiateNewTransfer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { amountInNaira, crypto, network } = req.body;
+    //@ts-ignore
+    const userId = req.user._id;
+
+    if (!amountInNaira || !crypto || !network) {
+      throw new BadRequestError(
+        'Amount in Naira, crypto, and network are required'
+      );
+    }
+    try {
+      const transfer = await transferToBankService(
+        userId,
+        amountInNaira,
+        crypto,
+        network
+      );
+
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Transfer initiated successfully',
+        data: transfer,
+      });
+    } catch (error) {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error,
+      });
+    }
   }
-};
+);

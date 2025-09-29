@@ -4,6 +4,7 @@ import {
   verifyUnpaidContributionPayment,
 } from '../services/contributionService';
 import {
+  handleCashwyreWebhook,
   verifyCryptoPaymentService,
   verifyTransferService,
 } from '../services/web3/payStack/paystackServices';
@@ -18,6 +19,7 @@ import CashwyreTransaction, {
 } from '../models/web3/cashWyreTransactions';
 import VantServices from '../services/vantWalletServices';
 import { StatusCodes } from 'http-status-codes';
+import { PaystackCashwyre } from '../models/web3/paystackCashwyre';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -113,6 +115,16 @@ export const CashwyreWebhookController = async (
           },
         }
       );
+      const autoTransaction = await PaystackCashwyre.findOne({
+        chainCoopReference: data.eventData.RequestId,
+        transactionStatus: 'sufficient',
+      });
+      if (autoTransaction) {
+        handleCashwyreWebhook(
+          data.eventData.RequestId,
+          CashwyreTransactionStatus.SUCCESS
+        );
+      }
     } else if (data.eventType === 'crypto.offramp.success') {
       console.log('Processing offramp success');
       await CashwyreTransaction.updateOne(
@@ -124,7 +136,6 @@ export const CashwyreWebhookController = async (
         }
       );
     } else if (data.eventType === 'crypto.onramp.failed') {
-      // Fixed typo: 'cryoto' -> 'crypto'
       console.log('Processing onramp failed');
       await CashwyreTransaction.updateOne(
         { reference: data.eventData.RequestId },
@@ -134,6 +145,16 @@ export const CashwyreWebhookController = async (
           },
         }
       );
+      const autoTransaction = await PaystackCashwyre.findOne({
+        chainCoopReference: data.eventData.RequestId,
+        transactionStatus: 'sufficient',
+      });
+      if (autoTransaction) {
+        handleCashwyreWebhook(
+          data.eventData.RequestId,
+          CashwyreTransactionStatus.FAILED
+        );
+      }
     } else if (data.eventType === 'crypto.offramp.failed') {
       console.log('Processing offramp failed');
       await CashwyreTransaction.updateOne(
