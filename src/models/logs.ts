@@ -56,6 +56,13 @@ const BVNLogSchema = new Schema(
             required: true,
             default: 'unknown',
         },
+        manualNamesUsed: {
+            type: {
+                firstName: String,
+                lastName: String
+            },
+            required: false
+        },
         errorMessage: {
             type: String,
         },

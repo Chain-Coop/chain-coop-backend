@@ -20,21 +20,18 @@ class VantController {
 
     async createReservedWallet(req: Request, res: Response) {
         try {
-            const { bvn, dob } = req.body;
+            const { bvn } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
 
-            if (!bvn || !dob) {
-                throw new BadRequestError('All fields are required: bvn and dob');
+            if (!bvn ) {
+                throw new BadRequestError('All fields are required: bvn ');
             }
 
             if (!/^\d{11}$/.test(bvn)) {
                 throw new BadRequestError('BVN must be 11 digits');
             }
 
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-                throw new BadRequestError('Date of birth must be in YYYY-MM-DD format');
-            }
             const user = await getUserDetails(userId);
 
             if (!user) {
@@ -55,15 +52,14 @@ class VantController {
 
             // Generate new virtual account
             const data = await VantServices.generateReservedWallet(
-                user!.email,
-                user!.phoneNumber,
-                bvn,
-                dob
+                user.email,
+                user.phoneNumber,
+                bvn  
             );
 
             const wallet = await VantServices.createReservedWallet(
                 userId,
-                user!.email,
+                user.email,
             );
 
             return res.status(StatusCodes.OK).json({
