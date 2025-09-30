@@ -41,7 +41,6 @@ export const webhookController = async (req: Request, res: Response) => {
     }
   }
 };
-
 export const CashwyreWebhookController = async (
   req: Request,
   res: Response

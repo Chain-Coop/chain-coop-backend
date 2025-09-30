@@ -25,6 +25,7 @@ export enum network {
 }
 export interface Transaction {
   txHash: string;
+  yieldEarned?: string;
   amount: string;
   timestamp: Date;
   status: TransactionStatus;
@@ -45,6 +46,7 @@ export interface IPeriodicSaving extends Document {
   duration: number;
   interval: SavingInterval;
   isActive: boolean;
+  isAaveActive?: boolean;
   lastExecutionTime: Date;
   nextExecutionTime?: Date;
   encryptedPrivateKey: string;
@@ -75,6 +77,7 @@ interface IPeriodicSavingModel extends Model<IPeriodicSaving> {
 const transactionSchema = new Schema<Transaction>(
   {
     txHash: { type: String, required: true },
+    yieldEarned: { type: String },
     amount: { type: String, required: true },
     timestamp: { type: Date, required: true },
     status: {
@@ -118,6 +121,7 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
       required: true,
     },
     isActive: { type: Boolean, default: true },
+    isAaveActive: { type: Boolean, default: false },
     lastExecutionTime: { type: Date, default: Date.now },
     nextExecutionTime: { type: Date },
     encryptedPrivateKey: { type: String, required: true },

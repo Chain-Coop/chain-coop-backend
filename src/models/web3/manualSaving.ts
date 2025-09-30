@@ -15,6 +15,7 @@ export enum DepositType {
 export interface Transaction {
   txHash: string;
   amount: string;
+  yieldEarned?: string;
   timestamp: Date;
   status: TransactionStatus;
   depositType: DepositType;
@@ -38,6 +39,7 @@ export interface IManualSaving extends Document {
   lockType: number;
   duration: number;
   isActive: boolean;
+  isAaveActive?: boolean;
   encryptedPrivateKey: string;
   transactions: Transaction[];
   totalAmount: string;
@@ -65,6 +67,7 @@ const transactionSchema = new Schema<Transaction>(
   {
     txHash: { type: String, required: true },
     amount: { type: String, required: true },
+    yieldEarned: { type: String },
     timestamp: { type: Date, required: true },
     status: {
       type: String,
@@ -103,6 +106,7 @@ const manualSavingSchema = new Schema<IManualSaving>(
     lockType: { type: Number, required: true, min: 0, max: 2 },
     duration: { type: Number, required: true },
     isActive: { type: Boolean, default: true },
+    isAaveActive: { type: Boolean, default: false },
     encryptedPrivateKey: { type: String, required: true },
     transactions: [transactionSchema],
     totalAmount: { type: String, default: '0' },
