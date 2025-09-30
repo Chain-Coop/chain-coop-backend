@@ -4,6 +4,9 @@ import { BVNRateLimiter, verifyBVNBooleanMatchQoreID } from '../services/bvnServ
 import User from '../models/authModel';
 import { StatusCodes } from 'http-status-codes';
 import { Types } from 'mongoose';
+import VantServices from '../services/vantWalletServices';
+import { BadRequestError, NotFoundError } from '../errors'; 
+import { getUserDetails } from '../services/authService'; 
 
 interface BVNMatchCheckSummary {
   bvn_match_check?: {
@@ -32,14 +35,67 @@ interface BVNBooleanMatchResult {
 
 export const verifyBVNBooleanMatchController = async (req: Request, res: Response) => {
   try {
-    const { idNumber } = req.body;
+    const { idNumber, manualFirstName, manualLastName } = req.body;
     const userId = req.user?.userId;
 
-    const user = await User.findById(userId);
+    // User authentication validation
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'User authentication required',
+      });
+    }
+
+    const user = await getUserDetails(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
+      });
+    }
+
+    // Input validation
+    if (!idNumber) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'BVN is required',
+      });
+    }
+
+    if (!/^\d{11}$/.test(idNumber)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'BVN must be 11 digits',
+      });
+    }
+
+    // Validate user info required for wallet creation
+    if (!user.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Valid email address is required for wallet creation',
+      });
+    }
+
+    if (!user.phoneNumber || !/^\+?\d{10,14}$/.test(user.phoneNumber)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Valid phone number is required for wallet creation',
+      });
+    }
+
+    // Check for existing wallet to avoid unnecessary verification
+    const existingWallet = await VantServices.getUserReservedWallet(userId);
+    if (existingWallet) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'User already has a reserved wallet',
+        wallet: {
+          walletName: existingWallet.walletName,
+          accountNumber: existingWallet.accountNumbers[0]?.account_number,
+          bank: existingWallet.accountNumbers[0]?.bank,
+          status: existingWallet.status
+        }
       });
     }
 
@@ -54,12 +110,23 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       });
     }
 
-    const { firstName, lastName } = user as any;
+    // Determine names to use for verification
+    const firstNameToUse = manualFirstName?.trim() || user.firstName;
+    const lastNameToUse = manualLastName?.trim() || user.lastName;
+    const isManualAttempt = !!(manualFirstName || manualLastName);
 
+    if (!firstNameToUse || !lastNameToUse) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'First name and last name are required for BVN verification',
+      });
+    }
+
+    // Perform BVN verification
     const rawResult = await verifyBVNBooleanMatchQoreID({
       idNumber,
-      firstname: firstName,
-      lastname: lastName,
+      firstname: firstNameToUse,
+      lastname: lastNameToUse,
     });
 
     const result: BVNBooleanMatchResult = {
@@ -75,16 +142,22 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       lastnameMatch: result.data?.summary?.bvn_match_check?.fieldMatches?.lastname || false,
       verificationState: result.data?.status?.state || 'unknown',
       verificationStatus: result.data?.status?.status || 'unknown',
+      namesUsed: {
+        firstName: firstNameToUse,
+        lastName: lastNameToUse,
+      },
+      isManualAttempt,
     };
 
-    let attemptStatus: 'success' | 'failure' = 'failure';
+    // Determine verification success - only EXACT_MATCH proceeds
+    const isVerificationSuccessful = result.success && matchStatus === 'EXACT_MATCH';
+    let attemptStatus: 'success' | 'failure' = isVerificationSuccessful ? 'success' : 'failure';
     let errorMessage: string | undefined;
 
-    if (result.success && result.data) {
-      attemptStatus = 'success';
-    } else {
-      attemptStatus = 'failure';
-      errorMessage = result?.message || 'BVN verification failed';
+    if (!isVerificationSuccessful) {
+      errorMessage = matchStatus !== 'EXACT_MATCH' 
+        ? 'BVN verification failed. Names do not match exactly.'
+        : result?.message || 'BVN verification failed';
     }
 
     // Log the attempt in database
@@ -98,28 +171,29 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       simplifiedData.verificationState,
       simplifiedData.verificationStatus,
       errorMessage,
+      isManualAttempt ? { firstName: firstNameToUse, lastName: lastNameToUse } : undefined
     );
 
-
-    if (!result.success) {
+    // Return error if BVN verification fails - no wallet creation
+    if (!isVerificationSuccessful) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: errorMessage,
         data: simplifiedData,
         remainingAttempts: rateLimitResult.remainingAttempts - 1,
+        allowManualCorrection: !isManualAttempt,
+        userNames: !isManualAttempt ? { 
+          firstName: user.firstName, 
+          lastName: user.lastName 
+        } : undefined,
       });
     }
 
-    // Only allow upgrade if EXACT_MATCH
-    if (matchStatus === 'EXACT_MATCH') {
-      if (user.Tier === 2) {
-        return res.status(200).json({
-          success: true,
-          message: 'User is already Tier 2',
-          data: null,
-        });
-      }
+    // Handle tier upgrade
+    let tierUpgraded = false;
+    let previousTier = user.Tier;
 
+    if (user.Tier !== 2) {
       if (user.Tier !== 1) {
         return res.status(400).json({
           success: false,
@@ -129,32 +203,70 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
 
       user.Tier = 2;
       await user.save();
-
-      return res.status(200).json({
-        success: true,
-        message: 'BVN match successful. User upgraded to Tier 2.',
-        data: simplifiedData,
-      });
+      tierUpgraded = true;
     }
 
-    await BVNRateLimiter.logBVNAttempt(
-      new Types.ObjectId(userId),
-      idNumber,
-      'failure',
-      simplifiedData.status,
-      simplifiedData.firstnameMatch,
-      simplifiedData.lastnameMatch,
-      simplifiedData.verificationState,
-      simplifiedData.verificationStatus,
-      'BVN verification failed. Names do not match exactly.',
-    );
+    // Create wallet using verified idNumber
+    try {
+      const walletData = await VantServices.generateReservedWallet(
+        user.email,
+        user.phoneNumber,
+        idNumber
+      );
 
-    // If not EXACT_MATCH
-    return res.status(400).json({
-      success: false,
-      message: 'BVN verification failed. Names do not match.',
-      data: simplifiedData,
-    });
+      if (!walletData) {
+        throw new Error('Vant service failed to generate wallet');
+      }
+
+      const wallet = await VantServices.createReservedWallet(userId, user.email);
+
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        message: tierUpgraded 
+          ? 'BVN verified successfully, user upgraded to Tier 2, and wallet created'
+          : 'BVN verified successfully and wallet created',
+        data: {
+          bvnVerification: {
+            ...simplifiedData,
+            verified: true
+          },
+          tierUpgrade: {
+            upgraded: tierUpgraded,
+            previousTier: previousTier,
+            currentTier: user.Tier
+          },
+          wallet: {
+            walletName: wallet.walletName,
+            accountName: wallet.accountNumbers[0]?.account_name,
+            accountNumber: wallet.accountNumbers[0]?.account_number,
+            bank: wallet.accountNumbers[0]?.bank,
+            status: wallet.status,
+            walletBalance: wallet.walletBalance || 0
+          }
+        },
+      });
+
+    } catch (walletError) {
+      // BVN verification succeeded but wallet creation failed
+      return res.status(StatusCodes.PARTIAL_CONTENT).json({
+        success: true,
+        message: 'BVN verified and user upgraded, but wallet creation failed',
+        data: {
+          bvnVerification: {
+            ...simplifiedData,
+            verified: true
+          },
+          tierUpgrade: {
+            upgraded: tierUpgraded,
+            previousTier: previousTier,
+            currentTier: user.Tier
+          },
+          wallet: null,
+          walletError: (walletError as Error).message
+        },
+        suggestion: 'Contact support to complete wallet creation'
+      });
+    }
 
   } catch (error) {
     // Log the error attempt if we have userId

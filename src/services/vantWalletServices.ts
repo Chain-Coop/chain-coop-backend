@@ -97,16 +97,14 @@ class VantService {
      */
     async generateReservedWallet(
         email: string,
-        phone: string,
-        bvn: string,
-        dateOfBirth: string
+        phoneNumber: string,
+        bvn: string
     ) {
         try {
             const payload = {
                 email,
-                phone,
-                bvn,
-                date_of_birth: dateOfBirth
+                phone: phoneNumber,
+                bvn
             };
             const { data }: any = await this.axiosInstance.post(
                 '/client/create',
@@ -122,7 +120,7 @@ class VantService {
             console.error(error.message);
             throw new Error(error.message);
         }
-    }
+    };
 
     async createReservedWallet(
         userId: string, email: string,
@@ -300,7 +298,8 @@ class VantService {
     async transferFunds(
         userId: string,
         transferRequest: TransferRequest,
-        walletDetails: any
+        walletDetails: any,
+        totalDeduction?: number,
     ): Promise<TransferResponse> {
         try {
             // Create transaction record first with pending status
@@ -348,11 +347,14 @@ class VantService {
                 throw new NotFoundError('Transfer failed!');
             }
 
+            // Deduct the total amount including charges from wallet
+            const actualDeduction = totalDeduction || transferRequest.amount;
+
             await VantWallet.findOneAndUpdate(
                 { userId: new mongoose.Types.ObjectId(userId) },
                 {
                     $inc: {
-                        walletBalance: -transferRequest.amount,
+                        walletBalance: -actualDeduction,
                         totalOutwardTransfers: transferRequest.amount,
                         transactionCount: 1
                     },
@@ -376,10 +378,10 @@ class VantService {
             const updatedWallet = await Wallet.findOneAndUpdate(
                 {
                     user: userId,
-                    balance: { $gte: transferRequest.amount },
+                    balance: { $gte: actualDeduction },
                 },
                 {
-                    $inc: { balance: -transferRequest.amount },
+                    $inc: { balance: -actualDeduction },
                 },
                 {
                     new: true,

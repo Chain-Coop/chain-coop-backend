@@ -3,6 +3,7 @@ import {
   verifyContributionPayment,
   verifyUnpaidContributionPayment,
 } from '../services/contributionService';
+
 import {
   handleCashwyreWebhook,
   verifyCryptoPaymentService,
@@ -50,6 +51,7 @@ export const webhookController = async (req: Request, res: Response) => {
     }
   }
 
+
   if (data.event === 'transfer.success') {
     console.log('Transfer success webhook received');
     const status = data.data.status;
@@ -69,7 +71,6 @@ export const webhookController = async (req: Request, res: Response) => {
     verifyTransferService(reference, status);
   }
 };
-
 export const CashwyreWebhookController = async (
   req: Request,
   res: Response

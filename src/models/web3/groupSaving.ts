@@ -9,12 +9,14 @@ export interface ICircle extends Document {
   description?: string;
   depositAmount: string; // Store as string to handle BigNumber
   token: string;
+  tokenId: string;
   depositInterval: number; // in seconds
   circleStart: Date;
   maxDeposits: number;
   status: 'pending' | 'active' | 'completed' | 'decommissioned';
   isOnChain: boolean;
   transactionHash?: string;
+  network: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +70,11 @@ const CircleSchema = new Schema<ICircle>(
         message: 'Invalid token address format',
       },
     },
+    tokenId: {
+      type: String,
+      default: '1',
+      required: true,
+    },
     depositInterval: {
       type: Number,
       min: 1,
@@ -89,6 +96,11 @@ const CircleSchema = new Schema<ICircle>(
       default: false,
     },
     transactionHash: String,
+    network: {
+      type: String,
+      enum: ['BSC', 'POLYGON'],
+      required: true,
+    },
   },
   {
     timestamps: true,

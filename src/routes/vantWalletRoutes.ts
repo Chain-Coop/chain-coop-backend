@@ -30,17 +30,11 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - bvn
- *               - dob
  *             properties:
  *               bvn:
  *                 type: string
  *                 description: Bank Verification Number (11 digits)
  *                 example: "12345678901"
- *               dob:
- *                 type: string
- *                 format: date
- *                 description: Date of birth in YYYY-MM-DD format
- *                 example: "1990-01-15"
  *     responses:
  *       200:
  *         description: Reserved wallet creation request submitted successfully
