@@ -18,6 +18,7 @@ import {
   userAddress,
 } from '../../../utils/web3/savingContract';
 import CircleAbi from '../../../constant/abi/SavingCircles.json';
+import { parse } from 'path';
 const iface = new ethers.Interface(CircleAbi.abi);
 
 interface Circle {
@@ -52,12 +53,10 @@ const createSavingCircles = async (
       maxDeposits: _maxDeposits,
     };
 
-    console.log('Creating circle with data:', circle);
     const tx = await contract.create(circle);
-    console.log('Transaction sent:', tx.hash);
-    await tx.wait(1);
+    const receipt = await tx.wait(1);
     console.log('Transaction confirmed');
-    return tx;
+    return receipt;
   } catch (error: any) {
     console.error(`Error Opening a saving circle:`, error.message || error);
     throw new Error('Something went wrong, please retry.');
@@ -83,6 +82,7 @@ const deposit = async (
     }
     console.log('Allowance done');
     const contract = await savingcirclescontract(network, userPrivateKey);
+    console.log(parseUnits(_id, 0), parseEther(_value));
 
     const tx = await contract.deposit(parseUnits(_id, 0), parseEther(_value));
     await tx.wait(1);
@@ -181,16 +181,10 @@ const isTokenAllowed = async (
 const extractCircleIdFromReceipt = (receipt: any) => {
   try {
     for (const log of receipt.logs) {
-      try {
-        const parsedLog = iface.parseLog(log);
-
-        if (parsedLog && parsedLog.name === 'CircleCreated') {
-          const circleId = parsedLog.args._id;
-          return circleId.toString();
-        }
-      } catch (err) {
-        // Ignore logs that can't be parsed by this ABI
-        continue;
+      if (log.fragment && log.fragment.name === 'CircleCreated') {
+        // The logs are already parsed, so just access args directly
+        const circleId = log.args._id || log.args[0]; // Try both _id and index 0
+        return circleId.toString();
       }
     }
 

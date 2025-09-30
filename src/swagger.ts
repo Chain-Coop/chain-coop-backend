@@ -19,7 +19,8 @@ const options = {
         url: 'https://little-frost.pipeops.app/api/v1',
       },
       {
-        url: 'https://chaincoop-backend.pipeops.app/api/v1',
+        url: 'https://puffy-knowledge.pipeops.app/api/v1',
+
       },
       {
         url: 'http://localhost:3000/api/v1',

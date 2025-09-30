@@ -12,6 +12,7 @@ import {
   getSavingCircle,
   getCirclesbyMember,
   decommissionSavingCircle,
+  getCircleDetails,
 } from '../../../controllers/web3/savingcircles/savingController';
 import { authorize } from '../../../middlewares/authorization';
 const router = Router();
@@ -66,7 +67,7 @@ const router = Router();
  *               network:
  *                 type: string
  *                 description: Network to deploy the circle on
- *                 example: "TBSC or TPOLYGON"
+ *                 example: "BSC or POLYGON"
  *     responses:
  *       '200':
  *         description: Successfully created saving circle
@@ -114,16 +115,16 @@ router.post('/createCircle', authorize, createCircles);
  *             type: object
  *             required:
  *               - circleId
- *               - memberEmail
+ *               - memberEmails
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               memberEmail:
- *                 type: string
+ *               memberEmails:
+ *                 type: array
  *                 description: Email of the member to add
- *                 example: "abc@gmail.com"
+ *                 example: ["abc@gmail.com","bsd@gmail.com"]
  *     responses:
  *       '200':
  *         description: Successfully added member to circle
@@ -175,16 +176,16 @@ router.post('/addMember', authorize, addMemberToCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - memberEmail
+ *               - Id
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               memberEmail:
+ *               Id:
  *                 type: string
- *                 description: Email of the member to remove
- *                 example: "abc@gmail.com"
+ *                 description: Id of the member to remove
+ *                 example: "64f1a2b3c4d5e6f7g8h9i0j3"
  *     responses:
  *       '200':
  *         description: Successfully removed member from circle
@@ -236,16 +237,11 @@ router.post('/removeMember', authorize, deleteMemberFromCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle to activate
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network to deploy the circle on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully activated circle
@@ -298,7 +294,6 @@ router.post('/activate', authorize, activateCircle);
  *             required:
  *               - circleId
  *               - amount
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
@@ -308,10 +303,6 @@ router.post('/activate', authorize, activateCircle);
  *                 type: string
  *                 description: Amount to deposit
  *                 example: "1000"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully deposited to circle
@@ -355,16 +346,11 @@ router.post('/depositCircle', authorize, depositToCircle);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully withdrew from circle
@@ -462,16 +448,11 @@ router.post('/setAllowedToken', authorize, setSavingTokenAllowed);
  *             type: object
  *             required:
  *               - circleId
- *               - network
  *             properties:
  *               circleId:
  *                 type: string
  *                 description: ID of the saving circle to decommission
  *                 example: "64f1a2b3c4d5e6f7g8h9i0j1"
- *               network:
- *                 type: string
- *                 description: Network the circle is deployed on
- *                 example: "TBSC or TPOLYGON"
  *     responses:
  *       '200':
  *         description: Successfully decommissioned circle
@@ -513,15 +494,8 @@ router.post('/deleteCircle', authorize, decommissionSavingCircle);
  *         required: true
  *         schema:
  *           type: string
- *         description: Contract circle ID on the blockchain
- *         example: "1"
- *       - in: query
- *         name: network
- *         required: true
- *         schema:
- *           type: string
- *         description: Network the circle is deployed on
- *         example: "TBSC or TPOLYGON"
+ *         description: Contract circle id
+ *         example: "64f1a2b3c4d5e6f7g8h9i0j1"
  *     responses:
  *       '200':
  *         description: Successfully retrieved member balances
@@ -570,7 +544,7 @@ router.get('/memberBalance/:id', authorize, getSavingMemberBalances);
  *         schema:
  *           type: string
  *         description: Network to query circles from
- *         example: "TBSC or TPOLYGON"
+ *         example: "BSC or POLYGON"
  *     responses:
  *       '200':
  *         description: Successfully retrieved user's circle IDs
@@ -728,5 +702,108 @@ router.get('/circlesbyMember', authorize, getCirclesbyMember);
  *         description: Internal server error
  */
 router.get('/circleDetails/:id', authorize, getSavingCircle);
+
+/**
+ * @swagger
+ * /web3/savingcircle/circle/{id}:
+ *   get:
+ *     summary: Get details of a saving circle
+ *     description: Retrieves detailed information about a specific saving circle from the database. Only circle members can view details.
+ *     tags:
+ *       - Web3 Saving Circles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Database ID of the saving circle
+ *         example: "64f1a2b3c4d5e6f7g8h9i0j1"
+ *     responses:
+ *       '200':
+ *         description: Successfully retrieved circle details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Success
+ *                 data:
+ *                   type: object
+ *                   description: Details of the saving circle
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       description: Database ID of the circle
+ *                       example: "64f1a2b3c4d5e6f7g8h9i0j1"
+ *                     owner:
+ *                       type: string
+ *                       description: User ID of the circle owner
+ *                       example: "64f1a2b3c4d5e6f7g8h9i0j2"
+ *                     members:
+ *                       type: array
+ *                       description: List of member user IDs
+ *                       items:
+ *                         type: string
+ *                         example: "64f1a2b3c4d5e6f7g8h9i0j3"
+ *                     title:
+ *                       type: string
+ *                       description: Title of the circle
+ *                       example: "Monthly Savings Circle"
+ *                     description:
+ *                       type: string
+ *                       description: Description of the circle
+ *                       example: "A monthly savings circle for our group"
+ *                     depositAmount:
+ *                       type: string
+ *                       description: Required deposit amount
+ *                       example: "1000"
+ *                     token:
+ *                       type: string
+ *                       description: Token contract address
+ *                       example: "0x19Ea0584D2A73265251Bf8dC0Bc5A47DebF539ac"
+ *                     depositInterval:
+ *                       type: integer
+ *                       description: Deposit interval in seconds
+ *                       example: 2592000
+ *                     maxDeposits:
+ *                       type: integer
+ *                       description: Maximum number of deposits
+ *                       example: 12
+ *                     status:
+ *                       type: string
+ *                       description: Current status of the circle
+ *                       example: "active"
+ *                     isOnChain:
+ *                       type: boolean
+ *                       description: Whether the circle is deployed on blockchain
+ *                       example: true
+ *                     contractCircleId:
+ *                       type: string
+ *                       description: Contract circle ID on blockchain
+ *                       example: "1"
+ *                     transactionHash:
+ *                       type: string
+ *                       description: Transaction hash of circle creation
+ *                       example: "0x123abc..."
+ *                     circleStart:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Circle start date
+ *                       example: "2024-01-15T10:30:00Z"
+ *       '400':
+ *         description: Bad request - missing circle ID
+ *       '403':
+ *         description: Forbidden - user is not a member of the circle
+ *       '404':
+ *         description: Circle not found
+ *       '500':
+ *         description: Internal server error
+ */
+router.get('/circle/:id', authorize, getCircleDetails);
 
 export default router;

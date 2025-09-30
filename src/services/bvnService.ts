@@ -17,6 +17,10 @@ interface AuthTokenResponse {
   accessToken: string;
   expiresIn: number; // in seconds
 }
+interface ManualNamesUsed { 
+  firstName: string;
+  lastName: string;
+}
 
 // In-memory token cache
 let cachedToken: string | null = null;
@@ -167,6 +171,7 @@ export class BVNRateLimiter {
     verificationState: string,
     verificationStatus: string,
     errorMessage?: string,
+    manualNamesUsed?: ManualNamesUsed
   ): Promise<void> {
     const bvnLog = new BVNLog({
       userId: userId,
@@ -178,10 +183,34 @@ export class BVNRateLimiter {
       verificationState: verificationState,
       verificationStatus: verificationStatus,
       errorMessage: errorMessage,
+      manualNamesUsed: manualNamesUsed,
       attemptDate: new Date()
     });
 
     await bvnLog.save();
+  }
+  
+   /**
+   * Get user's BVN attempt history
+   */
+  static async getUserBVNHistory(userId: Types.ObjectId, limit: number = 10) {
+    return await BVNLog.find({ userId })
+      .sort({ attemptDate: -1 })
+      .limit(limit)
+      .select('-bvnNumber') 
+      .lean();
+  }
+
+   /**
+   * Check if user has made any manual attempts
+   */
+  static async hasUserMadeManualAttempt(userId: Types.ObjectId): Promise<boolean> {
+    const manualAttempt = await BVNLog.findOne({
+      userId,
+      manualNamesUsed: { $exists: true, $ne: null }
+    });
+    
+    return !!manualAttempt;
   }
 
   /**

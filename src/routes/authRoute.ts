@@ -51,11 +51,21 @@ const router = Router();
  *                 example: "+1234567890"
  *               membershipType:
  *                 type: string
- *                 enum: [Explorer, Voyager, Pioneer]
- *                 example: Explorer
+ *                 enum: [ individual, cooperate]
+ *                 example: individual
  *               username:
  *                 type: string
  *                 example: john_doe
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female]
+ *                 example: male
+ *               dateOfBirth:
+ *                 type: date
+ *                 example: "1990-01-15"
+ *               referredByUsername:
+ *                 type: string
+ *                 example: jane_smith
  *     responses:
  *       201:
  *         description: Registration successful

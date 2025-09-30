@@ -15,26 +15,35 @@ import { logFailedTransaction } from '../services/logs';
 class VantController {
     /**
      * Create a reserved wallet
-     * @route POST /api/vant/reserved-wallet
+     * @route POST /api/vant/create-wallet
      */
+
     async createReservedWallet(req: Request, res: Response) {
         try {
-            const { bvn, dob } = req.body;
+            const { bvn } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
 
-            if (!bvn || !dob) {
-                throw new BadRequestError('All fields are required: bvn, dob');
+            if (!bvn ) {
+                throw new BadRequestError('All fields are required: bvn ');
             }
 
             if (!/^\d{11}$/.test(bvn)) {
                 throw new BadRequestError('BVN must be 11 digits');
             }
 
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-                throw new BadRequestError('Date of birth must be in YYYY-MM-DD format');
-            }
             const user = await getUserDetails(userId);
+
+            if (!user) {
+            throw new NotFoundError('User not found');
+            }
+            if (!user.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+            throw new BadRequestError('Invalid email format');
+            }
+            if (!user.phoneNumber || !/^\+?\d{10,14}$/.test(user.phoneNumber)) {
+            throw new BadRequestError('Invalid phone number format: Phone number must be in +234xxxxxxxxx format');
+            };
+
             const existingWallet = await VantServices.getUserReservedWallet(userId);
 
             if (existingWallet) {
@@ -43,15 +52,14 @@ class VantController {
 
             // Generate new virtual account
             const data = await VantServices.generateReservedWallet(
-                user!.email,
-                user!.phoneNumber,
-                bvn,
-                dob
+                user.email,
+                user.phoneNumber,
+                bvn  
             );
 
             const wallet = await VantServices.createReservedWallet(
                 userId,
-                user!.email,
+                user.email,
             );
 
             return res.status(StatusCodes.OK).json({
@@ -66,7 +74,6 @@ class VantController {
             });
         }
     }
-
     /**
      * Get user's reserved wallet
      * @route GET /api/vant/reserved-wallet

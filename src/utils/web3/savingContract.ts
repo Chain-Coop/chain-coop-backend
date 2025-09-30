@@ -16,10 +16,10 @@ const savingcirclescontract = async (
   }
   let Provider;
   let contractAddress;
-  if (network === 'TBSC') {
+  if (network === 'BSC') {
     Provider = new ethers.JsonRpcProvider(BSC_RPC);
     contractAddress = SAVINGCIRCLESCONTRACT_BSC;
-  } else if (network === 'TPOLYGON') {
+  } else if (network === 'POLYGON') {
     Provider = new ethers.JsonRpcProvider(POLYGON_RPC);
     contractAddress = SAVINGCIRCLESCONTRACT_POLYGON;
   } else {
