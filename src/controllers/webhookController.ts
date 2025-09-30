@@ -4,7 +4,11 @@ import {
   verifyUnpaidContributionPayment,
 } from '../services/contributionService';
 
-import { verifyPayment } from '../services/paystackService';
+import {
+  handleCashwyreWebhook,
+  verifyCryptoPaymentService,
+  verifyTransferService,
+} from '../services/web3/payStack/paystackServices';
 import { sendEmail } from '../utils/sendEmail';
 import { verifyPaymentService } from '../services/walletService';
 import CashwyreServices from '../services/web3/Cashwyre/cashWyre';
@@ -16,6 +20,7 @@ import CashwyreTransaction, {
 } from '../models/web3/cashWyreTransactions';
 import VantServices from '../services/vantWalletServices';
 import { StatusCodes } from 'http-status-codes';
+import { PaystackCashwyre } from '../models/web3/paystackCashwyre';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -38,7 +43,32 @@ export const webhookController = async (req: Request, res: Response) => {
       data.data.metadata.type === 'wallet_funding'
     ) {
       verifyPaymentService(data.data.reference);
+    } else if (
+      data.data.status === 'success' &&
+      data.data.metadata.type === 'crypto_wallet_funding'
+    ) {
+      await verifyCryptoPaymentService(data.data.reference);
     }
+  }
+
+
+  if (data.event === 'transfer.success') {
+    console.log('Transfer success webhook received');
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
+  }
+  if (data.event === 'transfer.failed') {
+    console.log('Transfer failed webhook received');
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
+  }
+  if (data.event === 'transfer.reversed') {
+    console.log('Transfer reversed webhook received');
+    const status = data.data.status;
+    const reference = data.data.reference;
+    verifyTransferService(reference, status);
   }
 };
 export const CashwyreWebhookController = async (
@@ -86,6 +116,16 @@ export const CashwyreWebhookController = async (
           },
         }
       );
+      const autoTransaction = await PaystackCashwyre.findOne({
+        chainCoopReference: data.eventData.RequestId,
+        transactionStatus: 'sufficient',
+      });
+      if (autoTransaction) {
+        handleCashwyreWebhook(
+          data.eventData.RequestId,
+          CashwyreTransactionStatus.SUCCESS
+        );
+      }
     } else if (data.eventType === 'crypto.offramp.success') {
       console.log('Processing offramp success');
       await CashwyreTransaction.updateOne(
@@ -97,7 +137,6 @@ export const CashwyreWebhookController = async (
         }
       );
     } else if (data.eventType === 'crypto.onramp.failed') {
-      // Fixed typo: 'cryoto' -> 'crypto'
       console.log('Processing onramp failed');
       await CashwyreTransaction.updateOne(
         { reference: data.eventData.RequestId },
@@ -107,6 +146,16 @@ export const CashwyreWebhookController = async (
           },
         }
       );
+      const autoTransaction = await PaystackCashwyre.findOne({
+        chainCoopReference: data.eventData.RequestId,
+        transactionStatus: 'sufficient',
+      });
+      if (autoTransaction) {
+        handleCashwyreWebhook(
+          data.eventData.RequestId,
+          CashwyreTransactionStatus.FAILED
+        );
+      }
     } else if (data.eventType === 'crypto.offramp.failed') {
       console.log('Processing offramp failed');
       await CashwyreTransaction.updateOne(
