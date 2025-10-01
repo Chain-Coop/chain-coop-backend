@@ -66,7 +66,7 @@ const initiatePayment = async (req: Request, res: Response) => {
 			{
 				email,
 				amount: totalAmountToPay * 100, // Paystack expects amount in kobo
-				callback_url: "https://chaincoop.org/dashboard/wallet",
+				callback_url: `${process.env.PAYSTACK_CALL_BACK_URL}`,
 				metadata: {
 					type: "wallet_funding",
 					original_amount: amount,
