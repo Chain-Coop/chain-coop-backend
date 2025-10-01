@@ -24,6 +24,8 @@ const router = Router();
  * /wallet/fund-wallet:
  *   post:
  *     summary: Initiate wallet funding payment
+ *     security:
+ *       - bearerAuth: []
  *     description: Initiates a payment for wallet funding via Paystack.
  *     operationId: initiatePayment
  *     tags:
@@ -65,6 +67,8 @@ const router = Router();
  * /wallet/verify-account-details:
  *   post:
  *     summary: Verify bank account details
+ *     security:
+ *       - bearerAuth: []
  *     description: Verifies the bank account details (account number and bank code).
  *     operationId: verifyAccountDetailsHandler
  *     tags:
@@ -104,6 +108,8 @@ const router = Router();
  * /wallet/balance:
  *   get:
  *     summary: Get wallet balance
+ *     security:
+ *       - bearerAuth: []
  *     description: Fetches the current balance of the authenticated user's wallet.
  *     operationId: getWalletBalance
  *     tags:
@@ -130,6 +136,8 @@ const router = Router();
  * /wallet/history:
  *   get:
  *     summary: Get wallet transaction history
+ *     security:
+ *       - bearerAuth: []
  *     description: Fetches the transaction history for the authenticated user's wallet.
  *     operationId: getWalletHistory
  *     tags:
@@ -163,7 +171,7 @@ const router = Router();
  * /wallet/create-pin:
  *   post:
  *     summary: Create wallet pin
-  *     security:
+ *     security:
  *       - bearerAuth: []
  *     description: Sets a pin for the authenticated user's wallet.
  *     operationId: setWalletPin
