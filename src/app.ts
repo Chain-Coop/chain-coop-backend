@@ -177,7 +177,7 @@ app.use('/api/v1/web3/v2/saving', chaincoopSavingRoute_2);
 app.use('/api/v1/web3/v2/periodicSaving', periodicSaving);
 app.use('/api/v1/web3/cashwyre', cashwyre);
 app.use('/api/v1/web3/lnd', lndRoutes);
-app.use('api/v1/web3/paystack', paystackCashWyre);
+app.use('/api/v1/web3/paystack', paystackCashWyre);
 
 //web3_Saving_circle
 
