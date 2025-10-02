@@ -46,7 +46,7 @@ export const initiateNewTransfer = asyncHandler(
   async (req: Request, res: Response) => {
     const { amountInNaira, crypto, network } = req.body;
     //@ts-ignore
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
     if (!amountInNaira || !crypto || !network) {
       throw new BadRequestError(
