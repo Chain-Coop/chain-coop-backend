@@ -280,7 +280,7 @@ export const transferToBankService = async (
       amountInCryptoAsset,
       transactionReference,
       reference: quoteRef,
-    } = quote;
+    } = quote.data;
     transaction.cashwyreReference = transactionReference;
     transaction.amountInCrypto = amountInCryptoAsset;
     await transaction.save({ session });
@@ -296,7 +296,7 @@ export const transferToBankService = async (
       throw new Error('Failed to confirm quote with Cashwyre');
     }
 
-    const { accountNumber, totalDepositInLocalCurrency } = confirmQuote;
+    const { accountNumber, totalDepositInLocalCurrency } = confirmQuote.data;
     transaction.amountDebited = totalDepositInLocalCurrency;
     transaction.cashwyreAcc = accountNumber;
     await transaction.save({ session });
@@ -308,7 +308,7 @@ export const transferToBankService = async (
 
     // Validate bank account
     const accountValidationResponse: any = await axios.get(
-      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=688`,
+      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=50515`,
       {
         headers: {
           Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
@@ -327,7 +327,7 @@ export const transferToBankService = async (
         type: 'nuban',
         name: accountValidationResponse.data.data.account_name,
         account_number: accountValidationResponse.data.data.account_number,
-        bank_code: '688',
+        bank_code: '50515',
         currency: 'NGN',
       },
       {
