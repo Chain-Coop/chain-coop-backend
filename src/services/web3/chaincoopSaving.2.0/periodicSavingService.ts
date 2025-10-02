@@ -1,7 +1,7 @@
 // services/periodicSavingService.ts
 import { CronJob } from 'cron';
 import { ethers } from 'ethers';
-import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import {
   PeriodicSaving,
   SavingInterval,
@@ -9,15 +9,45 @@ import {
   DepositType,
 } from '../../../models/web3/periodicSaving';
 import {
+  TransactionStatus as PayStackCashWyreStatus,
+  PaystackCashwyre,
+  TransferStatus,
+} from '../../../models/web3/paystackCashwyre';
+import {
   openPool,
   updatePoolAmount,
   userPoolsByPoolId,
 } from '../chaincoopSaving.2.0/savingServices';
-import { getTokenAddressSymbol } from '../../web3/accountService';
+import {
+  getTokenAddressSymbol,
+  checkStableUserBalance,
+  getUserWeb3Wallet,
+} from '../../web3/accountService';
 import { decrypt, encrypt } from '../../../services/encryption';
-
 import SavingPoolABI from '../../../constant/abi/ChainCoopSaving.2.0.json';
 import { createTransactionHistory } from '../historyService';
+import { get } from 'axios';
+import { Web3WalletDocument } from '../../../models/web3Wallet';
+import { findWalletService } from '../../walletService';
+import CashwyreServices from '../Cashwyre/cashWyre';
+import {
+  initializeCryptoPaymentService,
+  transferToBankService,
+} from '../payStack/paystackServices';
+import User from '../../../models/user';
+
+interface CryptoRate {
+  cryptoAssetInfo: {
+    currency: string;
+    symbol: string;
+    rate: number;
+  };
+  currencyInfo: {
+    currency: string;
+    symbol: string;
+    rate: number;
+  };
+}
 
 const iface = new ethers.Interface(SavingPoolABI.abi);
 const CRON_EXPRESSIONS: Record<SavingInterval, string> = {
@@ -91,6 +121,20 @@ class PeriodicSavingService {
 
   async executeSaving(saving: any, network: string): Promise<void> {
     console.log(`Executing periodic saving for pool ${saving.poolId}`);
+    const walletWeb3 = await getUserWeb3Wallet(saving.userId);
+    const { bal: balance }: { bal: number; symbol: string } =
+      await checkStableUserBalance(
+        walletWeb3.address,
+        saving.tokenAddress,
+        network
+      );
+    if (balance < parseFloat(saving.periodicAmount)) {
+      const transaction = await this.topUpWalletBeforeExecuting(
+        saving,
+        network
+      );
+      await this.waitForFunding(transaction.chainCoopReference, 10);
+    }
 
     try {
       const privateKey = decrypt(saving.encryptedPrivateKey);
@@ -239,6 +283,97 @@ class PeriodicSavingService {
 
     this.scheduleIndividualSaving(saving, network);
     return saving;
+  }
+  async topUpWalletBeforeExecuting(saving: any, network: string): Promise<any> {
+    const user = await User.findById(saving.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const wallet = await findWalletService({ user: saving.userId });
+    if (!wallet) throw new Error('Wallet not found for user');
+    let transaction;
+
+    const cryptoRate = (await CashwyreServices.getCryptoRate(
+      uuidv4(),
+      saving.tokenSymbol
+    )) as CryptoRate;
+    const actualAmountNeeded =
+      cryptoRate?.currencyInfo?.rate * parseFloat(saving.periodicAmount);
+    if (wallet?.balance < actualAmountNeeded) {
+      const buyCrypto = await initializeCryptoPaymentService(
+        actualAmountNeeded,
+        user.email,
+        'card',
+        saving.tokenSymbol,
+        network
+      );
+      if (!buyCrypto) {
+        throw new Error('Insufficient balance to fund periodic saving');
+      }
+      transaction = await transferToBankService(
+        saving.userId,
+        actualAmountNeeded,
+        saving.tokenSymbol,
+        network
+      );
+      if (!transaction) {
+        throw new Error('Failed to transfer funds for periodic saving');
+      }
+    } else if (wallet?.balance >= actualAmountNeeded) {
+      transaction = await transferToBankService(
+        saving.userId,
+        actualAmountNeeded,
+        saving.tokenSymbol,
+        network
+      );
+      if (!transaction) {
+        throw new Error('Failed to transfer funds for periodic saving');
+      }
+    }
+    return transaction;
+  }
+
+  private async waitForFunding(
+    fundingReference: string,
+    maxWaitMinutes: number = 30
+  ): Promise<boolean> {
+    const startTime = Date.now();
+    const maxWaitMs = maxWaitMinutes * 60 * 1000;
+    const pollIntervalMs = 60000;
+
+    while (Date.now() - startTime < maxWaitMs) {
+      const transaction = await PaystackCashwyre.findOne({
+        chainCoopReference: fundingReference,
+      });
+
+      if (!transaction) {
+        throw new Error('Funding transaction not found');
+      }
+
+      // Check if funding completed successfully
+      if (
+        transaction.transferStatus === TransferStatus.SUCCESS &&
+        transaction.transactionStatus === PayStackCashWyreStatus.CREDITED
+      ) {
+        console.log(`Funding completed successfully: ${fundingReference}`);
+        return true;
+      }
+
+      // Check if funding failed
+      if (
+        transaction.transferStatus === TransferStatus.FAILED ||
+        transaction.transferStatus === TransferStatus.REVERSED
+      ) {
+        throw new Error('Auto-funding failed or was reversed');
+      }
+
+      // Wait before polling again
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new Error(
+      'Auto-funding timeout: transaction took too long to complete'
+    );
   }
 
   async updateSavingAmount(poolId: string, newAmount: string): Promise<any> {
