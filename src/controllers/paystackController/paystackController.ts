@@ -13,7 +13,7 @@ export const initiateCryptoPayment = asyncHandler(
     //@ts-ignore
     const email = req.user.email;
 
-    if (!amount || !paymentMethod || !crypto || !network) {
+    if (!amount || !paymentMethod || !crypto || !network || !email) {
       throw new BadRequestError(
         'Amount, payment method, crypto, and network are required'
       );
@@ -48,7 +48,7 @@ export const initiateNewTransfer = asyncHandler(
     //@ts-ignore
     const userId = req.user.userId;
 
-    if (!amountInNaira || !crypto || !network) {
+    if (!amountInNaira || !crypto || !network || !userId) {
       throw new BadRequestError(
         'Amount in Naira, crypto, and network are required'
       );
