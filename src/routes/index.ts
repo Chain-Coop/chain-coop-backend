@@ -16,6 +16,7 @@ import savingCircleRoutes from "./savingCircle.routes";
 import blogRoutes from "./blogRoute";
 import restoreWallets from "./restoreWalletRoutes";
 import vantWalletRoutes from "./vantWalletRoutes";
+import twoFactorRoutes from "./twoFactorRoutes";
 
 export {
 	authRouter,
@@ -35,5 +36,6 @@ export {
 	savingCircleRoutes,
 	blogRoutes,
 	restoreWallets,
-	vantWalletRoutes
+	vantWalletRoutes,
+	twoFactorRoutes
 };

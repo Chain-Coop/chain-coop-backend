@@ -23,6 +23,8 @@ export interface UserDocument extends Document {
   referredByUsername?: string; // Track referrer by username
   isVerified: boolean;
   isPhoneVerified: boolean;
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
   Tier: number;
   membershipType: string;
   membershipStatus: 'active' | 'pending' | 'inactive';
@@ -147,6 +149,14 @@ const UserSchema = new Schema(
       default: false,
     },
 
+    twoFactorEnabled:{
+      type: Boolean,
+      default: false
+    },
+    twoFactorSecret:{
+      type: String,
+      default: false
+    },
     firstName: {
       type: String,
       required: [true, 'First name is required'],
@@ -177,8 +187,16 @@ UserSchema.virtual('wallet', {
   justOne: true, // Only one wallet per user
 });
 
-UserSchema.set('toObject', { virtuals: true });
-UserSchema.set('toJSON', { virtuals: true });
+UserSchema.set('toObject', { virtuals: true, transform(_doc, ret: any) {
+    // strip sensitive fields before sending the user to the client
+    delete ret.twoFactorSecret;
+    return ret;
+  },});
+UserSchema.set('toJSON', { virtuals: true, transform(_doc, ret: any) {
+    // strip sensitive fields before sending the user to the client
+    delete ret.twoFactorSecret;
+    return ret;
+  },});
 
 UserSchema.pre('save', async function (next) {
   if (this.isModified('password')) {

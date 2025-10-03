@@ -37,6 +37,7 @@ import {
   blogRoutes,
   restoreWallets,
   vantWalletRoutes,
+  twoFactorRoutes
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -162,6 +163,7 @@ app.use('/api/v1/notification', notificationRouter);
 app.use('/api/v1/kyc', kycRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/wallets', restoreWallets);
+app.use("/api/v1/2fa", twoFactorRoutes)
 
 //web3
 app.use('/api/v1/web3/account', accountRouter);

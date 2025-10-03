@@ -17,6 +17,7 @@ import {
   validateWalletPin,
 } from "../services/walletService";
 import { findUser } from "../services/authService";
+import { verify2FAToken } from "../services/twoFactorService";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const ADMIN_EMAIL = process.env.EMAIL_ADDRESS;
@@ -41,7 +42,7 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
   try {
     //@ts-ignore
     userId = req.user.userId;
-    const { amount, accountNumber, bankCode, pin, bankName } = req.body;
+    const { amount, accountNumber, bankCode, pin, bankName, twoFAtoken } = req.body;
 
     // Validate input
     if (!amount || !accountNumber || !bankCode || !pin || !bankName) {
@@ -113,6 +114,24 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
         },
       })) as any
     ).data;
+
+    // Check if the user has enabled twoFactor authentication
+    if (user.twoFactorEnabled == false) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        error: "2FA not implemented for User"
+      });
+    }
+
+    // verify 2FA code
+    const twoFAVerified = await verify2FAToken(userId, twoFAtoken)
+
+    if (!twoFAVerified) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
+        error: "Incorrect OTP"
+      })
+    }
     //@ts-ignore
 
     const accountDetails = {
