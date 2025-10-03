@@ -55,9 +55,9 @@ export const webhookController = async (req: Request, res: Response) => {
   if (data.event === 'transfer.success') {
     console.log('Transfer success webhook received');
     console.log(data)
-    const status = data.data.status;
-    const reference = data.data.reference;
-    // verifyTransferService(reference, status);
+    const status = data.status;
+    const reference = data.reference;
+    verifyTransferService(reference, status);
   }
   if (data.event === 'transfer.failed') {
     console.log('Transfer failed webhook received');

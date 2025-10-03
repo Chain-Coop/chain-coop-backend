@@ -6,6 +6,7 @@ import {
   initializeCryptoPaymentService,
   transferToBankService,
 } from '../../services/web3/payStack/paystackServices';
+import { PaystackCashwyre } from '../../models/web3/paystackCashwyre';
 
 export const initiateCryptoPayment = asyncHandler(
   async (req: Request, res: Response) => {
@@ -65,6 +66,66 @@ export const initiateNewTransfer = asyncHandler(
         success: true,
         message: 'Transfer initiated successfully',
         data: transfer,
+      });
+    } catch (error) {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error,
+      });
+    }
+  }
+);
+
+export const transactionDetails = asyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    try {
+      const transaction = await PaystackCashwyre.find({ userID: userId });
+      if (!transaction) {
+        res.status(StatusCodes.NOT_FOUND).json({
+          success: false,
+          message: 'Transaction for this user not found',
+        });
+        return;
+      }
+
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Transaction Found',
+        transaction,
+      });
+    } catch (error) {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error,
+      });
+    }
+  }
+);
+
+export const transactionDetail = asyncHandler(
+  async (req: Request, res: Response) => {
+    //@ts-ignore
+    const userId = req.user.userId;
+    const transactionId = req.params.id;
+    try {
+      const transaction = await PaystackCashwyre.findOne({
+        _id: transactionId,
+        userID: userId,
+      });
+      if (!transaction) {
+        res.status(StatusCodes.NOT_FOUND).json({
+          success: false,
+          message: 'Transaction for this user not found',
+        });
+        return;
+      }
+
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: 'Transaction Found',
+        transaction,
       });
     } catch (error) {
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

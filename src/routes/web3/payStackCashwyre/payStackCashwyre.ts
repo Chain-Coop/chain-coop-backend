@@ -3,6 +3,8 @@ import { authorize } from '../../../middlewares/authorization';
 import {
   initiateCryptoPayment,
   initiateNewTransfer,
+  transactionDetails,
+  transactionDetail,
 } from '../../../controllers/paystackController/paystackController';
 
 const router = Router();
@@ -214,8 +216,190 @@ const router = Router();
  *                   example: "Insufficient wallet balance for transfer"
  */
 
+/**
+ * @swagger
+ * /web3/paystack/crypto/transactions:
+ *   get:
+ *     summary: Get all user transactions
+ *     description: Retrieves all Paystack crypto transactions for the authenticated user
+ *     tags: [Paystack Crypto]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transactions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction Found"
+ *                 transaction:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "507f1f77bcf86cd799439011"
+ *                       userID:
+ *                         type: string
+ *                         example: "user123"
+ *                       amount:
+ *                         type: number
+ *                         example: 10000
+ *                       crypto:
+ *                         type: string
+ *                         example: "usdt"
+ *                       network:
+ *                         type: string
+ *                         example: "bsc"
+ *                       status:
+ *                         type: string
+ *                         example: "pending"
+ *                       reference:
+ *                         type: string
+ *                         example: "ref_abc123xyz"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-09-29T12:00:00Z"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-09-29T12:00:00Z"
+ *       404:
+ *         description: No transactions found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction for this user not found"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Error retrieving transactions"
+ */
+
+/**
+ * @swagger
+ * /web3/paystack/crypto/transaction/{id}:
+ *   get:
+ *     summary: Get specific transaction details
+ *     description: Retrieves details of a specific Paystack crypto transaction by ID for the authenticated user
+ *     tags: [Paystack Crypto]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The transaction ID
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Transaction retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction Found"
+ *                 transaction:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439011"
+ *                     userID:
+ *                       type: string
+ *                       example: "user123"
+ *                     amount:
+ *                       type: number
+ *                       example: 10000
+ *                     crypto:
+ *                       type: string
+ *                       example: "usdt"
+ *                     network:
+ *                       type: string
+ *                       example: "bsc"
+ *                     status:
+ *                       type: string
+ *                       example: "completed"
+ *                     reference:
+ *                       type: string
+ *                       example: "ref_abc123xyz"
+ *                     paymentMethod:
+ *                       type: string
+ *                       example: "paystack"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-09-29T12:00:00Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-09-29T12:00:00Z"
+ *       404:
+ *         description: Transaction not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction for this user not found"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Error retrieving transaction"
+ */
+
 // Routes
+
 router.post('/crypto/initialize', authorize, initiateCryptoPayment);
 router.post('/crypto/transfer/new', authorize, initiateNewTransfer);
+router.get('/crypto/transactions', authorize, transactionDetails);
+router.get('/crypto/transaction/:id', authorize, transactionDetail);
 
 export default router;
