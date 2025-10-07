@@ -13,16 +13,24 @@ const options = {
     },
     servers: [
       {
+        url: 'http://localhost:3001/api/v1',
+        description: 'Local development server',
+      },
+      {
         url: 'https://api.chaincoop.org/api/v1',
+        description: 'Production server',
       },
       {
         url: 'https://little-frost.pipeops.app/api/v1',
+        description: 'Staging server 1',
       },
       {
         url: 'https://puffy-knowledge.pipeops.app/api/v1',
+        description: 'Staging server 2',
       },
       {
         url: 'http://localhost:3000/api/v1',
+        description: 'Alternative local server',
       },
     ],
   },
