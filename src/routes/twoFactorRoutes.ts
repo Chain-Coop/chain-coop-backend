@@ -9,7 +9,7 @@ const router = Router();
  * /2fa/setup:
  *   post:
  *     summary: Initialize two-factor authentication (2FA) setup for a user
- *     tags: [Two-Factor Authentication]
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -40,7 +40,7 @@ const router = Router();
  * /2fa/verify:
  *   post:
  *     summary: Verify the 2FA code and enable two-factor authentication for a user
- *     tags: [Two-Factor Authentication]
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
