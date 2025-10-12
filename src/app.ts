@@ -51,8 +51,9 @@ import web3SavingCircle from './routes/web3/savingCircles/savingCircleRoutes2';
 import periodicSaving from './routes/web3/chaincoopSaving.2.0/periodicSavingRoutes';
 import cashwyre from './routes/web3/cashWyre/cashWyre';
 import lndRoutes from './routes/web3/lnd/lndRoutes';
-import paystackCashWyre from './routes/web3/payStackCashwyre/psyStackCashWyre';
+import paystackCashWyre from './routes/web3/payStackCashwyre/payStackCashwyre';
 //import
+import emailRoutes from './routes/emailRoutes';
 import logger from './utils/logger';
 import {
   VantWebhookController,
@@ -189,6 +190,7 @@ app.use('/api/v1/savingcircle', savingCircleRoutes);
 app.use('/api/v1/blog', blogRoutes);
 
 app.use('/api/v1/vant', vantWalletRoutes);
+app.use('/api/v1/email', emailRoutes);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

@@ -25,7 +25,7 @@ const router = Router();
  *   post:
  *     summary: Initiate wallet funding payment
  *     security:
- *       - bearerAuth: [] 
+ *       - bearerAuth: []
  *     description: Initiates a payment for wallet funding via Paystack.
  *     operationId: initiatePayment
  *     tags:
@@ -198,7 +198,6 @@ const router = Router();
  */
 
 router.post("/fund-wallet", authorize, initiatePayment);
-router.post("/verify-payment", authorize, verifyPayment);
 router.post("/verify-account-details", authorize, verifyAccountDetailsHandler);
 router.get("/balance", authorize, getWalletBalance);
 router.get("/history", authorize, getWalletHistory);
@@ -210,7 +209,7 @@ router.post("/validate-otp", authorize, validateOtp);
 
 
 router
-.route("/cards")
+  .route("/cards")
   .get(authorize, GetCards)
   .post(authorize, setPreferredCard)
   .delete(authorize, DeleteCard);

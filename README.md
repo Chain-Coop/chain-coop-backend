@@ -48,14 +48,34 @@ Chain-Coop-Backend is the backend service for the Chain Cooperative platform, wh
     ```
 
 4. Set up environment variables:
-    Create a `.env` file in the root directory and add the following:
+    Create a `.env` file in the root directory by copying from the example:
     ```sh
-    MONGO_URI=<your_mongodb_uri>
-    CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>
-    CLOUDINARY_API_KEY=<your_cloudinary_api_key>
-    CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>
-    JWT_SECRET=<your_jwt_secret>
+    cp .env.example .env
     ```
+    
+    Then update the `.env` file with your actual values. Key variables include:
+    ```sh
+    # Database
+    MONGO_URI=<your_mongodb_uri>
+    
+    # Authentication
+    JWT_SECRET=<your_jwt_secret>
+    
+    # Cloudinary
+    CLOUD_NAME=<your_cloudinary_cloud_name>
+    CLOUD_API_KEY=<your_cloudinary_api_key>
+    CLOUD_API_SECRET=<your_cloudinary_api_secret>
+    
+    # Email Service (Resend)
+    RESEND_API_KEY=<your_resend_api_key>
+    FROM_EMAIL=<your_from_email>
+    FROM_NAME=<your_from_name>
+    
+    # Payment Processing
+    PAYSTACK_SECRET_KEY=<your_paystack_secret_key>
+    ```
+    
+    See `.env.example` for a complete list of all environment variables.
     Ensure that you keep these variables secure and do not share them publicly, especially since this is a private repository.
 
 
