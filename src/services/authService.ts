@@ -1,7 +1,20 @@
 import { NotFoundError } from "../errors";
 import User, { UserDocument } from "../models/authModel";
 
-const createUser = async (payload: any) => await User.create(payload);
+interface CreateUserPayload {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  membershipType: "individual" | "cooperate";
+  username: string;
+  gender?: "male" | "female";
+  dateOfBirth?: Date;
+  referredByUsername?: string;
+}
+
+const createUser = async (payload: CreateUserPayload) => await User.create(payload);
 
 const findUser = async (by: string, val: string) =>
   by === "email"
@@ -12,9 +25,9 @@ const findUser = async (by: string, val: string) =>
     ? await User.findOne({ phoneNumber: val })
     : "";
 
-const findExistingUser = async (email: string, phone: string) => {
+const findExistingUser = async (email: string, phoneNumber: string) => {
   let user = await User.findOne({
-    $or: [{ email }, { phone }],
+    $or: [{ email }, { phoneNumber }],
   });
   return user;
 };
