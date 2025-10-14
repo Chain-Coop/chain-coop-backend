@@ -1,6 +1,6 @@
 // services/periodicSavingService.ts
 import { CronJob } from 'cron';
-import { ethers } from 'ethers';
+import { ethers, uuidV4 } from 'ethers';
 import { v4 as uuidv4 } from 'uuid';
 import {
   PeriodicSaving,
@@ -37,15 +37,17 @@ import {
 import User from '../../../models/user';
 
 interface CryptoRate {
-  cryptoAssetInfo: {
-    currency: string;
-    symbol: string;
-    rate: number;
-  };
-  currencyInfo: {
-    currency: string;
-    symbol: string;
-    rate: number;
+  data: {
+    cryptoAssetInfo: {
+      currency: string;
+      symbol: string;
+      rate: number;
+    };
+    currencyInfo: {
+      currency: string;
+      symbol: string;
+      rate: number;
+    };
   };
 }
 
@@ -297,8 +299,15 @@ class PeriodicSavingService {
       uuidv4(),
       saving.tokenSymbol
     )) as CryptoRate;
-    const actualAmountNeeded =
-      cryptoRate?.currencyInfo?.rate * parseFloat(saving.periodicAmount);
+    const amountNeeded =
+      cryptoRate?.data.currencyInfo?.rate * parseFloat(saving.periodicAmount);
+    const response = await CashwyreServices.getOnrampQuote(
+      amountNeeded,
+      saving.tokenSymbol,
+      network,
+      uuidv4()
+    );
+    const actualAmountNeeded = response.data.totalDepositInLocalCurrency;
     if (wallet?.balance < actualAmountNeeded) {
       const buyCrypto = await initializeCryptoPaymentService(
         actualAmountNeeded,

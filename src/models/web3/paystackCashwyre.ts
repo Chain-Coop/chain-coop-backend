@@ -23,7 +23,6 @@ export interface IPaystackCashwyre extends Document {
   amountInCrypto: number;
   transferStatus: TransferStatus;
   transactionStatus: TransactionStatus;
-  paystackReference: string;
   cashwyreReference?: string;
   chainCoopReference: string;
   userEmail: string;
@@ -58,12 +57,6 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       type: String,
       enum: Object.values(TransferStatus),
       default: TransferStatus.PENDING,
-    },
-    paystackReference: {
-      type: String,
-      unique: true,
-      sparse: true,
-      trim: true,
     },
     cashwyreReference: {
       type: String,

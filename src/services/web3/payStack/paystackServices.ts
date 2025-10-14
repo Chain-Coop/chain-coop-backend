@@ -76,10 +76,10 @@ export const initializeCryptoPaymentService = async (
         network: network,
       }
     );
-    if (chargeResponse.status !== 'success') {
+    if (chargeResponse.status !== true) {
       throw new Error('Card charge failed');
     }
-    return chargeResponse;
+    return chargeResponse.status;
   } else if (paymentMethod === 'card' && !wallet.Card?.data) {
     throw new Error('No card on file. Please use Paystack option.');
   }
@@ -259,7 +259,6 @@ export const transferToBankService = async (
       userWallet: walletWeb3?.address || '',
       crypto: crypto,
       network: network,
-      paystackReference: '',
       chainCoopReference: uuidv4(),
     });
     await transaction.save({ session });
