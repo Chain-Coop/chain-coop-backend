@@ -37,7 +37,8 @@ import {
   blogRoutes,
   restoreWallets,
   vantWalletRoutes,
-  twoFactorRoutes
+  twoFactorRoutes,
+  emailRoutes,
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -189,6 +190,7 @@ app.use('/api/v1/savingcircle', savingCircleRoutes);
 app.use('/api/v1/blog', blogRoutes);
 
 app.use('/api/v1/vant', vantWalletRoutes);
+app.use('/api/v1/email', emailRoutes);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;

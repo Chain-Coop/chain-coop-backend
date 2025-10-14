@@ -17,6 +17,7 @@ import blogRoutes from "./blogRoute";
 import restoreWallets from "./restoreWalletRoutes";
 import vantWalletRoutes from "./vantWalletRoutes";
 import twoFactorRoutes from "./twoFactorRoutes";
+import emailRoutes from "./emailRoutes";
 
 export {
 	authRouter,
@@ -37,5 +38,6 @@ export {
 	blogRoutes,
 	restoreWallets,
 	vantWalletRoutes,
-	twoFactorRoutes
+	twoFactorRoutes,
+	emailRoutes
 };
