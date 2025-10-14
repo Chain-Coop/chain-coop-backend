@@ -223,8 +223,8 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       return res.status(StatusCodes.OK).json({
         success: true,
         message: tierUpgraded 
-          ? 'BVN verified successfully, user upgraded to Tier 2, and wallet created'
-          : 'BVN verified successfully and wallet created',
+          ? 'BVN verified successfully, user upgraded to Tier 2, and Vant wallet creation is being processed'
+          : 'BVN verified successfully and Vant wallet createion is being processed',
         data: {
           bvnVerification: {
             ...simplifiedData,
@@ -250,7 +250,7 @@ export const verifyBVNBooleanMatchController = async (req: Request, res: Respons
       // BVN verification succeeded but wallet creation failed
       return res.status(StatusCodes.PARTIAL_CONTENT).json({
         success: true,
-        message: 'BVN verified and user upgraded, but wallet creation failed',
+        message: 'BVN verified and user upgraded, but Vant wallet creation failed',
         data: {
           bvnVerification: {
             ...simplifiedData,
