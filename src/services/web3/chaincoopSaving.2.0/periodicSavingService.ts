@@ -319,6 +319,7 @@ class PeriodicSavingService {
       if (!buyCrypto) {
         throw new Error('Insufficient balance to fund periodic saving');
       }
+      await this.waitforWalletFunding(saving.userId, actualAmountNeeded, 5);
       transaction = await transferToBankService(
         saving.userId,
         amountNeeded,
@@ -344,7 +345,7 @@ class PeriodicSavingService {
 
   private async waitForFunding(
     fundingReference: string,
-    maxWaitMinutes: number = 30
+    maxWaitMinutes: number
   ): Promise<boolean> {
     const startTime = Date.now();
     const maxWaitMs = maxWaitMinutes * 60 * 1000;
@@ -382,6 +383,41 @@ class PeriodicSavingService {
 
     throw new Error(
       'Auto-funding timeout: transaction took too long to complete'
+    );
+  }
+
+  private async waitforWalletFunding(
+    userId: string, // Pass user ID instead
+    expectedAmount: number,
+    maxWaitMinutes: number
+  ): Promise<boolean> {
+    const startTime = Date.now();
+    const maxWaitMs = maxWaitMinutes * 60 * 1000;
+    const pollIntervalMs = 5000;
+
+    while (Date.now() - startTime < maxWaitMs) {
+      // ✅ Query the wallet on each iteration
+      const wallet = await findWalletService({ user: userId });
+
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
+
+      if (wallet.balance >= expectedAmount) {
+        console.log(`Wallet funded successfully. Balance: ${wallet.balance}`);
+        return true;
+      }
+
+      console.log(
+        `Waiting for funding. Current: ${wallet.balance}, Expected: ${expectedAmount}`
+      );
+
+      // Wait before polling again
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new Error(
+      'Wallet funding timeout: transaction took too long to complete'
     );
   }
 
