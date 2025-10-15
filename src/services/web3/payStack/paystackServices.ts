@@ -305,6 +305,8 @@ export const transferToBankService = async (
       throw new Error('Insufficient wallet balance for transfer');
     }
 
+    await session.commitTransaction();
+
     // Validate bank account
     const accountValidationResponse: any = await axios.get(
       `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=50515`,
@@ -382,16 +384,19 @@ export const transferToBankService = async (
     transaction.recipientCode =
       accountRecipientResponse.data.data.recipient_code;
     transaction.cashwyreStatus = CashwyreTransactionStatus.PROCESSING;
-    await transaction.save({ session });
+    await transaction.save();
 
-    await session.commitTransaction();
     return transaction;
   } catch (error: any) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error('Error in transferToBankService:', error);
     throw error;
   } finally {
-    session.endSession();
+    if (session.inTransaction()) {
+      session.endSession();
+    }
   }
 };
 
