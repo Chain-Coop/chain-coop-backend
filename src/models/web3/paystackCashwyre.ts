@@ -79,7 +79,6 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       type: String,
       required: true,
       trim: true,
-      unique: true,
       lowercase: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
@@ -90,7 +89,6 @@ const paystackCashwyreSchema = new Schema<IPaystackCashwyre>(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
     recipientCode: {
       type: String,
