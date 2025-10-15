@@ -321,7 +321,7 @@ class PeriodicSavingService {
       }
       transaction = await transferToBankService(
         saving.userId,
-        actualAmountNeeded,
+        amountNeeded,
         saving.tokenSymbol,
         network
       );
@@ -331,7 +331,7 @@ class PeriodicSavingService {
     } else if (wallet?.balance >= actualAmountNeeded) {
       transaction = await transferToBankService(
         saving.userId,
-        actualAmountNeeded,
+        amountNeeded,
         saving.tokenSymbol,
         network
       );
