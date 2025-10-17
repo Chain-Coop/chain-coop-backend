@@ -119,7 +119,6 @@ export const CashwyreWebhookController = async (
       );
       const autoTransaction = await PaystackCashwyre.findOne({
         chainCoopReference: data.eventData.RequestId,
-        transactionStatus: 'sufficient',
       });
       if (autoTransaction) {
         handleCashwyreWebhook(
@@ -149,7 +148,6 @@ export const CashwyreWebhookController = async (
       );
       const autoTransaction = await PaystackCashwyre.findOne({
         chainCoopReference: data.eventData.RequestId,
-        transactionStatus: 'sufficient',
       });
       if (autoTransaction) {
         handleCashwyreWebhook(
