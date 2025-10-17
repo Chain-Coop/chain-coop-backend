@@ -1,5 +1,3 @@
-
-
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestError, NotFoundError } from '../errors';
 import { StatusCodes } from 'http-status-codes';
@@ -11,6 +9,11 @@ import mongoose from 'mongoose';
 import Contribution from "../models/contribution";
 import { findContributionService } from '../services/contributionService';
 import { logFailedTransaction } from '../services/logs';
+import axios from 'axios';
+
+interface IpifyResponse {
+    ip: string;
+}
 
 class VantController {
     /**
@@ -20,6 +23,14 @@ class VantController {
 
     async createReservedWallet(req: Request, res: Response) {
         try {
+             // Temporary Check for IP before making request
+            try {
+                const ipResponse = await axios.get<IpifyResponse>('https://api.ipify.org?format=json');
+                console.log('Outbound IP:', ipResponse.data.ip);
+            } catch (err) {
+                console.log('Could not determine IP');
+            }
+
             const { bvn } = req.body;
             // @ts-ignore
             const userId = req.user.userId;
