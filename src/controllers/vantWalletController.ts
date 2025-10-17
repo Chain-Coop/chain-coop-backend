@@ -68,9 +68,21 @@ class VantController {
                 data: wallet,
             });
         } catch (error: any) {
-            return res.status(error.statusCode || 500).json({
+            console.error('Create Reserved Wallet Error:', {
+                error: {
+                    message: error.message,
+                    stack: error.stack,
+                    statusCode: error.statusCode
+                }
+            });
+
+            return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: error.message || 'Failed to create wallet',
+                error: {
+                    code: error.statusCode || 500,
+                    details: error.response?.data || error.message
+                }
             });
         }
     }
