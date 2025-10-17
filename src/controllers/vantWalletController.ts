@@ -67,25 +67,49 @@ class VantController {
                 message: data!.message,
                 data: wallet,
             });
+
         } catch (error: any) {
-            console.error('Create Reserved Wallet Error:', {
+            console.error('VANT WALLET API ERROR:', {
+                endpoint: 'generateReservedWallet',
                 error: {
+                    name: error.name,
                     message: error.message,
-                    stack: error.stack,
-                    statusCode: error.statusCode
-                }
+                    code: error.response?.status || error.statusCode || 500,
+                    data: error.response?.data,
+                    stack: error.stack
+                },
+                request: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    data: error.config?.data,
+                    headers: error.config?.headers
+                },
+                response: {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                    headers: error.response?.headers
+                },
+                timestamp: new Date().toISOString(),
+                requestId: uuidv4()
             });
 
-            return res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
+            const errorResponse = {
                 success: false,
-                message: error.message || 'Failed to create wallet',
+                message: error.response?.data?.message || error.message,
                 error: {
-                    code: error.statusCode || 500,
-                    details: error.response?.data || error.message
+                    code: error.response?.status || error.statusCode || 500,
+                    requestId: uuidv4(),
+                    details: error.response?.data || error.message,
+                    apiError: error.response?.data,
+                    apiErrorCode: error.response?.status,
+                    timestamp: new Date().toISOString()
                 }
-            });
-        }
+            };
+
+            return res.status(errorResponse.error.code).json(errorResponse);
     }
+}
     /**
      * Get user's reserved wallet
      * @route GET /api/vant/reserved-wallet

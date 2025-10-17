@@ -117,8 +117,26 @@ class VantService {
 
             return data;
         } catch (error: any) {
-            console.error(error.message);
-            throw new Error(error.message);
+            // Enhanced error capture
+            const errorDetails = {
+                service: 'Vant API',
+                endpoint: '/wallet/create',
+                requestData: { email, phoneNumber, bvn },
+                error: {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                    message: error.response?.data?.message || error.message
+                }
+            };
+
+            // Throw error with Vant API details
+            throw {
+                ...error,
+                statusCode: error.response?.status,
+                message: error.response?.data?.message || 'Failed to generate Vant wallet',
+                vantError: errorDetails
+            };
         }
     };
 
