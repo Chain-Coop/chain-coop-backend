@@ -13,6 +13,7 @@ import {
   verifyAccountDetailsService,
   DepositLimitChecker,
   getBanksService,
+  withdrawToBankService,
 } from '../services/walletService';
 import { Request, Response } from 'express';
 import { BadRequestError } from '../errors';
@@ -448,6 +449,34 @@ export const setPreferredCard = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({
     msg: 'Preferred Card Successfully Set',
   });
+};
+export const getBankServiceHandler = async (req: Request, res: Response) => {
+  const banks = await getBanksService();
+
+  res.status(StatusCodes.OK).json(banks);
+};
+
+export const withdrawToBank = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+    const { amountInNaira, bankAccountNumber, bankCode } = req.body;
+
+    const result = await withdrawToBankService(
+      userId,
+      amountInNaira,
+      bankAccountNumber,
+      bankCode
+    );
+
+    res.status(StatusCodes.OK).json({
+      msg: 'Withdrawal to bank initiated successfully',
+      result: result,
+    });
+  } catch (error) {
+    //@ts-ignore
+    res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });
+  }
 };
 
 export {

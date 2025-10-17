@@ -10,7 +10,10 @@ import {
   verifyTransferService,
 } from '../services/web3/payStack/paystackServices';
 import { sendEmail } from '../utils/sendEmail';
-import { verifyPaymentService } from '../services/walletService';
+import {
+  verifyPaymentService,
+  verifyWithdrawalService,
+} from '../services/walletService';
 import CashwyreServices from '../services/web3/Cashwyre/cashWyre';
 import { incrementBalance } from '../services/web3/lndService/lndService';
 import { ILightningAddress, LightningAddress } from '../models/web3/cashwyre';
@@ -21,6 +24,7 @@ import CashwyreTransaction, {
 import VantServices from '../services/vantWalletServices';
 import { StatusCodes } from 'http-status-codes';
 import { PaystackCashwyre } from '../models/web3/paystackCashwyre';
+import { verify } from 'crypto';
 
 export const webhookController = async (req: Request, res: Response) => {
   console.log('Webhook called');
@@ -51,25 +55,45 @@ export const webhookController = async (req: Request, res: Response) => {
     }
   }
 
-
   if (data.event === 'transfer.success') {
     console.log('Transfer success webhook received');
-    console.log(data)
+    console.log(data);
     const status = data.data.status;
     const reference = data.data.reference;
-    verifyTransferService(reference, status);
+    const transaction = await PaystackCashwyre.findOne({
+      chainCoopReference: reference,
+    });
+    if (transaction) {
+      verifyTransferService(reference, status);
+    }
+
+    verifyWithdrawalService(reference, status);
   }
   if (data.event === 'transfer.failed') {
     console.log('Transfer failed webhook received');
     const status = data.data.status;
     const reference = data.data.reference;
-    verifyTransferService(reference, status);
+    const transaction = await PaystackCashwyre.findOne({
+      chainCoopReference: reference,
+    });
+    if (transaction) {
+      verifyTransferService(reference, status);
+    }
+
+    verifyWithdrawalService(reference, status);
   }
   if (data.event === 'transfer.reversed') {
     console.log('Transfer reversed webhook received');
     const status = data.data.status;
     const reference = data.data.reference;
-    verifyTransferService(reference, status);
+    const transaction = await PaystackCashwyre.findOne({
+      chainCoopReference: reference,
+    });
+    if (transaction) {
+      verifyTransferService(reference, status);
+    }
+
+    verifyWithdrawalService(reference, status);
   }
 };
 export const CashwyreWebhookController = async (

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   getWalletBalance,
   getWalletHistory,
@@ -14,8 +14,10 @@ import {
   GetCards,
   verifyAccountDetailsHandler,
   validateOtp,
-} from "../controllers/walletController";
-import { authorize } from "../middlewares/authorization";
+  withdrawToBank,
+  getBankServiceHandler,
+} from '../controllers/walletController';
+import { authorize, verifyPin } from '../middlewares/authorization';
 
 const router = Router();
 
@@ -60,7 +62,6 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-
 
 /**
  * @swagger
@@ -197,19 +198,95 @@ const router = Router();
  *         description: Internal server error
  */
 
-router.post("/fund-wallet", authorize, initiatePayment);
-router.post("/verify-account-details", authorize, verifyAccountDetailsHandler);
-router.get("/balance", authorize, getWalletBalance);
-router.get("/history", authorize, getWalletHistory);
-router.post("/create-pin", authorize, setWalletPin);
-router.post("/upload-receipt", authorize, uploadReceipt);
-router.post("/generate-pin-otp", authorize, GeneratePinOtp);
-router.post("/change-pin", authorize, ChangePin);
-router.post("/validate-otp", authorize, validateOtp);
+/**
+ * @swagger
+ * /wallet/withdraw-to-bank:
+ *   post:
+ *    summary: Withdraw funds to bank account
+ *    security:
+ *      - bearerAuth: []
+ *    description: Withdraws funds from the authenticated user's wallet to a specified bank account.
+ *    operationId: withdrawToBank
+ *    tags:
+ *      - Wallet
+ *    requestBody:
+ *     required: true
+ *     content:
+ *      application/json:
+ *       schema:
+ *        type: object
+ *        properties:
+ *         amountInNaira:
+ *          type: number
+ *          description: The amount to withdraw from the wallet.
+ *          example: 5000
+ *         bankAccountNumber:
+ *          type: string
+ *          description: The bank account number to which the funds will be withdrawn.
+ *          example: "1234567890"
+ *         bankCode:
+ *          type: string
+ *          description: The bank code of the bank account.
+ *          example: "011"
+ *         pin:
+ *           type: string
+ *           description: The wallet pin for authorization.
+ *           example: "1234"
+ *    responses:
+ *      200:
+ *       description: Withdrawal initiated successfully
+ *      400:
+ *       description: Bad request
+ *      500:
+ *       description: Internal server error
+ *
+ */
 
+/**
+ * @swagger
+ * /wallet/bank-services:
+ *   get:
+ *     summary: Get bank services
+ *     security:
+ *       - bearerAuth: []
+ *     description: Fetches the list of supported bank services.
+ *     operationId: getBankServiceHandler
+ *     tags:
+ *       - Wallet
+ *     responses:
+ *       200:
+ *         description: Successfully fetched bank services
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   code:
+ *                     type: string
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+
+router.post('/fund-wallet', authorize, initiatePayment);
+router.post('/verify-account-details', authorize, verifyAccountDetailsHandler);
+router.get('/balance', authorize, getWalletBalance);
+router.get('/history', authorize, getWalletHistory);
+router.post('/create-pin', authorize, setWalletPin);
+router.post('/upload-receipt', authorize, uploadReceipt);
+router.post('/generate-pin-otp', authorize, GeneratePinOtp);
+router.post('/change-pin', authorize, ChangePin);
+router.post('/validate-otp', authorize, validateOtp);
+router.post('/withdraw-to-bank', authorize, verifyPin, withdrawToBank);
+router.get('/bank-services', authorize, getBankServiceHandler);
 
 router
-.route("/cards")
+  .route('/cards')
   .get(authorize, GetCards)
   .post(authorize, setPreferredCard)
   .delete(authorize, DeleteCard);
