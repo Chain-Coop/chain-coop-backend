@@ -110,8 +110,8 @@ cron.schedule('*/1 * * * *', () => {
 const app = express();
 const corsOptions = {
   origin: '*',
-  credentials: true,
-  optionSuccessStatus: 200,
+  credentials: false,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -164,7 +164,7 @@ app.use('/api/v1/notification', notificationRouter);
 app.use('/api/v1/kyc', kycRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/wallets', restoreWallets);
-app.use("/api/v1/2fa", twoFactorRoutes)
+app.use('/api/v1/2fa', twoFactorRoutes);
 
 //web3
 app.use('/api/v1/web3/account', accountRouter);
@@ -172,7 +172,6 @@ app.use('/api/v1/web3/balance', balanceRouter);
 // app.use('/api/v1/web3/management', chainCoopManagementRouter);
 // app.use('/api/v1/web3/saving', chaincoopSavingRoute);
 app.use('/api/v1/web3/transaction', transactionHistory);
-
 
 //web3_version 2.0
 app.use('/api/v1/web3/v2/management', chainCoopManagementRouter_2);
