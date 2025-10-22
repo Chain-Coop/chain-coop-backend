@@ -105,8 +105,8 @@ cron.schedule('*/1 * * * *', () => {
 const app = express();
 const corsOptions = {
   origin: '*',
-  credentials: true,
-  optionSuccessStatus: 200,
+  credentials: false,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
