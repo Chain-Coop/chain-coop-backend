@@ -65,6 +65,7 @@ export const webhookController = async (req: Request, res: Response) => {
     });
     if (transaction) {
       verifyTransferService(reference, status);
+      return;
     }
 
     verifyWithdrawalService(reference, status);
@@ -78,6 +79,7 @@ export const webhookController = async (req: Request, res: Response) => {
     });
     if (transaction) {
       verifyTransferService(reference, status);
+      return;
     }
 
     verifyWithdrawalService(reference, status);
@@ -91,6 +93,7 @@ export const webhookController = async (req: Request, res: Response) => {
     });
     if (transaction) {
       verifyTransferService(reference, status);
+      return;
     }
 
     verifyWithdrawalService(reference, status);
@@ -128,6 +131,16 @@ export const CashwyreWebhookController = async (
         console.log('Incrementing balance for user:', details.userId);
         await incrementBalance(details.userId, data.eventData.amount);
         console.log('Balance incremented successfully');
+
+        const autoTransaction = await PaystackCashwyre.findOne({
+          chainCoopReference: data.eventData.RequestId,
+        });
+        if (autoTransaction) {
+          handleCashwyreWebhook(
+            data.eventData.RequestId,
+            CashwyreTransactionStatus.SUCCESS
+          );
+        }
       } else {
         console.log('No lightning address found for:', data.eventData.address);
       }
