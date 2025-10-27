@@ -6,6 +6,7 @@ import {
   Transaction,
   TransactionStatus,
   DepositType,
+  AllowedDepositSource,
 } from '../../../models/web3/periodicSaving';
 import { periodicSavingService } from '../../../services/web3/chaincoopSaving.2.0/periodicSavingService';
 import {
@@ -38,6 +39,7 @@ export class PeriodicSavingController {
         lockedType,
         duration,
         interval,
+        depositSource,
         network,
       } = req.body;
 
@@ -50,6 +52,7 @@ export class PeriodicSavingController {
         lockedType === undefined ||
         !duration ||
         !interval ||
+        !depositSource ||
         !network
       ) {
         res
@@ -112,6 +115,7 @@ export class PeriodicSavingController {
         lockedType,
         duration,
         interval,
+        depositSource,
         privateKey,
         network
       );

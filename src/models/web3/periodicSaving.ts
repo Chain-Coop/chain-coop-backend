@@ -11,6 +11,11 @@ export enum DepositType {
   UPDATE = 'UPDATE',
   WITHDRAW = 'WITHDRAW',
 }
+export enum AllowedDepositSource {
+  CRYPTO = 'CRYPTO',
+  WALLET = 'WALLET',
+  CARD = 'CARD',
+}
 
 export enum TransactionStatus {
   PENDING = 'PENDING',
@@ -51,6 +56,7 @@ export interface IPeriodicSaving extends Document {
   nextExecutionTime?: Date;
   encryptedPrivateKey: string;
   transactions: Transaction[];
+  depositSource: AllowedDepositSource;
   totalAmount: string;
   network: network;
   createdAt: Date;
@@ -126,6 +132,11 @@ const periodicSavingSchema = new Schema<IPeriodicSaving>(
     nextExecutionTime: { type: Date },
     encryptedPrivateKey: { type: String, required: true },
     transactions: [transactionSchema],
+    depositSource: {
+      type: String,
+      enum: Object.values(AllowedDepositSource),
+      required: true,
+    },
     totalAmount: { type: String, default: '0' },
     network: {
       type: String,

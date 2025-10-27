@@ -261,7 +261,7 @@ export const transferToBankService = async (
       transferStatus: TransferStatus.PENDING,
       transactionStatus: TransactionStatus.SUFFICIENT,
       userID: user._id,
-      userWallet: crypto === 'BTC' ? ' ' : walletWeb3.address,
+      userWallet: crypto === 'bitcoin' ? ' ' : walletWeb3.address,
       crypto: crypto,
       network: network,
       chainCoopReference: uuidv4(),
@@ -275,6 +275,7 @@ export const transferToBankService = async (
       transaction.network,
       transaction.chainCoopReference
     );
+    console.log('Cashwyre quote response:', quote);
 
     if (!quote) {
       throw new Error('Failed to get quote from Cashwyre');
@@ -290,7 +291,7 @@ export const transferToBankService = async (
     await transaction.save({ session });
 
     let btcAddress;
-    if (crypto === 'BTC') {
+    if (crypto === 'bitcoin') {
       btcAddress = await CashwyreServices.generateLightningAddress(
         amountInCryptoAsset,
         userId

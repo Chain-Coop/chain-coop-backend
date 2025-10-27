@@ -31,6 +31,7 @@ const router = express.Router();
  *               - lockedType
  *               - duration
  *               - interval
+ *               - depositSource
  *               - network
  *               - pin
  *             properties:
@@ -56,6 +57,10 @@ const router = express.Router();
  *                 type: string
  *                 description: Saving interval (DAILY, WEEKLY, MONTHLY)
  *                 enum: [DAILY, WEEKLY, MONTHLY]
+ *               depositSource:
+ *                 type: string
+ *                 description: Source of deposit (CARD, CRYPTO,WALLET)
+ *                 enum: [CARD, CRYPTO, WALLET]
  *               network:
  *                 type: string
  *                 description: Blockchain network to use (e.g.LISK, BSC, ETHERLINK, GNOSIS)

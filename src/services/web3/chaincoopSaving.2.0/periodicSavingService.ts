@@ -7,6 +7,7 @@ import {
   SavingInterval,
   TransactionStatus,
   DepositType,
+  AllowedDepositSource,
 } from '../../../models/web3/periodicSaving';
 import {
   TransactionStatus as PayStackCashWyreStatus,
@@ -130,7 +131,10 @@ class PeriodicSavingService {
         saving.tokenAddress,
         network
       );
-    if (balance < parseFloat(saving.periodicAmount)) {
+    if (
+      balance < parseFloat(saving.periodicAmount) &&
+      saving.depositSource !== AllowedDepositSource.CRYPTO
+    ) {
       const transaction = await this.topUpWalletBeforeExecuting(
         saving,
         network
@@ -183,6 +187,7 @@ class PeriodicSavingService {
     lockType: number,
     duration: number,
     interval: SavingInterval,
+    depositSource: AllowedDepositSource,
     privateKey: string,
     network: string
   ): Promise<any> {
@@ -217,6 +222,7 @@ class PeriodicSavingService {
         interval,
         encryptedPrivateKey,
         lastExecutionTime: new Date(),
+        depositSource,
         network,
       });
 
@@ -308,7 +314,10 @@ class PeriodicSavingService {
       uuidv4()
     );
     const actualAmountNeeded = response.data.totalDepositInLocalCurrency;
-    if (wallet?.balance < actualAmountNeeded) {
+    if (
+      wallet?.balance < actualAmountNeeded &&
+      saving.depositSource == AllowedDepositSource.CARD
+    ) {
       const buyCrypto = await initializeCryptoPaymentService(
         actualAmountNeeded,
         user.email,
