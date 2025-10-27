@@ -18,7 +18,7 @@ import {
 } from '../../../models/web3/paystackCashwyre';
 import { CashwyreTransactionStatus } from '../../../models/web3/cashWyreTransactions';
 import { getUserWeb3Wallet } from '../accountService';
-import Wallet from '../../../models/wallet';
+import LndWallet from '../../../models/web3/lnd/wallet';
 import CashwyreServices from '../Cashwyre/cashWyre';
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
@@ -225,6 +225,11 @@ export const transferToBankService = async (
       throw new Error('Web3 wallet not found');
     }
 
+    const bitcoinWallet = await LndWallet.findOne({ userId: user._id });
+    if (!bitcoinWallet) {
+      throw new Error('Bitcoin wallet not found');
+    }
+
     const wallet = await findWalletService({ user: user._id });
     if (!wallet) {
       throw new Error('Wallet not found');
@@ -256,7 +261,7 @@ export const transferToBankService = async (
       transferStatus: TransferStatus.PENDING,
       transactionStatus: TransactionStatus.SUFFICIENT,
       userID: user._id,
-      userWallet: walletWeb3?.address || '',
+      userWallet: crypto === 'BTC' ? ' ' : walletWeb3.address,
       crypto: crypto,
       network: network,
       chainCoopReference: uuidv4(),
@@ -283,6 +288,19 @@ export const transferToBankService = async (
     transaction.cashwyreReference = transactionReference;
     transaction.amountInCrypto = amountInCryptoAsset;
     await transaction.save({ session });
+
+    let btcAddress;
+    if (crypto === 'BTC') {
+      btcAddress = await CashwyreServices.generateLightningAddress(
+        amountInCryptoAsset,
+        userId
+      );
+      if (!btcAddress) {
+        throw new Error('Failed to generate BTC lightning address');
+      }
+      transaction.userWallet = btcAddress;
+      await transaction.save({ session });
+    }
 
     // Confirm quote with Cashwyre
     const confirmQuote = await CashwyreServices.confirmOnrampQuote(
