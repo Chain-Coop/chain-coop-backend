@@ -43,6 +43,10 @@ const router = express.Router();
  *                 description: Purpose of the lock
  *                 example: "staking"
  *                 default: "staking"
+ *               pin:
+ *                 type: string
+ *                 description: User's PIN for verification
+ *                 example: "1234"
  *             required:
  *               - amount
  *               - unlockAt
