@@ -11,7 +11,11 @@ interface CreateUserPayload {
   username: string;
   gender?: "male" | "female";
   dateOfBirth?: Date;
-  referredByUsername?: string;
+  referredByUsername?: string; 
+  hasCompletedFirstFunding?: boolean;
+  totalReferrals?: number;
+  completedReferrals?: number;
+  totalReferralRewards?: number;
 }
 
 const createUser = async (payload: CreateUserPayload) => await User.create(payload);

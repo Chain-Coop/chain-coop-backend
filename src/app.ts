@@ -9,6 +9,7 @@ import { errorHandlerMiddleware } from './middlewares/errorHandler';
 import cloudinary from 'cloudinary';
 import fileUpload from 'express-fileupload';
 import { RequestHandler } from 'express';
+import referralRoutes from "./routes/referralRoutes";
 // import { initializeServices } from './services/web3/lndService/startupService';
 
 import {
@@ -158,6 +159,7 @@ app.use('/api/v1/notification', notificationRouter);
 app.use('/api/v1/kyc', kycRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/wallets', restoreWallets);
+app.use("/api/v1/referrals", referralRoutes); 
 
 //web3
 app.use('/api/v1/web3/account', accountRouter);

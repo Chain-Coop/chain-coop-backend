@@ -25,6 +25,7 @@ import { findOtp } from "../services/otpService";
 import { deleteCard, getCustomer } from "../services/paystackService";
 import { addtoLimit } from "../services/dailyServices";
 import User from "../models/user";
+import {processReferralRewardOnWalletFunding} from "../services/referralService";
 
 const secret = process.env.PAYSTACK_SECRET_KEY!;
 
@@ -135,21 +136,50 @@ const verifyPayment = async (req: Request, res: Response) => {
 				balance: wallet.balance + amountInNaira,
 			});
 
+			const userId = user._id ? user._id.toString() : user.id;
+
 			const historyPayload: iWalletHistory = {
 				amount: amountInNaira,
 				label: "Wallet top up via Paystack",
 				ref: reference,
 				type: "credit",
-				user: user._id as string,
+				user: userId,
 			};
 
-			await createWalletHistoryService(historyPayload);
+			const walletHistory = await createWalletHistoryService(historyPayload);
 
 			await addtoLimit(user.id, amount / 100, "deposit");
+
+			
+			//checks if the user was referred and if this transaction qualifies for referral reward
+			let referralResult = {
+				rewardProcessed: false,
+				message: "No referral processing needed"
+			};
+
+			try {
+				referralResult = await processReferralRewardOnWalletFunding(
+					userId,
+					amountInNaira,
+					walletHistory._id.toString()
+				);
+
+				if (referralResult.rewardProcessed) {
+					console.log(` Referral reward processed for user ${user.username}: ${referralResult.message}`);
+				} else {
+					console.log(` Referral not processed for user ${user.username}: ${referralResult.message}`);
+				}
+			} catch (referralError) {
+				console.error('Error processing referral reward:', referralError);
+			}
 
 			res.status(StatusCodes.OK).json({
 				message: "Payment verified and wallet topped up successfully",
 				updatedBalance: updatedWallet?.balance,
+				referral: {
+					processed: referralResult.rewardProcessed,
+					message: referralResult.message
+				}
 			});
 		} else {
 			res.status(StatusCodes.BAD_REQUEST).json({
@@ -336,9 +366,45 @@ export const fundWallet = async (req: Request, res: Response) => {
 		const newBalance = wallet.balance + amount;
 		await updateWalletService(wallet._id, { balance: newBalance });
 
-		res
-			.status(StatusCodes.OK)
-			.json({ message: "Wallet funded successfully", newBalance });
+		// Create wallet history for the funding
+		const historyPayload: iWalletHistory = {
+			amount: amount,
+			label: "Manual wallet funding",
+			ref: `MANUAL-${Date.now()}`,
+			type: "credit",
+			user: userId,
+		};
+
+		const walletHistory = await createWalletHistoryService(historyPayload);
+
+		//REFERRAL REWARD CHECK for manual funding 
+		let referralResult = {
+			rewardProcessed: false,
+			message: "No referral processing needed"
+		};
+
+		try {
+			referralResult = await processReferralRewardOnWalletFunding(
+				userId,
+				amount,
+				walletHistory._id.toString()
+			);
+
+			if (referralResult.rewardProcessed) {
+				console.log(`Referral reward processed for manual funding: ${referralResult.message}`);
+			}
+		} catch (referralError) {
+			console.error('Error processing referral reward:', referralError);
+		}
+
+		res.status(StatusCodes.OK).json({ 
+			message: "Wallet funded successfully", 
+			newBalance,
+			referral: {
+				processed: referralResult.rewardProcessed,
+				message: referralResult.message
+			}
+		});
 	} catch (error) {
 		if (error instanceof Error) {
 			res.status(StatusCodes.BAD_REQUEST).json({ error: error.message });

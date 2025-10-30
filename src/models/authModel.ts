@@ -29,6 +29,11 @@ export interface UserDocument extends Document {
   membershipPaymentStatus: 'paid' | 'in-progress' | 'not_started';
   isWalletActivated: boolean;
   isBitcoinWalletActivated: boolean;
+  referralCode: string;
+  totalReferrals: number;
+  completedReferrals: number; 
+  totalReferralRewards: number;
+  hasCompletedFirstFunding: boolean; 
   createdAt: Date; // added createdAt
   updatedAt: Date; // added updatedAt
   wallet?: WalletDocument;
@@ -81,8 +86,39 @@ const UserSchema = new Schema(
           const reserved = ['admin', 'root', 'api', 'www', 'support', 'help', 'null', 'undefined'];
           return !reserved.includes(username.toLowerCase());
         },
-        message: 'This username is reserved and cannot be used'
-      }
+        message: 'This username is reserved and cannot be used',
+      },
+    },
+
+    // Referral System Fields
+    referralCode: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true,
+    },
+    
+    totalReferrals: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    
+    completedReferrals: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    
+    totalReferralRewards: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    
+    hasCompletedFirstFunding: {
+      type: Boolean,
+      default: false,
     },
 
     phoneNumber: {
@@ -200,6 +236,14 @@ UserSchema.pre('save', async function (next) {
     this.referredByUsername = this.referredByUsername.toLowerCase().trim();
   }
 
+  next();
+});
+
+// Pre-save middleware to set referralCode from username
+UserSchema.pre("save", function (next) {
+  if (!this.referralCode && this.username) {
+    this.referralCode = this.username.toLowerCase().trim();
+  }
   next();
 });
 
