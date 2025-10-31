@@ -39,18 +39,68 @@ import { createPaystackCustomer } from '../services/kycservice';
 import Web3Wallet from '../models/web3Wallet';
 import BitcoinWallet from '../models/bitcoinWallet';
 import User from '../models/user';
+import { 
+  validateReferralCode, 
+  createReferralRecord 
+} from '../services/referralService';
 
 const register = async (req: Request, res: Response) => {
   let user: any = null;
   try {
-    //registerValidator(req);
-    const { email, phoneNumber } = req.body;
+    const { email, phoneNumber, referredBy } = req.body;
+    
     const legacyUser = await findUser('email', email!);
     if (legacyUser) {
       throw new ConflictError('User with this email already exists');
     }
-    user = await createUser(req.body);
+
+    // Validate referral code if provided
+    let referrer: any = null;
+    let referredByUsername: string | null = null;
+
+    if (referredBy && referredBy.trim() !== '') {
+      try {
+        referrer = await validateReferralCode(referredBy);
+        if (referrer) {
+          referredByUsername = referrer.username;
+        }
+      } catch (error) {
+        throw new BadRequestError('Invalid referral code. Please check and try again.');
+      }
+    } else {
+      console.log(' No referral code provided - proceeding without referral');
+    }
+
+
+    const { referredBy: _, ...bodyWithoutReferredBy } = req.body;
+    
+    const userPayload = {
+      ...bodyWithoutReferredBy,
+      referredByUsername: referredByUsername,  
+      hasCompletedFirstContribution: false,
+      totalReferrals: 0,
+      completedReferrals: 0,
+      totalReferralRewards: 0,
+    };
+
+    user = await createUser(userPayload);
+
     const token = await user.createJWT();
+
+    // Create referral record if user was referred
+    if (referrer && referrer._id && user._id) {
+      try {
+        const referralRecord = await createReferralRecord(
+          referrer._id.toString(),
+          user._id.toString(),
+          referredBy 
+        );
+      } catch (error) {
+        console.error(' Error creating referral record:', error);
+      }
+    } else {
+      console.log('No referral record created - missing referrer or user ID');
+    }
 
     await createPaystackCustomer(
       email,
@@ -91,7 +141,12 @@ const register = async (req: Request, res: Response) => {
     await logUserOperation(user?.id, req, 'REGISTER', 'Success');
     res.status(StatusCodes.CREATED).json({
       msg: 'Registration successful, proceed to OTP verification',
-      user: { _id: user._id, email: user.email, token },
+      user: { 
+        _id: user._id, 
+        email: user.email, 
+        referredBy: user.referredByUsername,  // include referredBy in response
+        token 
+      },
     });
   } catch (error) {
     await logUserOperation(user?.id, req, 'REGISTER', 'Failure');
@@ -278,6 +333,7 @@ const login = async (req: Request, res: Response) => {
       membershipStatus: user.membershipStatus,
       //@ts-ignore
       membershipPaymentStatus: user.membershipPaymentStatus,
+      referralCode: user.referralCode,
     });
   } catch (error) {
     await logUserOperation(user?.id, req, 'LOGIN', 'Failure');

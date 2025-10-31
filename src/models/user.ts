@@ -6,12 +6,15 @@ export interface UserDocument extends Document {
   password: string;
   membershipStatus: "active" | "pending" | "inactive";
   membershipPaymentStatus: "paid" | "in-progress" | "not_started";
-  membershipType: "Explorer" | "Pioneer" | "Voyager";
+  membershipType: "cooperate" | "individual";
   phoneNumber: string;
   Tier: 0 | 1 | 2;
   isVerified: boolean;
   isCrypto: boolean;
   customerCode?: string;
+  referrer?: string; 
+  referralCode: string; 
+  username: string; 
 }
 
 const UserSchema: Schema = new Schema({
@@ -36,8 +39,8 @@ const UserSchema: Schema = new Schema({
   },
   membershipType: {
     type: String, // Adjust this if there are specific membership types
-    enum: ["Explorer", "Pioneer", "Voyager"],
-    required: false,
+    enum: ["individual", "cooperate"],
+      required: [true, "Membership type is required"],
   },
   phoneNumber: {
     type: String,
@@ -57,10 +60,21 @@ const UserSchema: Schema = new Schema({
     type: Boolean,
     default: false,
   },
-  kycSessionId: { type: String },
-    customerCode: {
+  kycSessionId: { 
+    type: String 
+  },
+  customerCode: {
     type: String,
     required: false,
+  },
+  referrer: {
+    type: String,
+    required: false,
+  },
+  referralCode: {
+    type: String,
+    required: true,
+    unique: true,
   },
 });
 
