@@ -2,7 +2,7 @@
 import express from 'express';
 import * as lndController from '../../../controllers/web3/lnd/lndController';
 import CashwyreController from '../../../controllers/web3/cashWyre/cashWyre';
-import { authorize } from '../../../middlewares/authorization';
+import { authorize, verifyPin } from '../../../middlewares/authorization';
 
 const router = express.Router();
 
@@ -731,13 +731,21 @@ const router = express.Router();
  */
 
 // Invoice routes
-router.post('/wallet/lock', authorize, lndController.lockFunds);
-router.post('/wallet/unlock', authorize, lndController.unlockFunds);
+router.post('/wallet/lock', authorize, verifyPin, lndController.lockFunds);
+router.post('/wallet/unlock', authorize, verifyPin, lndController.unlockFunds);
 router.get('/wallet/info', authorize, lndController.getWalletInfo);
 router.get('/wallet/lock-status', authorize, lndController.getLockStatus);
 router.get('/wallet/lock/:lockId', authorize, lndController.getLockDetails);
-router.get('/wallet/available-balance', authorize, lndController.getAvailableBalance);
-router.get('/wallet/bitcoin-balance', authorize, lndController.getBitcoinBalance);
+router.get(
+  '/wallet/available-balance',
+  authorize,
+  lndController.getAvailableBalance
+);
+router.get(
+  '/wallet/bitcoin-balance',
+  authorize,
+  lndController.getBitcoinBalance
+);
 // crypto route
 router.post(
   '/create-address',

@@ -1,6 +1,7 @@
 import * as bitcoin from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import ECPairFactory from 'ecpair';
+import { randomBytes } from 'crypto';
 
 // Initialize ECPair with the required elliptic curve implementation
 const ECPair = ECPairFactory(ecc);
@@ -22,7 +23,10 @@ const generateBtcAccount = (
   network = bitcoin.networks.bitcoin
 ): BitcoinAccount => {
   // Create a random keypair
-  const keyPair = ECPair.makeRandom({ network });
+  const privateKeyBuffer = randomBytes(32);
+
+  // Create a keypair from the random private key
+  const keyPair = ECPair.fromPrivateKey(privateKeyBuffer, { network });
 
   // Get the private key as hex (similar to Ethereum format)
   const privateKey = keyPair.privateKey?.toString();

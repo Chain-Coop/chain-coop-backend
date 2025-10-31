@@ -38,6 +38,8 @@ import {
   blogRoutes,
   restoreWallets,
   vantWalletRoutes,
+  twoFactorRoutes,
+  emailRoutes,
 } from './routes';
 import accountRouter from './routes/web3/accountRoutes';
 import balanceRouter from './routes/web3/balanceRoutes';
@@ -51,9 +53,13 @@ import web3SavingCircle from './routes/web3/savingCircles/savingCircleRoutes2';
 import periodicSaving from './routes/web3/chaincoopSaving.2.0/periodicSavingRoutes';
 import cashwyre from './routes/web3/cashWyre/cashWyre';
 import lndRoutes from './routes/web3/lnd/lndRoutes';
+import paystackCashWyre from './routes/web3/payStackCashwyre/psyStackCashWyre';
 //import
 import logger from './utils/logger';
-import { VantWebhookController, webhookController } from './controllers/webhookController';
+import {
+  VantWebhookController,
+  webhookController,
+} from './controllers/webhookController';
 import { authorize } from './middlewares/authorization';
 import { addtoLimit, getDailyTotal } from './services/dailyServices';
 import { tryRecurringCircleService } from './services/savingCircle.services';
@@ -105,8 +111,8 @@ cron.schedule('*/1 * * * *', () => {
 const app = express();
 const corsOptions = {
   origin: '*',
-  credentials: true,
-  optionSuccessStatus: 200,
+  credentials: false,
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -159,7 +165,11 @@ app.use('/api/v1/notification', notificationRouter);
 app.use('/api/v1/kyc', kycRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/wallets', restoreWallets);
+
 app.use("/api/v1/referrals", referralRoutes); 
+
+app.use('/api/v1/2fa', twoFactorRoutes);
+
 
 //web3
 app.use('/api/v1/web3/account', accountRouter);
@@ -174,6 +184,7 @@ app.use('/api/v1/web3/v2/saving', chaincoopSavingRoute_2);
 app.use('/api/v1/web3/v2/periodicSaving', periodicSaving);
 app.use('/api/v1/web3/cashwyre', cashwyre);
 app.use('/api/v1/web3/lnd', lndRoutes);
+app.use('/api/v1/web3/paystack', paystackCashWyre);
 
 //web3_Saving_circle
 
@@ -183,6 +194,7 @@ app.use('/api/v1/savingcircle', savingCircleRoutes);
 app.use('/api/v1/blog', blogRoutes);
 
 app.use('/api/v1/vant', vantWalletRoutes);
+app.use('/api/v1/email', emailRoutes);
 
 const port = process.env.PORT || 3000;
 const mongoUrl: any = process.env.MONGO_URI;
