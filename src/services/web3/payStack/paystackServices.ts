@@ -364,7 +364,7 @@ export const transferToBankService = async (
     // Initiate transfer
     const transferPayload = {
       source: 'balance',
-      amount: totalDepositInLocalCurrency * 100,
+      amount: Math.round(totalDepositInLocalCurrency * 100),
       recipient: accountRecipientResponse.data.data.recipient_code,
       reference: transaction.chainCoopReference,
       reason: `Transfer to Cashwyre account ${transaction.cashwyreReference}`,
