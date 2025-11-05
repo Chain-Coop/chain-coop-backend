@@ -5,7 +5,7 @@ import { sendEmail as legacySendEmail, EmailOptions } from '../utils/sendEmail';
 
 dotenv.config();
 
-type EmailTemplateType = 'kyc_reminder' | 'activation_reminder' | 'reengagement';
+type EmailTemplateType = 'kyc_reminder' | 'activation_reminder' | 'reengagement' | 'newsletter';
 
 interface SendTemplateParams {
   recipient: string;
@@ -126,6 +126,61 @@ export class EmailService {
       </html>`;
     };
 
+    const escapeHtml = (str: string) =>
+      String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const newsletterHtml = (vars: Record<string, any> = {}) => {
+      const title = vars.subject || 'Chain Coop Newsletter';
+      const isHtml = vars.isHtml !== false; // default true
+      const content = String(vars.content || '');
+      const images: string[] = Array.isArray(vars.imageUrls) ? vars.imageUrls : [];
+      const preheader = vars.preheader || '';
+      const brandColor = '#0d6efd';
+
+      const contentHtml = isHtml
+        ? content
+        : `<div style="white-space:pre-wrap;line-height:1.6;color:#222;">${escapeHtml(content)}</div>`;
+
+      const imagesHtml = images.length
+        ? `<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;">
+            ${images
+              .map(
+                (src) =>
+                  `<img src="${src}" alt="image" style="max-width:100%;width:calc(50% - 6px);border-radius:6px;border:1px solid #eee;" loading="lazy"/>`
+              )
+              .join('')}
+           </div>`
+        : '';
+
+      return `
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1"/>
+          ${preheader ? `<meta name="x-preheader" content="${escapeHtml(preheader)}"/>` : ''}
+        </head>
+        <body style="margin:0;padding:0;background:#f7f7f7;font-family:Arial,sans-serif;color:#222;">
+          <div style="max-width:680px;margin:0 auto;background:#ffffff;">
+            <div style="background:${brandColor};color:#fff;padding:16px 20px;">
+              <h1 style="margin:0;font-size:20px;">${escapeHtml(title)}</h1>
+            </div>
+            <div style="padding:20px;">
+              ${contentHtml}
+              ${imagesHtml}
+            </div>
+            <div style="padding:16px 20px;border-top:1px solid #eee;color:#666;font-size:12px;">
+              <p style="margin:0;">You’re receiving this because you are a Chain Coop member or subscriber.</p>
+              <p style="margin:0;">© ${new Date().getFullYear()} Chain Coop</p>
+            </div>
+          </div>
+        </body>
+      </html>`;
+    };
+
     switch (template) {
       case 'kyc_reminder':
         subject = '🔐 Complete Your KYC Verification - Chain Coop';
@@ -138,6 +193,10 @@ export class EmailService {
       case 'reengagement':
         subject = '🚀 We Miss You at Chain Coop!';
         html = reengagementHtml(variables);
+        break;
+      case 'newsletter':
+        subject = variables.subject || 'Chain Coop Newsletter';
+        html = newsletterHtml(variables);
         break;
       default:
         subject = 'Chain Coop Notification';
@@ -182,6 +241,42 @@ export class EmailService {
 
     // Fall back if Resend not configured
     const options: EmailOptions = { to: recipient, subject, html, text };
+    await legacySendEmail(options);
+    return { success: true, messageId: uuidv4(), provider: 'nodemailer' };
+  }
+
+  public async sendRawEmail({ recipient, subject, html, text }: { recipient: string; subject: string; html?: string; text?: string; }) {
+    const finalHtml = html || (text ? `<pre style="white-space:pre-wrap;font-family:Arial,sans-serif;color:#222;">${text}</pre>` : '<p></p>');
+    const finalText = text || finalHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    if (this.dryRun) {
+      const fakeId = `dry-${uuidv4()}`;
+      return { success: true, messageId: fakeId, provider: 'dry-run' };
+    }
+
+    if (this.resend && this.fromEmail) {
+      const from = this.fromName ? `${this.fromName} <${this.fromEmail}>` : this.fromEmail;
+      try {
+        const result = await this.resend.emails.send({
+          from,
+          to: recipient,
+          subject,
+          html: finalHtml,
+          text: finalText,
+        });
+        return { success: true, messageId: (result?.data as any)?.id || uuidv4(), provider: 'resend' };
+      } catch (err) {
+        try {
+          const options: EmailOptions = { to: recipient, subject, html: finalHtml, text: finalText };
+          await legacySendEmail(options);
+          return { success: true, messageId: uuidv4(), provider: 'nodemailer' };
+        } catch (legacyErr) {
+          throw legacyErr;
+        }
+      }
+    }
+
+    const options: EmailOptions = { to: recipient, subject, html: finalHtml, text: finalText };
     await legacySendEmail(options);
     return { success: true, messageId: uuidv4(), provider: 'nodemailer' };
   }
