@@ -13,6 +13,7 @@ import { decrypt } from "../services/encryption";
 import { generateAndSendOtpWA } from "../utils/sendOtp";
 import { findOtpPhone } from "../services/otpService";
 import User from '../models/user';
+import { EmailOptions, sendEmail } from "../utils/sendEmail";
 
 interface CustomRequest extends Request {
   user: {
@@ -127,6 +128,34 @@ const verifyBVNController = async (req: Request, res: Response) => {
     lastName: mainuser.lastName,
     customer_code: mainuser.email,
   });
+
+  const emailOptions:EmailOptions = {
+    to: mainuser.email,
+    subject: "Congratulations, You’re Now Verified on Chain Co-op",
+    html: `
+    <p>Hi ${mainuser.firstName},</p>
+      <p>Congratulations, your account has been successfully verified on <strong>Chain Co-op</strong>. You’re now ready to start saving, earning, and building financial discipline with Bitcoin, USDT, and USDC.</p>
+
+      <p>Here’s what you can do with your Chain Co-op account:</p>
+      <ul>
+        <li>Save in BTC, USDT, or USDC and earn up to 9% annual returns</li>
+        <li>Lock your savings to grow long-term wealth and avoid emotional selling</li>
+        <li>Track your performance and monitor every deposit, yield, and payout</li>
+        <li>Request loans using your locked savings with no paperwork or delay</li>
+        <li>Join our community savings cycles (coming soon) and grow together with others</li>
+      </ul>
+
+      <p>Your dashboard is ready. Log in today and make your first savings deposit to start earning rewards and building your financial freedom.</p>
+
+      <p>Welcome to Chain Co-op.<br>
+      <strong>Save better. Earn smarter. Stay disciplined.</strong></p>
+
+      <p>Best regards,<br>
+      The Chain Co-op Team</p>`
+  }
+
+    // 5. Send email
+    await sendEmail(emailOptions);
   return res.status(200).json(isSet);
 };
 

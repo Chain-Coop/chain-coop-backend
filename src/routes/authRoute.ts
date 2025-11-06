@@ -10,6 +10,7 @@ import {
 	resendOtpWhatsApp,
 	verifyOtpWA,
 	changePhoneNumber,
+	editProfile
 } from "../controllers/authController";
 import { authorize, authorizePermissions } from "../middlewares/authorization";
 const router = Router();
@@ -411,6 +412,74 @@ const router = Router();
  *       400:
  *         description: Invalid OTP or user not found
  */
+/**
+ * @swagger
+ * /users/edit-profile:
+ *   patch:
+ *     summary: Update user profile information
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               username:
+ *                 type: string
+ *                 example: johndoe123
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "+1234567890"
+ *               dateOfBirth:
+ *                 type: string
+ *                 example: "1995-07-21"
+ *               gender:
+ *                 type: string
+ *                 enum: [Male, Female, Other]
+ *                 example: Male
+ *               membershipType:
+ *                 type: string
+ *                 enum: [Basic, Explorer, Premium]
+ *                 example: Explorer
+ *               address:
+ *                 type: string
+ *                 example: "123 Example Street"
+ *               country:
+ *                 type: string
+ *                 example: "United States"
+ *               state:
+ *                 type: string
+ *                 example: "California"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+
 
 router.post("/register", register);
 router.get("/user", authorize, getUser);
@@ -422,6 +491,7 @@ router.post("/login", login);
 router.post("/forget_password", forgetPassword);
 router.post("/reset_password", resetPassword);
 router.put("/change_phone_number", changePhoneNumber)
+router.put("/edit_profile", editProfile)
 
 router.patch("/reactivate/:id", authorize, authorizePermissions("admin"));
 

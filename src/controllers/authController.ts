@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
+import { Request, Response } from "express";
+import { StatusCodes } from "http-status-codes";
 import {
   createUser,
   findExistingUser,
@@ -9,14 +9,14 @@ import {
   updateUserByEmail,
   updateUserByWhatsApp,
   updateUserById,
-} from '../services/authService';
+} from "../services/authService";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
   UnauthenticatedError,
   ForbiddenError,
-} from '../errors';
+} from "../errors";
 import {
   deleteOtp,
   deleteOtpPhone,
@@ -24,30 +24,32 @@ import {
   findOtpByEmail,
   findOtpByPhone,
   findOtpPhone,
-} from '../services/otpService';
-import { generateAndSendOtp, generateAndSendOtpWA } from '../utils/sendOtp';
+} from "../services/otpService";
+import { generateAndSendOtp, generateAndSendOtpWA } from "../utils/sendOtp";
 import {
   createWalletService,
   findWalletService,
   iWallet,
-} from '../services/walletService';
-import { verifyPayment } from '../services/paystackService';
+} from "../services/walletService";
+import { verifyPayment } from "../services/paystackService";
 
 // Updated register method to include membership statusimport { LogModel } from "../models/logModel";
-import { logUserOperation } from '../middlewares/logging';
-import { createPaystackCustomer } from '../services/kycservice';
-import Web3Wallet from '../models/web3Wallet';
-import BitcoinWallet from '../models/bitcoinWallet';
-import User from '../models/user';
+import { logUserOperation } from "../middlewares/logging";
+import { createPaystackCustomer } from "../services/kycservice";
+import Web3Wallet from "../models/web3Wallet";
+import BitcoinWallet from "../models/bitcoinWallet";
+import User from "../models/user";
+import { verify2FAToken } from "../services/twoFactorService";
+import { EmailOptions, sendEmail } from "../utils/sendEmail";
 
 const register = async (req: Request, res: Response) => {
   let user: any = null;
   try {
     //registerValidator(req);
     const { email, phoneNumber } = req.body;
-    const legacyUser = await findUser('email', email!);
+    const legacyUser = await findUser("email", email!);
     if (legacyUser) {
-      throw new ConflictError('User with this email already exists');
+      throw new ConflictError("User with this email already exists");
     }
     user = await createUser(req.body);
     const token = await user.createJWT();
@@ -61,8 +63,8 @@ const register = async (req: Request, res: Response) => {
 
     await generateAndSendOtp({
       email: email!,
-      message: 'Your OTP to verify your account is',
-      subject: 'Email verification',
+      message: "Your OTP to verify your account is",
+      subject: "Email verification",
     });
 
     // await generateAndSendOtpWA(req.body.phoneNumber);
@@ -78,23 +80,22 @@ const register = async (req: Request, res: Response) => {
     //     console.error("Error sending OTP to WhatsApp:", error);
     // });
 
-
     const walletPayload: iWallet = {
       balance: 0,
-      pin: '0000',
+      pin: "0000",
       totalEarned: 0,
       totalWithdrawn: 0,
       user: user._id as string,
     };
 
     await createWalletService(walletPayload);
-    await logUserOperation(user?.id, req, 'REGISTER', 'Success');
+    await logUserOperation(user?.id, req, "REGISTER", "Success");
     res.status(StatusCodes.CREATED).json({
-      msg: 'Registration successful, proceed to OTP verification',
+      msg: "Registration successful, proceed to OTP verification",
       user: { _id: user._id, email: user.email, token },
     });
   } catch (error) {
-    await logUserOperation(user?.id, req, 'REGISTER', 'Failure');
+    await logUserOperation(user?.id, req, "REGISTER", "Failure");
     throw error;
   }
 };
@@ -103,22 +104,26 @@ const register = async (req: Request, res: Response) => {
 const verifyOtp = async (req: Request, res: Response) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
-    throw new BadRequestError('Email and otp is required');
+    throw new BadRequestError("Email and otp is required");
   }
   const validOtp = await findOtp(email, otp);
   if (!validOtp) {
-    throw new UnauthenticatedError('Failed to validate OTP');
+    throw new UnauthenticatedError("Failed to validate OTP");
   }
 
   // Activate user and not verify it
-  const newUser = await updateUserByEmail(email, { status: 'active', isVerified: true, Tier: 1 });
+  const newUser = await updateUserByEmail(email, {
+    status: "active",
+    isVerified: true,
+    Tier: 1,
+  });
   if (!newUser) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
   await deleteOtp(email);
   res
     .status(StatusCodes.OK)
-    .json({ msg: 'Your account has been activated', newUser });
+    .json({ msg: "Your account has been activated", newUser });
 };
 
 // Verify OTP through whatsApp
@@ -127,13 +132,13 @@ const verifyOtpWA = async (req: Request, res: Response) => {
 
   // Ensure all required fields are provided
   if (!userId || !phoneNumber || !otp) {
-    throw new BadRequestError('User ID, phone number, and OTP are required');
+    throw new BadRequestError("User ID, phone number, and OTP are required");
   }
 
   // Find the OTP tied to the phone number
   const validOtp = await findOtpPhone(phoneNumber, otp);
   if (!validOtp) {
-    throw new UnauthenticatedError('Failed to validate WhatsApp OTP');
+    throw new UnauthenticatedError("Failed to validate WhatsApp OTP");
   }
 
   // Delete OTP to prevent reuse
@@ -145,15 +150,15 @@ const verifyOtpWA = async (req: Request, res: Response) => {
     { isPhoneVerified: true },
     { new: true }
   );
-  
+
   if (!updatedUser) {
     throw new NotFoundError(
-      'User not found or phone number does not match user'
+      "User not found or phone number does not match user"
     );
   }
 
   res.status(StatusCodes.OK).json({
-    msg: 'Phone number verified successfully through WhatsApp',
+    msg: "Phone number verified successfully through WhatsApp",
     user: updatedUser,
   });
 };
@@ -165,20 +170,20 @@ const resendOtp = async (req: Request, res: Response) => {
   if (isOtp) {
     await deleteOtp(email);
   }
-  const user = await findUser('email', email);
+  const user = await findUser("email", email);
 
   if (!user) {
-    throw new NotFoundError('User with this email does not exist');
+    throw new NotFoundError("User with this email does not exist");
   }
 
   await generateAndSendOtp({
     email: email!,
-    message: 'Your OTP to verify your account is',
-    subject: 'Email verification',
+    message: "Your OTP to verify your account is",
+    subject: "Email verification",
   });
 
   res.status(StatusCodes.CREATED).json({
-    msg: 'OTP successfully sent to your email',
+    msg: "OTP successfully sent to your email",
   });
 };
 
@@ -187,7 +192,7 @@ const resendOtpWhatsApp = async (req: Request, res: Response) => {
   const { phoneNumber } = req.body;
 
   if (!phoneNumber) {
-    throw new BadRequestError('Phone number is required');
+    throw new BadRequestError("Phone number is required");
   }
 
   const isOtp = await findOtpByPhone(phoneNumber);
@@ -195,21 +200,21 @@ const resendOtpWhatsApp = async (req: Request, res: Response) => {
     await deleteOtpPhone(phoneNumber);
   }
 
-  const user = await findUser('phoneNumber', phoneNumber);
+  const user = await findUser("phoneNumber", phoneNumber);
   if (!user) {
-    throw new NotFoundError('User with this phone number does not exist');
+    throw new NotFoundError("User with this phone number does not exist");
   }
 
   try {
     await generateAndSendOtpWA(phoneNumber);
-    console.log('OTP sent successfully to WhatsApp:', phoneNumber);
+    console.log("OTP sent successfully to WhatsApp:", phoneNumber);
     res.status(StatusCodes.CREATED).json({
-      msg: 'OTP successfully sent to your WhatsApp',
+      msg: "OTP successfully sent to your WhatsApp",
     });
   } catch (error) {
-    console.error('Error sending OTP to WhatsApp:', error);
+    console.error("Error sending OTP to WhatsApp:", error);
     throw new BadRequestError(
-      'Failed to send OTP via WhatsApp. Please try again.'
+      "Failed to send OTP via WhatsApp. Please try again."
     );
   }
 };
@@ -222,17 +227,17 @@ const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new BadRequestError('Email and password are required');
+      throw new BadRequestError("Email and password are required");
     }
 
-    user = await findUser('email', email!);
+    user = await findUser("email", email!);
     if (!user) {
-      throw new UnauthenticatedError('Invalid credentials');
+      throw new UnauthenticatedError("Invalid credentials");
     }
 
     const validPassword = await user.comparePasswords(password!);
     if (!validPassword) {
-      throw new UnauthenticatedError('Invalid credentials');
+      throw new UnauthenticatedError("Invalid credentials");
     }
 
     // Check membership payment status
@@ -254,16 +259,50 @@ const login = async (req: Request, res: Response) => {
 
     // TEMPORARY BYPASS WHATSAPP OTP VERIFICATION
     // if (user.Tier === 0 && user.isVerified === false) {
-      // user.Tier = 1;
-      // user.isVerified = true;
-      // await user.save();
+    // user.Tier = 1;
+    // user.isVerified = true;
+    // await user.save();
     // }
 
     const token = await user.createJWT();
 
-    await logUserOperation(user?.id, req, 'LOGIN', 'Success');
+    await logUserOperation(user?.id, req, "LOGIN", "Success");
+    const now = new Date().toLocaleString("en-US", {
+      month: "long", // e.g. "October"
+      day: "numeric", // e.g. "28"
+      year: "numeric", // e.g. "2025"
+      hour: "numeric", // e.g. "10"
+      minute: "2-digit", // e.g. "43"
+      hour12: true, // 12-hour format with AM/PM
+    });
 
-    console.log("USER: ", User)
+    const emailOptions: EmailOptions = {
+      to: email,
+      subject: "Successful Login Notification",
+      html: `
+        <p>Dear ${user.firstName},</p>
+
+    <p>
+      You have successfully signed in to your Chain Co-op account on 
+      <strong>${now}</strong>.
+    </p>
+
+    <p>
+      If you did not perform this action, please contact our support team immediately 
+      at <a href="mailto:info@chaincoop.org">info@chaincoop.org</a> as your account may have been compromised.
+    </p>
+
+    <p>Kind regards,<br/>The Chain Co-op Team</p>
+
+    <p>
+      If you experience any issues, you can also reach us via WhatsApp at 
+      <strong>+234 8093227696</strong>.
+    </p>
+      `,
+    };
+    await sendEmail(emailOptions);
+
+    console.log("USER: ", User);
 
     console.log(user);
     res.status(StatusCodes.OK).json({
@@ -278,9 +317,10 @@ const login = async (req: Request, res: Response) => {
       membershipStatus: user.membershipStatus,
       //@ts-ignore
       membershipPaymentStatus: user.membershipPaymentStatus,
+      isTwoFAEnabled: user.twoFactorEnabled,
     });
   } catch (error) {
-    await logUserOperation(user?.id, req, 'LOGIN', 'Failure');
+    await logUserOperation(user?.id, req, "LOGIN", "Failure");
     throw error;
   }
 };
@@ -298,34 +338,32 @@ const getUser = async (req: Request, res: Response) => {
   const isBitcoinWalletActivated = bitcoinWallet ? true : false;
   const isWalletActivated = web3wallet ? true : false;
 
-  res
-    .status(StatusCodes.OK)
-    .json({
-      ...user?.toObject(),
-      isPinCreated,
-      isWalletActivated,
-      isBitcoinWalletActivated,
-    });
+  res.status(StatusCodes.OK).json({
+    ...user?.toObject(),
+    isPinCreated,
+    isWalletActivated,
+    isBitcoinWalletActivated,
+  });
 };
 
 // Send OTP for password reset
 const forgetPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
   if (!email) {
-    throw new BadRequestError('Email is required');
+    throw new BadRequestError("Email is required");
   }
-  const user = await findUser('email', email);
+  const user = await findUser("email", email);
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
   await generateAndSendOtp({
     email,
-    message: 'Your OTP to reset password is',
-    subject: 'Password Reset',
+    message: "Your OTP to reset password is",
+    subject: "Password Reset",
   });
   res
     .status(StatusCodes.OK)
-    .json({ msg: 'Password reset OTP sent to your email' });
+    .json({ msg: "Password reset OTP sent to your email" });
 };
 
 // Reset password after OTP validation
@@ -334,26 +372,24 @@ const resetPassword = async (req: Request, res: Response) => {
 
   try {
     const {
-      // otp, 
+      // otp,
       password,
       confirmPassword,
-      email
+      email,
     } = req.body;
-
-    user = await findUser('email', email);
+    
+    user = await findUser("email", email);
     if (!user) {
-      throw new NotFoundError('User with this email not found');
+      throw new NotFoundError("User with this email not found");
     }
-
 
     // const isVerified = await findOtp(email, otp);
     // if (!isVerified) {
     //   throw new BadRequestError("Invalid otp provided");
     // }
 
-
     if (password !== confirmPassword) {
-      throw new BadRequestError('Password and confirm password do not match');
+      throw new BadRequestError("Password and confirm password do not match");
     }
 
     await resetUserPassword(user, password);
@@ -361,9 +397,8 @@ const resetPassword = async (req: Request, res: Response) => {
     // await deleteOtp(email);
     await logUserOperation(user?.id, req, "RESET_PASSWORD", "Success");
     res.status(StatusCodes.OK).json({ msg: "Password reset successful" });
-
   } catch (error) {
-    await logUserOperation(user?.id, req, 'RESET_PASSWORD', 'Failure');
+    await logUserOperation(user?.id, req, "RESET_PASSWORD", "Failure");
     throw error;
   }
 };
@@ -375,13 +410,13 @@ const changePhoneNumber = async (req: Request, res: Response) => {
   try {
     const {
       userId,
-      // otp, 
-      newPhoneNumber
+      // otp,
+      newPhoneNumber,
     } = req.body;
 
-    user = await findUser('id', userId);
+    user = await findUser("id", userId);
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError("User not found");
     }
 
     // const isVerified = await findOtp(user.email, otp);
@@ -389,23 +424,56 @@ const changePhoneNumber = async (req: Request, res: Response) => {
     //   throw new BadRequestError("Invalid OTP provided");
     // }
 
-
     user.phoneNumber = newPhoneNumber;
     await user.save();
-
 
     // await deleteOtp(user.email);
     await logUserOperation(user.id, req, "CHANGE_PHONE_NUMBER", "Success");
 
-
     res.status(StatusCodes.OK).json({
-      msg: 'Phone number successfully updated',
+      msg: "Phone number successfully updated",
     });
   } catch (error) {
-    await logUserOperation(user?.id, req, 'CHANGE_PHONE_NUMBER', 'Failure');
+    await logUserOperation(user?.id, req, "CHANGE_PHONE_NUMBER", "Failure");
     throw error;
   }
 };
+
+const editProfile = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId 
+    const updatedData = req.body; // contains all form fields
+
+    // Prevent sensitive fields from being updated
+    const restrictedFields = ["password", "email", "role"];
+    for (const field of restrictedFields) {
+      if (updatedData[field]) delete updatedData[field];
+    }
+
+    const user = await findUser("id", userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Merge all form fields (including prefilled ones)
+    Object.assign(user, updatedData);
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Edit Profile Error:", error);
+    res.status(500).json({
+      message: "An error occurred while updating your profile",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
+
 
 export {
   register,
@@ -418,4 +486,5 @@ export {
   resetPassword,
   changePhoneNumber,
   getUser,
+  editProfile
 };
