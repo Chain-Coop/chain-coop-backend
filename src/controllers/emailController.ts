@@ -19,26 +19,66 @@ const SKIP_DB = (process.env.SKIP_DB || 'false') === 'true';
 const individualSchema = Joi.object({
   recipient: Joi.string().email().required(),
   template: Joi.string()
-    .valid('kyc_reminder', 'activation_reminder', 'reengagement')
+    .valid('kyc_reminder', 'activation_reminder', 'reengagement', 'newsletter')
     .required(),
-  variables: Joi.object().default({}),
+  variables: Joi.alternatives()
+    .conditional('template', {
+      is: 'newsletter',
+      then: Joi.object({
+        subject: Joi.string().required(),
+        content: Joi.string().required(),
+        isHtml: Joi.boolean().optional(),
+        imageUrls: Joi.array().items(Joi.string().uri()).optional(),
+        preheader: Joi.string().optional(),
+      }).unknown(true),
+      otherwise: Joi.object().default({}),
+    }),
 });
 
 const bulkSchema = Joi.object({
   recipients: Joi.array().items(Joi.string().email()).min(1).required(),
   template: Joi.string()
-    .valid('kyc_reminder', 'activation_reminder', 'reengagement')
+    .valid('kyc_reminder', 'activation_reminder', 'reengagement', 'newsletter')
     .required(),
-  variables: Joi.object().default({}),
+  variables: Joi.alternatives()
+    .conditional('template', {
+      is: 'newsletter',
+      then: Joi.object({
+        subject: Joi.string().required(),
+        content: Joi.string().required(),
+        isHtml: Joi.boolean().optional(),
+        imageUrls: Joi.array().items(Joi.string().uri()).optional(),
+        preheader: Joi.string().optional(),
+      }).unknown(true),
+      otherwise: Joi.object().default({}),
+    }),
 });
 
 const campaignSchema = Joi.object({
   segment: Joi.string().required(),
   template: Joi.string()
-    .valid('kyc_reminder', 'activation_reminder', 'reengagement')
+    .valid('kyc_reminder', 'activation_reminder', 'reengagement', 'newsletter')
     .required(),
-  variables: Joi.object().default({}),
+  variables: Joi.alternatives()
+    .conditional('template', {
+      is: 'newsletter',
+      then: Joi.object({
+        subject: Joi.string().required(),
+        content: Joi.string().required(),
+        isHtml: Joi.boolean().optional(),
+        imageUrls: Joi.array().items(Joi.string().uri()).optional(),
+        preheader: Joi.string().optional(),
+      }).unknown(true),
+      otherwise: Joi.object().default({}),
+    }),
 });
+
+const rawSchema = Joi.object({
+  recipient: Joi.string().email().required(),
+  subject: Joi.string().required(),
+  html: Joi.string().optional(),
+  text: Joi.string().optional(),
+}).or('html', 'text');
 
 export async function sendIndividualEmail(req: Request, res: Response) {
   const { error, value } = individualSchema.validate(req.body);
@@ -189,6 +229,37 @@ export async function sendCampaignEmails(req: Request, res: Response) {
     message: 'Campaign emails queued successfully',
     data: { segmentName: segment, totalUsers: users.length, emailsQueued: successCount },
   });
+}
+
+export async function sendRawEmail(req: Request, res: Response) {
+  const { error, value } = rawSchema.validate(req.body);
+  if (error) {
+    return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: error.message });
+  }
+  const { recipient, subject, html, text } = value;
+  const result = await EmailService.sendRawEmail({ recipient, subject, html, text });
+
+  try {
+    const EmailJob = getEmailJobModel();
+    if (EmailJob) await EmailJob.create({
+      jobId: result.messageId,
+      type: 'individual',
+      status: 'completed',
+      emailType: 'RAW',
+      recipients: [{ email: recipient, status: 'completed' }],
+      totalCount: 1,
+      successCount: 1,
+      failureCount: 0,
+      scheduledAt: new Date(),
+      completedAt: new Date(),
+      retryCount: 0,
+      maxRetries: Number(process.env.EMAIL_JOB_MAX_RETRIES || 3),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  } catch (_err) {}
+
+  return res.status(StatusCodes.OK).json({ success: true, message: 'Email sent successfully', data: result });
 }
 
 export async function getEmailStats(_req: Request, res: Response) {

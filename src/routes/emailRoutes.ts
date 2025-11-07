@@ -9,6 +9,7 @@ import {
   retryFailedJobs,
   getUserSegments,
   testEmailService,
+  sendRawEmail,
 } from '../controllers/emailController';
 
 const router = Router();
@@ -26,7 +27,7 @@ const router = Router();
  *           format: email
  *         template:
  *           type: string
- *           enum: [kyc_reminder, activation_reminder, reengagement]
+ *           enum: [kyc_reminder, activation_reminder, reengagement, newsletter]
  *         variables:
  *           type: object
  *           additionalProperties: true
@@ -41,7 +42,7 @@ const router = Router();
  *             format: email
  *         template:
  *           type: string
- *           enum: [kyc_reminder, activation_reminder, reengagement]
+ *           enum: [kyc_reminder, activation_reminder, reengagement, newsletter]
  *         variables:
  *           type: object
  *           additionalProperties: true
@@ -53,7 +54,7 @@ const router = Router();
  *           type: string
  *         template:
  *           type: string
- *           enum: [kyc_reminder, activation_reminder, reengagement]
+ *           enum: [kyc_reminder, activation_reminder, reengagement, newsletter]
  *         variables:
  *           type: object
  *           additionalProperties: true
@@ -67,6 +68,21 @@ const router = Router();
  *         data:
  *           type: object
  *           additionalProperties: true
+ *     RawEmailRequest:
+ *       type: object
+ *       required: [recipient, subject]
+ *       properties:
+ *         recipient:
+ *           type: string
+ *           format: email
+ *         subject:
+ *           type: string
+ *         html:
+ *           type: string
+ *           description: Raw HTML content for the email body
+ *         text:
+ *           type: string
+ *           description: Plain text content; used if html not provided
  */
 
 // Base API limiter
@@ -117,6 +133,30 @@ router.use(apiLimiter);
  *         description: Validation error
  */
 router.post('/send', emailLimiter, sendIndividualEmail);
+
+/**
+ * @openapi
+ * /email/send/raw:
+ *   post:
+ *     summary: Send a raw email with any subject and content
+ *     tags: [Email]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RawEmailRequest'
+ *     responses:
+ *       '200':
+ *         description: Email sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '400':
+ *         description: Validation error
+ */
+router.post('/send/raw', emailLimiter, sendRawEmail);
 
 /**
  * @openapi
