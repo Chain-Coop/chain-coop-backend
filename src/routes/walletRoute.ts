@@ -5,7 +5,6 @@ import {
   // paystackWebhook,
   setWalletPin,
   uploadReceipt,
-  fundWallet,
   initiatePayment,
   verifyPayment,
   ChangePin,
@@ -22,9 +21,11 @@ const router = Router();
 
 /**
  * @swagger
- * /fund-wallet:
+ * /wallet/fund-wallet:
  *   post:
  *     summary: Initiate wallet funding payment
+ *     security:
+ *       - bearerAuth: [] 
  *     description: Initiates a payment for wallet funding via Paystack.
  *     operationId: initiatePayment
  *     tags:
@@ -60,40 +61,14 @@ const router = Router();
  *         description: Internal server error
  */
 
-/**
- * @swagger
- * /verify-payment:
- *   post:
- *     summary: Verify payment for wallet funding
- *     description: Verifies a payment transaction after the user completes the payment.
- *     operationId: verifyPayment
- *     tags:
- *       - Wallet
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               reference:
- *                 type: string
- *                 description: The reference ID from Paystack after payment.
- *                 example: "PAYSTACK_REF_123"
- *     responses:
- *       200:
- *         description: Payment verified and wallet topped up successfully
- *       400:
- *         description: Bad request
- *       500:
- *         description: Internal server error
- */
 
 /**
  * @swagger
- * /verify-account-details:
+ * /wallet/verify-account-details:
  *   post:
  *     summary: Verify bank account details
+ *     security:
+ *       - bearerAuth: []
  *     description: Verifies the bank account details (account number and bank code).
  *     operationId: verifyAccountDetailsHandler
  *     tags:
@@ -130,9 +105,11 @@ const router = Router();
 
 /**
  * @swagger
- * /balance:
+ * /wallet/balance:
  *   get:
  *     summary: Get wallet balance
+ *     security:
+ *       - bearerAuth: []
  *     description: Fetches the current balance of the authenticated user's wallet.
  *     operationId: getWalletBalance
  *     tags:
@@ -156,9 +133,11 @@ const router = Router();
 
 /**
  * @swagger
- * /history:
+ * /wallet/history:
  *   get:
  *     summary: Get wallet transaction history
+ *     security:
+ *       - bearerAuth: []
  *     description: Fetches the transaction history for the authenticated user's wallet.
  *     operationId: getWalletHistory
  *     tags:
@@ -192,7 +171,7 @@ const router = Router();
  * /wallet/create-pin:
  *   post:
  *     summary: Create wallet pin
-  *     security:
+ *     security:
  *       - bearerAuth: []
  *     description: Sets a pin for the authenticated user's wallet.
  *     operationId: setWalletPin
@@ -229,7 +208,6 @@ router.post("/generate-pin-otp", authorize, GeneratePinOtp);
 router.post("/change-pin", authorize, ChangePin);
 router.post("/validate-otp", authorize, validateOtp);
 
-router.post("/fund-wallet", authorize, fundWallet);
 
 router
 .route("/cards")
