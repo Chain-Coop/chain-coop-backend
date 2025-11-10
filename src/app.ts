@@ -51,9 +51,13 @@ import periodicSaving from './routes/web3/chaincoopSaving.2.0/periodicSavingRout
 import cashwyre from './routes/web3/cashWyre/cashWyre';
 import lndRoutes from './routes/web3/lnd/lndRoutes';
 import paystackCashWyre from './routes/web3/payStackCashwyre/payStackCashwyre';
+import onramp from './routes/web3/onramp/onrampRoute';
 //import
 import logger from './utils/logger';
-import { VantWebhookController, webhookController } from './controllers/webhookController';
+import {
+  VantWebhookController,
+  webhookController,
+} from './controllers/webhookController';
 import { authorize } from './middlewares/authorization';
 import { addtoLimit, getDailyTotal } from './services/dailyServices';
 import { tryRecurringCircleService } from './services/savingCircle.services';
@@ -174,6 +178,7 @@ app.use('/api/v1/web3/v2/periodicSaving', periodicSaving);
 app.use('/api/v1/web3/cashwyre', cashwyre);
 app.use('/api/v1/web3/lnd', lndRoutes);
 app.use('/api/v1/web3/paystack', paystackCashWyre);
+app.use('/api/v1/web3/onramp', onramp);
 
 //web3_Saving_circle
 
