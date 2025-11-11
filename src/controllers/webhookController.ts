@@ -183,7 +183,7 @@ export const VantWebhookController = async (req: Request, res: Response) => {
   const data = req.body;
   console.log('Vant Webhook Data:', JSON.stringify(data, null, 2));
 
-  res.status(StatusCodes.OK);
+  res.status(StatusCodes.OK).json({ received: true }); 
 
   try {
     if (data.event === 'account_creation') {

@@ -51,6 +51,7 @@ export const createReferralRecord = async (
 
 /**
  * Process referral reward when referred user funds their wallet for the FIRST time
+ * This marks the referral as 'claimable' instead of automatically crediting
  */
 export const processReferralRewardOnWalletFunding = async (
   userId: string,
@@ -92,69 +93,231 @@ export const processReferralRewardOnWalletFunding = async (
     };
   }
 
-  // Start a session for transaction to ensure atomicity
+  try {
+    referral.status = 'claimable';
+    referral.depositAmount = fundingAmount;
+    referral.completedAt = new Date();
+    await referral.save();
+
+    user.hasCompletedFirstFunding = true;
+    await user.save();
+
+    return {
+      rewardProcessed: true,
+      message: `Referral reward is now claimable by referrer`,
+    };
+  } catch (error) {
+    console.error('Error processing referral for claiming:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get claimable referrals for a user
+ */
+export const getClaimableReferrals = async (userId: string) => {
+  const claimableReferrals = await Referral.find({
+    referrer: userId,
+    status: 'claimable',
+  })
+    .populate('referee', 'username email createdAt')
+    .sort({ completedAt: -1 });
+
+  const totalClaimableAmount = claimableReferrals.reduce(
+    (sum, ref) => sum + ref.rewardAmount,
+    0
+  );
+
+  return {
+    claimableReferrals: claimableReferrals.map((ref) => ({
+      id: ref._id,
+      referee: ref.referee,
+      rewardAmount: ref.rewardAmount,
+      fundingAmount: ref.depositAmount,
+      completedAt: ref.completedAt,
+    })),
+    totalClaimableAmount,
+    count: claimableReferrals.length,
+  };
+};
+
+/**
+ * Claim a single referral reward
+ */
+export const claimSingleReferralReward = async (
+  referrerId: string,
+  referralId: string
+) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+    // Find the referral
+    const referral = await Referral.findOne({
+      _id: referralId,
+      referrer: referrerId,
+      status: 'claimable',
+    }).session(session).populate('referee', 'username');
+
+    if (!referral) {
+      throw new NotFoundError('Claimable referral not found');
+    }
+
     // Find referrer's wallet
-    const referrerWallet = await Wallet.findOne({ user: referral.referrer }).session(session);
+    const referrerWallet = await Wallet.findOne({ user: referrerId }).session(session);
     if (!referrerWallet) {
       throw new NotFoundError('Referrer wallet not found');
     }
 
-    // Update referral status
+    const oldBalance = referrerWallet.balance;
+
     referral.status = 'completed';
-    referral.depositAmount = fundingAmount;
-    referral.completedAt = new Date();
     await referral.save({ session });
 
     // Credit referrer's wallet
-    referrerWallet.balance += REFERRAL_REWARD_AMOUNT;
+    const newBalance = oldBalance + referral.rewardAmount; 
+    referrerWallet.balance = newBalance; 
+    
     if ('totalEarned' in referrerWallet) {
-      (referrerWallet as any).totalEarned += REFERRAL_REWARD_AMOUNT;
+      (referrerWallet as any).totalEarned = ((referrerWallet as any).totalEarned || 0) + referral.rewardAmount;
     }
     await referrerWallet.save({ session });
 
-    // Create wallet history entry for referrer
+    // Create wallet history entry
     await WalletHistory.create(
       [
         {
-          user: referral.referrer,
-          amount: REFERRAL_REWARD_AMOUNT,
+          user: referrerId,
+          amount: referral.rewardAmount,
           type: 'credit',
-          label: `Referral reward - ${user.username} funded their wallet`,  
-          ref: `REF-${referral._id}`,
-          balanceAfter: referrerWallet.balance,
+          label: `Referral reward claimed - ${(referral.referee as any).username} funded wallet`,
+          ref: `REF-CLAIM-${referral._id}`,
+          balanceAfter: newBalance,
         },
       ],
       { session }
     );
 
     // Update referrer stats
-    await User.findByIdAndUpdate(  
-      referral.referrer,
+    await User.findByIdAndUpdate(
+      referrerId,
       {
         $inc: {
           completedReferrals: 1,
-          totalReferralRewards: REFERRAL_REWARD_AMOUNT,
+          totalReferralRewards: referral.rewardAmount,
         },
       },
       { session }
     );
 
-    user.hasCompletedFirstFunding = true;
-    await user.save({ session });
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      message: 'Referral reward claimed successfully',
+      rewardAmount: referral.rewardAmount,
+      oldBalance: oldBalance,
+      newBalance: newBalance,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Error claiming referral reward:', error);
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Claim all claimable referral rewards at once
+ */
+export const claimAllReferralRewards = async (referrerId: string) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const claimableReferrals = await Referral.find({
+      referrer: referrerId,
+      status: 'claimable',
+    }).session(session).populate('referee', 'username');
+
+    if (claimableReferrals.length === 0) {
+      throw new BadRequestError('No claimable referrals found');
+    }
+
+    const totalReward = claimableReferrals.reduce(
+      (sum, ref) => sum + ref.rewardAmount,
+      0
+    );
+
+    const referrerWallet = await Wallet.findOne({ user: referrerId }).session(session);
+    if (!referrerWallet) {
+      throw new NotFoundError('Referrer wallet not found');
+    }
+
+    const oldBalance = referrerWallet.balance;
+
+    await Referral.updateMany(
+      {
+        referrer: referrerId,
+        status: 'claimable',
+      },
+      {
+        $set: { status: 'completed' },
+      },
+      { session }
+    );
+
+    // Credit referrer's wallet
+    const newBalance = oldBalance + totalReward; 
+    referrerWallet.balance = newBalance; 
+    
+    if ('totalEarned' in referrerWallet) {
+      (referrerWallet as any).totalEarned = ((referrerWallet as any).totalEarned || 0) + totalReward;
+    }
+    await referrerWallet.save({ session });
+
+    // Create wallet history entries for each referral claimed
+    const historyEntries = claimableReferrals.map((ref, index) => {
+      const progressiveBalance = oldBalance + ((index + 1) * ref.rewardAmount);
+      
+      return {
+        user: referrerId,
+        amount: ref.rewardAmount,
+        type: 'credit',
+        label: `Referral reward - ${(ref.referee as any).username}`,
+        ref: `REF-CLAIM-${ref._id}`,
+        balanceAfter: progressiveBalance, 
+      };
+    });
+
+    await WalletHistory.insertMany(historyEntries, { session });
+
+    // Update referrer stats
+    await User.findByIdAndUpdate(
+      referrerId,
+      {
+        $inc: {
+          completedReferrals: claimableReferrals.length,
+          totalReferralRewards: totalReward,
+        },
+      },
+      { session }
+    );
 
     await session.commitTransaction();
 
     return {
-      rewardProcessed: true,
-      message: `Referral reward of ${REFERRAL_REWARD_AMOUNT} credited to referrer`,
+      success: true,
+      message: 'All referral rewards claimed successfully',
+      totalRewardAmount: totalReward,
+      claimedCount: claimableReferrals.length,
+      oldBalance: oldBalance,
+      newBalance: newBalance,
     };
   } catch (error) {
     await session.abortTransaction();
-    console.error('Error processing referral reward:', error);
+    console.error('Error claiming all referral rewards:', error);
     throw error;
   } finally {
     session.endSession();
@@ -165,7 +328,7 @@ export const processReferralRewardOnWalletFunding = async (
  * Get referral statistics for a user
  */
 export const getUserReferralStats = async (userId: string) => {
-  const user = await User.findById(userId).select(  
+  const user = await User.findById(userId).select(
     'username totalReferrals completedReferrals totalReferralRewards'
   );
 
@@ -182,25 +345,42 @@ export const getUserReferralStats = async (userId: string) => {
     status: 'pending' 
   });
 
+  const claimableCount = await Referral.countDocuments({ 
+    referrer: userId, 
+    status: 'claimable' 
+  });
+
   const completedCount = await Referral.countDocuments({ 
     referrer: userId, 
     status: 'completed' 
   });
 
+  const claimableReferrals = await Referral.find({
+    referrer: userId,
+    status: 'claimable',
+  }).populate('referee', 'username email');
+
+  const totalClaimableAmount = claimableReferrals.reduce(
+    (sum, ref) => sum + ref.rewardAmount,
+    0
+  );
+
   return {
     referralCode: user.username,
-    referralLink: `${process.env.FRONTEND_URL }/sign-up?ref=${user.username}`,
+    referralLink: `${process.env.FRONTEND_URL}/sign-up?ref=${user.username}`,
     totalReferrals: user.totalReferrals,
     pendingReferrals: pendingCount,
+    claimableReferrals: claimableCount,
     completedReferrals: completedCount,
     totalReferralRewards: user.totalReferralRewards,
-    minFundingAmount: REFERRAL_MIN_FUNDING_AMOUNT,  
+    totalClaimableAmount,
+    minFundingAmount: REFERRAL_MIN_FUNDING_AMOUNT,
     referrals: referrals.map((ref) => ({
       id: ref._id,
       referee: ref.referee,
       status: ref.status,
       rewardAmount: ref.rewardAmount,
-      fundingAmount: ref.depositAmount,  
+      fundingAmount: ref.depositAmount,
       createdAt: ref.createdAt,
       completedAt: ref.completedAt,
     })),
@@ -218,7 +398,7 @@ export const getAllReferrals = async (
   const skip = (page - 1) * limit;
   const query: any = {};
   
-  if (status && ['pending', 'completed', 'expired'].includes(status)) {
+  if (status && ['pending', 'claimable', 'completed', 'expired'].includes(status)) {
     query.status = status;
   }
 

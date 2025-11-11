@@ -4,6 +4,9 @@ import {
   getUserReferralStats,
   getAllReferrals,
   validateReferralCode,
+  getClaimableReferrals,
+  claimSingleReferralReward,
+  claimAllReferralRewards,
 } from "../services/referralService";
 import { BadRequestError } from "../errors";
 import { findUser } from "../services/authService";
@@ -171,6 +174,111 @@ export const getReferralCode = async (req: Request, res: Response) => {
       success: false,
       message: "Failed to get referral code",
       error: error instanceof Error ? error.message : "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * Get claimable referrals for the current user
+ * GET /api/v1/referrals/claimable
+ */
+export const getClaimableReferralsController = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    const claimableData = await getClaimableReferrals(userId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Claimable referrals retrieved successfully",
+      data: claimableData,
+    });
+  } catch (error) {
+    console.error("Error fetching claimable referrals:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * Claim a single referral reward
+ * POST /api/v1/referrals/claim/:referralId
+ */
+export const claimSingleReward = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+    const { referralId } = req.params;
+
+    if (!referralId) {
+      throw new BadRequestError("Referral ID is required");
+    }
+
+    const result = await claimSingleReferralReward(userId, referralId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: result.message,
+      data: {
+        rewardAmount: result.rewardAmount,
+        oldBalance: result.oldBalance,
+        newBalance: result.newBalance,
+      },
+    });
+  } catch (error) {
+    console.error("Error claiming referral reward:", error);
+    
+    if (error instanceof BadRequestError || error instanceof Error) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: "Failed to claim referral reward",
+    });
+  }
+};
+
+/**
+ * Claim all available referral rewards
+ * POST /api/v1/referrals/claim-all
+ */
+export const claimAllRewards = async (req: Request, res: Response) => {
+  try {
+    //@ts-ignore
+    const userId = req.user.userId;
+
+    const result = await claimAllReferralRewards(userId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: result.message,
+      data: {
+        totalRewardAmount: result.totalRewardAmount,
+        claimedCount: result.claimedCount,
+        oldBalance: result.oldBalance, 
+        newBalance: result.newBalance,
+      },
+    });
+  } catch (error) {
+    console.error("Error claiming all referral rewards:", error);
+    
+    if (error instanceof BadRequestError || error instanceof Error) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: "Failed to claim all referral rewards",
     });
   }
 };
