@@ -63,7 +63,7 @@ const router = Router();
  *               dateOfBirth:
  *                 type: date
  *                 example: "1990-01-15"
- *               referredBy:
+ *               referredByUsername:
  *                 type: string
  *                 example: jane_smith
  *     responses:

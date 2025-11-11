@@ -4,7 +4,7 @@ export interface IReferral extends Document {
   referrer: mongoose.Types.ObjectId;
   referee: mongoose.Types.ObjectId;
   referralCode: string;
-  status: 'pending' | 'claimable' | 'completed' | 'expired';
+  status: 'pending' | 'completed' | 'expired';
   rewardAmount: number;
   depositAmount: number;
   completedAt?: Date;
@@ -22,7 +22,6 @@ const ReferralSchema: Schema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',  
     required: true,
-    unique: true,
     index: true,
   },
   referralCode: {
@@ -32,7 +31,7 @@ const ReferralSchema: Schema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending',  'claimable' , 'completed', 'expired'],
+    enum: ['pending', 'completed', 'expired'],
     default: 'pending',
     index: true,
   },
