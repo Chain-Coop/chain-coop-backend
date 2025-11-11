@@ -11,7 +11,7 @@ interface CreateUserPayload {
   username: string;
   gender?: "male" | "female";
   dateOfBirth?: Date;
-  referredByUsername?: string; 
+  referredBy?: string; 
   hasCompletedFirstFunding?: boolean;
   totalReferrals?: number;
   completedReferrals?: number;
