@@ -15,7 +15,7 @@ const EmailJobSchema = new Schema(
     jobId: { type: String, required: true, unique: true },
     type: { type: String, enum: ['individual', 'bulk', 'campaign'], required: true },
     status: { type: String, enum: ['pending', 'processing', 'completed', 'failed'], default: 'pending' },
-    emailType: { type: String, enum: ['KYC_REMINDER', 'ACTIVATION_REMINDER', 'REENGAGEMENT'], required: true },
+    emailType: { type: String, enum: ['KYC_REMINDER', 'ACTIVATION_REMINDER', 'REENGAGEMENT', 'NEWSLETTER', 'RAW'], required: true },
     recipients: { type: [RecipientSchema], default: [] },
     criteria: { type: Schema.Types.Mixed },
     totalCount: { type: Number, default: 0 },

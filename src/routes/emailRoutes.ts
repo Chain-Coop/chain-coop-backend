@@ -70,11 +70,24 @@ const router = Router();
  *           additionalProperties: true
  *     RawEmailRequest:
  *       type: object
- *       required: [recipient, subject]
+ *       required: [subject]
  *       properties:
  *         recipient:
  *           type: string
  *           format: email
+ *         recipients:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: email
+ *         segment:
+ *           type: string
+ *           description: Single segment to target
+ *         segments:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Multiple segments to target; overrides recipients when present
  *         subject:
  *           type: string
  *         html:
@@ -83,6 +96,10 @@ const router = Router();
  *         text:
  *           type: string
  *           description: Plain text content; used if html not provided
+ *         scheduledAt:
+ *           type: string
+ *           format: date-time
+ *           description: Schedule time; future values queue as pending job
  */
 
 // Base API limiter
@@ -139,6 +156,8 @@ router.post('/send', emailLimiter, sendIndividualEmail);
  * /email/send/raw:
  *   post:
  *     summary: Send a raw email with any subject and content
+ *     description: |
+ *       Supports sending to direct recipients or resolving recipients from segments. When `segment` or `segments` is provided, any `recipient`/`recipients` are ignored. Optionally accepts `scheduledAt` (ISO date-time); future values queue a pending job instead of sending immediately.
  *     tags: [Email]
  *     requestBody:
  *       required: true
