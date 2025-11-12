@@ -74,38 +74,38 @@ cloudinary.v2.config({
 });
 
 //Check if app is in development or live and generates cron string
-const cronString =
-  process.env.NODE_ENV === 'development' ? '*/3 * * * *' : '0 * * * *';
+// const cronString =
+//   process.env.NODE_ENV === 'development' ? '*/3 * * * *' : '0 * * * *';
 
-cron.schedule(cronString, () => {
-  console.log('Running recurring contributions check...');
-  tryRecurringContributions()
-    .then(() => console.log('Processed recurring contributions.'))
-    .catch((err) => console.error('Error processing contributions:', err));
-});
+// cron.schedule(cronString, () => {
+//   console.log('Running recurring contributions check...');
+//   tryRecurringContributions()
+//     .then(() => console.log('Processed recurring contributions.'))
+//     .catch((err) => console.error('Error processing contributions:', err));
+// });
 
-// Clear pending contributions every day at 12:00 AM
-cron.schedule('* * * * *', () => {
-  console.log('Clearing pending contributions...');
-  clearAllPendingContributionsService()
-    .then(() => console.log('Cleared pending contributions.'))
-    .catch((err) =>
-      console.error('Error clearing pending contributions:', err)
-    );
-});
+// // Clear pending contributions every day at 12:00 AM
+// cron.schedule('* * * * *', () => {
+//   console.log('Clearing pending contributions...');
+//   clearAllPendingContributionsService()
+//     .then(() => console.log('Cleared pending contributions.'))
+//     .catch((err) =>
+//       console.error('Error clearing pending contributions:', err)
+//     );
+// });
 
-cron.schedule('0 0 * * *', () => {
-  tryRecurringCircleService()
-    .then(() => console.log('Processed recurring circles.'))
-    .catch((err) => console.error('Error processing circles:', err));
-});
+// cron.schedule('0 0 * * *', () => {
+//   tryRecurringCircleService()
+//     .then(() => console.log('Processed recurring circles.'))
+//     .catch((err) => console.error('Error processing circles:', err));
+// });
 
-cron.schedule('*/1 * * * *', () => {
-  console.log('Running recurring contributions check...');
-  tryRecurringContributions()
-    .then(() => console.log('Processed recurring contributions.'))
-    .catch((err) => console.error('Error processing contributions:', err));
-});
+// cron.schedule('*/1 * * * *', () => {
+//   console.log('Running recurring contributions check...');
+//   tryRecurringContributions()
+//     .then(() => console.log('Processed recurring contributions.'))
+//     .catch((err) => console.error('Error processing contributions:', err));
+// });
 
 // Middleware
 const app = express();
@@ -131,24 +131,24 @@ app.use((req, _res, next) => {
 
 setupSwagger(app);
 
-const initializeBlockchainServices = async () => {
-  const networks = ['BSC', 'LISK', 'ETHERLINK', 'GNOSIS']; // Your supported networks
+// const initializeBlockchainServices = async () => {
+//   const networks = ['BSC', 'LISK', 'ETHERLINK', 'GNOSIS']; // Your supported networks
 
-  for (const network of networks) {
-    try {
-      console.log(`Initializing periodic saving service for ${network}...`);
-      await periodicSavingService.initialize(network);
-      console.log(
-        `✅ ${network} periodic saving service initialized successfully`
-      );
-    } catch (error) {
-      console.error(
-        `❌ Failed to initialize ${network} periodic saving:`,
-        error
-      );
-    }
-  }
-};
+//   for (const network of networks) {
+//     try {
+//       console.log(`Initializing periodic saving service for ${network}...`);
+//       await periodicSavingService.initialize(network);
+//       console.log(
+//         `✅ ${network} periodic saving service initialized successfully`
+//       );
+//     } catch (error) {
+//       console.error(
+//         `❌ Failed to initialize ${network} periodic saving:`,
+//         error
+//       );
+//     }
+//   }
+// };
 // Routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/news-letter', newsLetterRouter);
@@ -218,16 +218,16 @@ const start = async () => {
   try {
     await ConnectDB(mongoUrl);
     app.listen(port, () => console.log(`App listening on port ${port}!`));
-    initializeBlockchainServices()
-      .then(() =>
-        console.log('🎉 All blockchain services initialization completed')
-      )
-      .catch((error) =>
-        console.error(
-          '⚠️ Some blockchain services failed to initialize:',
-          error
-        )
-      );
+    // initializeBlockchainServices()
+    //   .then(() =>
+    //     console.log('🎉 All blockchain services initialization completed')
+    //   )
+    //   .catch((error) =>
+    //     console.error(
+    //       '⚠️ Some blockchain services failed to initialize:',
+    //       error
+    //     )
+    //   );
   } catch (error) {
     console.error('Failed to start application:', error);
     process.exit(1);
