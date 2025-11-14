@@ -32,7 +32,9 @@ export const initiateOnramp = AsyncHandler(
       return;
     } catch (error) {
       console.error('Error initiating onramp transaction:', error);
-      res.status(500);
+      res
+        .status(500)
+        .json({ message: 'Failed to initiate onramp transaction' });
       return;
     }
   }
@@ -49,7 +51,7 @@ export const processOnrampPayment = AsyncHandler(
       return;
     } catch (error) {
       console.error('Error processing onramp payment:', error);
-      res.status(500);
+      res.status(500).json({ message: 'Failed to process onramp payment' });
       return;
     }
   }
@@ -64,7 +66,7 @@ export const refundOnrampTransaction = AsyncHandler(
       return;
     } catch (error) {
       console.error('Error refunding onramp transaction:', error);
-      res.status(500);
+      res.status(500).json({ message: 'Failed to refund onramp transaction' });
       return;
     }
   }
@@ -84,7 +86,9 @@ export const getUserOnrampTxns = AsyncHandler(
       return;
     } catch (error) {
       console.error('Error fetching user onramp transactions:', error);
-      res.status(500);
+      res
+        .status(500)
+        .json({ message: 'Failed to fetch user onramp transactions' });
       return;
     }
   }
@@ -103,7 +107,7 @@ export const getOnrampTxnById = AsyncHandler(
       return;
     } catch (error) {
       console.error('Error fetching onramp transaction by ID:', error);
-      res.status(500);
+      res.status(500).json({ message: 'Failed to fetch onramp transaction' });
       return;
     }
   }
