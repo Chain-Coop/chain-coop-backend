@@ -125,8 +125,20 @@ export const getReferralConfig = async (req: Request, res: Response) => {
       minFundingAmount: parseFloat(
         process.env.REFERRAL_MIN_FUNDING_AMOUNT || "5000"
       ),
-      currency: process.env.CURRENCY || "NGN",
-      description: "Fund your wallet to earn referral rewards for your referrer"
+      currency: "NGN",
+      requirements: {
+        step1: {
+          title: "Fund Wallet",
+          description: `Referred user must fund their wallet with at least ${parseFloat(process.env.REFERRAL_MIN_FUNDING_AMOUNT || "5000")} ${process.env.CURRENCY || "NGN"}`,
+          status: "pending"
+        },
+        step2: {
+          title: "Create Strict Savings",
+          description: "Referred user must create their first Strict savings plan",
+          status: "pending"
+        }
+      },
+      description: "Complete both requirements to unlock referral rewards"
     };
 
     res.status(StatusCodes.OK).json({

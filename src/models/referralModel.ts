@@ -4,9 +4,12 @@ export interface IReferral extends Document {
   referrer: mongoose.Types.ObjectId;
   referee: mongoose.Types.ObjectId;
   referralCode: string;
-  status: 'pending' | 'claimable' | 'completed' | 'expired';
+  status: 'pending' | 'awaiting_savings' | 'claimable' | 'completed' | 'expired'; 
   rewardAmount: number;
   depositAmount: number;
+  hasCreatedStrictSavings: boolean; 
+  strictSavingsId?: mongoose.Types.ObjectId; 
+  strictSavingsCreatedAt?: Date; 
   completedAt?: Date;
   createdAt: Date;
 }
@@ -32,7 +35,7 @@ const ReferralSchema: Schema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending',  'claimable' , 'completed', 'expired'],
+    enum: ['pending', 'awaiting_savings', 'claimable', 'completed', 'expired'], 
     default: 'pending',
     index: true,
   },
@@ -44,6 +47,18 @@ const ReferralSchema: Schema = new Schema({
   depositAmount: {
     type: Number,
     default: 0,
+  },
+  
+  hasCreatedStrictSavings: {
+    type: Boolean,
+    default: false,
+  },
+  strictSavingsId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contribution',
+  },
+  strictSavingsCreatedAt: {
+    type: Date,
   },
   completedAt: {
     type: Date,

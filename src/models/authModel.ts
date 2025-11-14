@@ -36,6 +36,7 @@ export interface UserDocument extends Document {
   completedReferrals: number; 
   totalReferralRewards: number;
   hasCompletedFirstFunding: boolean; 
+  hasCreatedFirstStrictSavings: boolean;
   createdAt: Date; // added createdAt
   updatedAt: Date; // added updatedAt
   wallet?: WalletDocument;
@@ -119,6 +120,11 @@ const UserSchema = new Schema(
     },
     
     hasCompletedFirstFunding: {
+      type: Boolean,
+      default: false,
+    },
+
+    hasCreatedFirstStrictSavings: {
       type: Boolean,
       default: false,
     },
