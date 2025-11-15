@@ -9,6 +9,7 @@ import { chargeCardService, findWalletService } from "./walletService";
 import logger from "../utils/logger";
 import VantServices from "./vantWalletServices";
 import { VantWallet } from "../models/vantWalletModel";
+import { processReferralRewardOnStrictSavings } from "./referralService";
 
 dotenv.config();
 
@@ -467,7 +468,23 @@ export const verifyContributionPayment = async (reference: string) => {
       });
 
       await contribution.save(); // Ensure the updated status is persisted
-
+      
+      // Check if this is a strict savings contribution for referral
+      if (contribution.savingsType === "Strict") {
+        try {
+          const referralResult = await processReferralRewardOnStrictSavings(
+            String(user._id),
+            String(contribution._id)
+          );
+          
+          if (referralResult?.rewardProcessed) {
+            console.log(`Referral reward now claimable for user ${user._id}: ${referralResult.message}`);
+          }
+        } catch (referralError) {
+          // Log but don't fail the payment verification
+          console.error("Error processing referral for strict savings:", referralError);
+        }
+      }
       return {
         message: "Payment verified successfully",
         data: {

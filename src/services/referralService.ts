@@ -94,8 +94,7 @@ export const processReferralRewardOnWalletFunding = async (
   }
 
   try {
-    // Mark referral as claimable instead of completing it
-    referral.status = 'claimable';
+    referral.status = 'awaiting_savings'; 
     referral.depositAmount = fundingAmount;
     referral.completedAt = new Date();
     await referral.save();
@@ -106,10 +105,68 @@ export const processReferralRewardOnWalletFunding = async (
 
     return {
       rewardProcessed: true,
-      message: `Referral reward is now claimable by referrer`,
+      message: `User has funded wallet. Now awaiting strict savings creation.`, 
     };
   } catch (error) {
     console.error('Error processing referral for claiming:', error);
+    throw error;
+  }
+};
+
+/**
+ * Process referral when referred user creates their first strict savings
+ * This marks the referral as fully 'claimable' after wallet funding requirement
+ */
+export const processReferralRewardOnStrictSavings = async (
+  userId: string,
+  contributionId: string
+): Promise<{ rewardProcessed: boolean; message: string }> => {
+  const user = await User.findById(userId);
+  
+  if (!user || !user.referredByUsername) {
+    return {
+      rewardProcessed: false,
+      message: 'User was not referred',
+    };
+  }
+
+  if (user.hasCreatedFirstStrictSavings) {
+    return {
+      rewardProcessed: false,
+      message: 'User has already created their first strict savings',
+    };
+  }
+
+  // Find referral that has passed the wallet funding stage
+  const referral = await Referral.findOne({
+    referee: userId,
+    status: 'awaiting_savings', // Must be awaiting strict savings creation
+  });
+
+  if (!referral) {
+    return {
+      rewardProcessed: false,
+      message: 'No referral awaiting strict savings found',
+    };
+  }
+
+  try {
+    // Mark referral as fully claimable
+    referral.status = 'claimable';
+    referral.hasCreatedStrictSavings = true;
+    referral.strictSavingsId = new mongoose.Types.ObjectId(contributionId);
+    referral.strictSavingsCreatedAt = new Date();
+    await referral.save();
+
+    user.hasCreatedFirstStrictSavings = true;
+    await user.save();
+
+    return {
+      rewardProcessed: true,
+      message: 'Referral reward is now fully claimable by referrer',
+    };
+  } catch (error) {
+    console.error('Error processing referral for strict savings:', error);
     throw error;
   }
 };
@@ -125,6 +182,14 @@ export const getClaimableReferrals = async (userId: string) => {
     .populate('referee', 'username email createdAt')
     .sort({ completedAt: -1 });
 
+  // Also get referrals awaiting savings for display purposes
+  const awaitingSavings = await Referral.find({
+    referrer: userId,
+    status: 'awaiting_savings',
+  })
+    .populate('referee', 'username email createdAt')
+    .sort({ completedAt: -1 });
+
   const totalClaimableAmount = claimableReferrals.reduce(
     (sum, ref) => sum + ref.rewardAmount,
     0
@@ -136,10 +201,20 @@ export const getClaimableReferrals = async (userId: string) => {
       referee: ref.referee,
       rewardAmount: ref.rewardAmount,
       fundingAmount: ref.depositAmount,
+      hasCreatedStrictSavings: ref.hasCreatedStrictSavings,
+      completedAt: ref.completedAt,
+    })),
+    awaitingSavingsReferrals: awaitingSavings.map((ref) => ({
+      id: ref._id,
+      referee: ref.referee,
+      rewardAmount: ref.rewardAmount,
+      fundingAmount: ref.depositAmount,
+      hasCreatedStrictSavings: ref.hasCreatedStrictSavings,
       completedAt: ref.completedAt,
     })),
     totalClaimableAmount,
     count: claimableReferrals.length,
+    awaitingCount: awaitingSavings.length,
   };
 };
 
@@ -330,12 +405,17 @@ export const getUserReferralStats = async (userId: string) => {
   }
 
   const referrals = await Referral.find({ referrer: userId })
-    .populate('referee', 'username email createdAt hasCompletedFirstFunding')
+    .populate('referee', 'username email createdAt hasCompletedFirstFunding hasCreatedFirstStrictSavings')
     .sort({ createdAt: -1 });
 
   const pendingCount = await Referral.countDocuments({ 
     referrer: userId, 
     status: 'pending' 
+  });
+
+  const awaitingSavingsCount = await Referral.countDocuments({ 
+    referrer: userId, 
+    status: 'awaiting_savings' 
   });
 
   const claimableCount = await Referral.countDocuments({ 
@@ -363,6 +443,7 @@ export const getUserReferralStats = async (userId: string) => {
     referralLink: `${process.env.FRONTEND_URL}/sign-up?ref=${user.username}`,
     totalReferrals: user.totalReferrals,
     pendingReferrals: pendingCount,
+    awaitingSavingsReferrals: awaitingSavingsCount, 
     claimableReferrals: claimableCount,
     completedReferrals: completedCount,
     totalReferralRewards: user.totalReferralRewards,
@@ -374,6 +455,8 @@ export const getUserReferralStats = async (userId: string) => {
       status: ref.status,
       rewardAmount: ref.rewardAmount,
       fundingAmount: ref.depositAmount,
+      hasCreatedStrictSavings: ref.hasCreatedStrictSavings, 
+      strictSavingsCreatedAt: ref.strictSavingsCreatedAt, 
       createdAt: ref.createdAt,
       completedAt: ref.completedAt,
     })),
